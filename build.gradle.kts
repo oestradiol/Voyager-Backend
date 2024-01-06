@@ -47,7 +47,11 @@ dependencies {
     implementation("io.ktor:ktor-client-cio:$ktor_version")
     
     // github java api
-    implementation("org.kohsuke:github-api:1.318")
+    implementation("org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r")
+    
+    // docker api for deploying
+    implementation("com.github.docker-java:docker-java:3.3.4")
+    implementation("com.github.docker-java:docker-java-transport-httpclient5:3.3.4")
     
     testImplementation("io.ktor:ktor-server-tests-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")

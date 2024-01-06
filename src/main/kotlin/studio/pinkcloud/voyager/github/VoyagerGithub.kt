@@ -1,22 +1,9 @@
 package studio.pinkcloud.voyager.github
 
-import org.kohsuke.github.GitHub
-import org.kohsuke.github.GitHubBuilder
+import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider
 
 object VoyagerGithub {
     
-    private val github: GitHub by lazy { 
-        GitHubBuilder()
-            .withOAuthToken(""/* */, "PinkCloudStudios")
-            .build()
-    }
-
-    /**
-     * @param repoURL The URL of the repo to clone. Ex. PinkCloudStudios/voyager-backend
-     */
-    fun cloneRepo(repoURL: String) {
-        github.getRepository(repoURL).getDirectoryContent("/").forEach { 
-            println("${it.name}/${it.path}/${it.type}")
-        }
-    }
+    val credentialsProvider = UsernamePasswordCredentialsProvider("PinkCloudStudios", "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")
+    
 }
