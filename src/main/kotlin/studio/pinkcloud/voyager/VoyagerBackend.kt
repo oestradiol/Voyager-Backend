@@ -14,7 +14,7 @@ import studio.pinkcloud.voyager.supabase.createVoyagerSupabaseClient
 fun main() {
     embeddedServer(
         Netty,
-        port = 8080,
+        port = 8765,
         host = "0.0.0.0",
         module = Application::init
     ).start(wait = true)

@@ -10,7 +10,7 @@ object DockerManager {
     private val dockerConfig: DefaultDockerClientConfig by lazy { 
         DefaultDockerClientConfig
             .createDefaultConfigBuilder()
-            .withDockerHost("npipe://./pipe/docker_engine")
+            .withDockerHost("unix:///var/run/docker.sock")
             .build()
     }
     
