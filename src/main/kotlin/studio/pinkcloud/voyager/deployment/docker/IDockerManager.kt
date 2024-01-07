@@ -28,6 +28,14 @@ interface IDockerManager {
      * @param dockerContainer The docker container id.
      */
     fun stopContainerAndDelete(dockerContainer: String)
+    
+    /**
+     * Gets the logs of the container with the given [dockerContainer].
+     * 
+     * @param dockerContainer The docker container id.
+     * @return The logs of the container.
+     */
+    fun getLogs(dockerContainer: String): String
 
     companion object {
         /**

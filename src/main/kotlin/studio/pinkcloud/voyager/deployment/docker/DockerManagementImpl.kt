@@ -7,6 +7,7 @@ import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.github.dockerjava.transport.DockerHttpClient
+import java.io.Closeable
 import java.io.File
 
 class DockerManagementImpl : IDockerManager {
@@ -82,5 +83,35 @@ class DockerManagementImpl : IDockerManager {
         dockerClient
             .removeContainerCmd(dockerContainer)
             .exec()
+    }
+
+    override fun getLogs(dockerContainer: String): String {
+        return dockerClient
+            .logContainerCmd(dockerContainer)
+            .withStdOut(true)
+            .withStdErr(true)
+            .exec(object : ResultCallback<Frame> {
+                override fun close() {
+                    
+                }
+
+                override fun onStart(p0: Closeable?) {
+                    
+                }
+
+                override fun onError(p0: Throwable?) {
+                    p0?.printStackTrace()
+                }
+
+                override fun onComplete() {
+                    
+                }
+
+                override fun onNext(p0: Frame?) {
+                    
+                }
+
+            })
+            .toString()
     }
 }

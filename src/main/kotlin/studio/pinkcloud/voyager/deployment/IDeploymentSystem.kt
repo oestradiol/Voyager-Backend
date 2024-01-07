@@ -5,12 +5,13 @@ import java.io.File
 
 interface IDeploymentSystem {
     fun load()
-    suspend fun deploy(deploymentKey: String, dockerFile: File)
-    fun stop(deployment: Deployment)
-    fun delete(deployment: Deployment)
+    suspend fun deploy(deploymentKey: String, dockerFile: File): String
+    suspend fun stop(deployment: Deployment)
+    suspend fun delete(deployment: Deployment)
     fun getLogs(deployment: Deployment): String
     fun getCaddyFileContent(): String
     fun deploymentExists(deploymentKey: String): Boolean
+    fun get(deploymentKey: String): Deployment?
     
     companion object {
         /**

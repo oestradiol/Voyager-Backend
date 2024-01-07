@@ -19,8 +19,6 @@ import java.io.File
 import kotlin.random.Random
 
 fun Application.configureDeployment() {
-    val httpClient = HttpClient(CIO)
-    
     routing {
         post("/api/deployments/preview") {
             
@@ -102,7 +100,91 @@ fun Application.configureDeployment() {
                 return@post
             }
             
-            IDeploymentSystem.INSTANCE.deploy(deploymentKey, dockerFile)
+            val containerId = IDeploymentSystem.INSTANCE.deploy(deploymentKey, dockerFile)
+            
+            call.respond(
+                HttpStatusCode.OK,
+                VoyagerResponse(
+                    success = true,
+                    message = "Deployment created",
+                    data = containerId
+                )
+            )
+        }
+        
+        get("/api/deployments/preview/{preview}/logs") {
+            val previewId = call.parameters["preview"]
+            
+            if (previewId == null) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    VoyagerResponse(
+                        success = false,
+                        message = "No preview id provided"
+                    )
+                )
+                return@get
+            }
+            
+            val deployment = IDeploymentSystem.INSTANCE.get(previewId)
+            
+            if (deployment == null) {
+                call.respond(
+                    HttpStatusCode.NotFound,
+                    VoyagerResponse(
+                        success = false,
+                        message = "Deployment not found"
+                    )
+                )
+                return@get
+            }
+            
+            call.respond(
+                HttpStatusCode.OK,
+                VoyagerResponse(
+                    success = true,
+                    message = "Logs retrieved",
+                    data = IDeploymentSystem.INSTANCE.getLogs(deployment)
+                )
+            )
+        }
+        
+        post("/api/deployments/preview/{preview_id}/stop") {
+            val previewId = call.parameters["preview_id"]
+            
+            if (previewId == null) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    VoyagerResponse(
+                        success = false,
+                        message = "No preview id provided"
+                    )
+                )
+                return@post
+            }
+            
+            val deployment = IDeploymentSystem.INSTANCE.get(previewId)
+            
+            if (deployment == null) {
+                call.respond(
+                    HttpStatusCode.NotFound,
+                    VoyagerResponse(
+                        success = false,
+                        message = "Deployment not found"
+                    )
+                )
+                return@post
+            }
+            
+            IDeploymentSystem.INSTANCE.stop(deployment)
+            
+            call.respond(
+                HttpStatusCode.OK,
+                VoyagerResponse(
+                    success = true,
+                    message = "Deployment stopped"
+                )
+            )
         }
     }
 }

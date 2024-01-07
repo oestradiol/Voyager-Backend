@@ -29,7 +29,10 @@ class CloudflareManagerImpl : ICloudflareManager {
         }
     }
 
-    override fun removeDnsRecord(deploymentKey: String) {
-        TODO("Not yet implemented")
+    override suspend fun removeDnsRecord(deploymentKey: String) {
+        httpClient.delete("https://api.cloudflare.com/client/v4/zones/3b8a859109d691942925b0eb9ceb059e/dns_records/${deploymentKey}-preview") {
+            headers["Content-Type"] = "application/json"
+            headers["Authorization"] = Env.CLOUDFLARE_TOKEN
+        }
     }
 }

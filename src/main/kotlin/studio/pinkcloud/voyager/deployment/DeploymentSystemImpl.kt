@@ -40,7 +40,7 @@ class DeploymentSystemImpl : IDeploymentSystem {
         )
     }
 
-    override suspend fun deploy(deploymentKey: String, dockerFile: File) {
+    override suspend fun deploy(deploymentKey: String, dockerFile: File): String {
         // call deployment functions in IDockerManager [Done]
         // notify discord bot. 
         // add to caddy. [Done]
@@ -69,21 +69,34 @@ class DeploymentSystemImpl : IDeploymentSystem {
 
         // notify discord bot.
         IDiscordManager.INSTANCE.sendDeploymentMessage(deploymentKey, port, containerId)
+        
+        return containerId
     }
 
-    override fun stop(deployment: Deployment) {
+    override suspend fun stop(deployment: Deployment) {
         // stop docker container.
-        // TODO
+        IDockerManager.INSTANCE.stopContainerAndDelete(deployment.dockerContainer)
+        delete(deployment)
     }
 
-    override fun delete(deployment: Deployment) {
+    override suspend fun delete(deployment: Deployment) {
         // stop and remove docker container.
 
         // remove any existing files.
-        // notify discord bot.
-        // remove from caddy.
-        // remove from deployment list
-        // remove from cloudflare dns.
+        File("/opt/pinkcloud/voyager/deployments/${deployment.deploymentKey}-preview").also { 
+            if (it.exists()) {
+                it.deleteRecursively()
+            }
+        }
+        
+        // remove from deployment list [done]
+        deployments.remove(deployment)
+
+        // remove from caddy after it is removed from internals deployments list. [done]
+        ICaddyManager.INSTANCE.updateCaddyFile(getCaddyFileContent())
+        
+        // remove from cloudflare dns.[done]
+        ICloudflareManager.INSTANCE.removeDnsRecord(deployment.deploymentKey)
     }
 
     override fun getLogs(deployment: Deployment): String {
@@ -107,6 +120,10 @@ class DeploymentSystemImpl : IDeploymentSystem {
 
     override fun deploymentExists(deploymentKey: String): Boolean {
         return deployments.any { it.deploymentKey == deploymentKey }
+    }
+
+    override fun get(deploymentKey: String): Deployment? {
+        return deployments.firstOrNull { it.deploymentKey == deploymentKey }
     }
 
     private fun findInternalDockerPort(dockerFile: File): Int {
