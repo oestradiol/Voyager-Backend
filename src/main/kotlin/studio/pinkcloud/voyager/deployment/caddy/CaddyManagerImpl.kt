@@ -6,19 +6,18 @@ class CaddyManagerImpl : ICaddyManager {
 
     override fun updateCaddyFile(content: String, withOurApi: Boolean) {
         val filePath = "/opt/pinkcloud/caddy/Caddyfile"
-        val existingContent = File(filePath).readText()
 
-        val updatedContent: String = if (withOurApi) {
-            """         
+        val newContent: String = if (withOurApi) {
+            """      
             voyager-api.pinkcloud.studio {
                 reverse_proxy localhost:8765
             }
-            """.trimIndent() + "\n" + content
+            """.trimIndent() + content
         } else {
             content
         }
 
-        File(filePath).writeText(existingContent + "\n" + updatedContent)
+        File(filePath).writeText(newContent)
     }
 
 }
