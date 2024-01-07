@@ -26,9 +26,11 @@ fun Application.init() {
     install(ContentNegotiation) {
         json()
     }
-    
+
     intercept(ApplicationCallPipeline.Call) {
-        if (call.request.header("X-API-Key") != null && call.request.header("X-API-Key") != Env.API_KEY) {
+        val apiKey = call.request.header("X-API-Key")
+
+        if (apiKey == null || apiKey != Env.API_KEY) {
             call.respond(
                 HttpStatusCode.Unauthorized,
                 "Invalid API Key"
