@@ -33,6 +33,7 @@ application {
 
 repositories {
     mavenCentral()
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -52,6 +53,9 @@ dependencies {
     // docker api for deploying
     implementation("com.github.docker-java:docker-java:3.3.4")
     implementation("com.github.docker-java:docker-java-transport-httpclient5:3.3.4")
+
+    // discord for notifications
+    implementation("club.minnced:discord-webhooks:0.8.4")
     
     testImplementation("io.ktor:ktor-server-tests-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")

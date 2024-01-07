@@ -1,15 +1,13 @@
 package studio.pinkcloud.voyager
 
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.createSupabaseClient
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
-import studio.pinkcloud.voyager.deployment.configureDeployment
-import studio.pinkcloud.voyager.supabase.createVoyagerSupabaseClient
+import kotlinx.serialization.json.Json
+import studio.pinkcloud.voyager.deployment.IDeploymentSystem
+import studio.pinkcloud.voyager.deployment.controller.configureDeployment
 
 fun main() {
     embeddedServer(
@@ -27,4 +25,12 @@ fun Application.init() {
     //createVoyagerSupabaseClient()
     
     configureDeployment()
+    IDeploymentSystem.INSTANCE.load()
+}
+
+val VOYAGER_JSON = Json { 
+    ignoreUnknownKeys = true
+    isLenient = true
+    encodeDefaults = true
+    prettyPrint = true
 }
