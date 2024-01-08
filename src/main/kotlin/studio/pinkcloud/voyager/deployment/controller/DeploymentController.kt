@@ -179,7 +179,7 @@ fun Application.configureDeployment() {
                 return@post
             }
             
-            IDeploymentSystem.INSTANCE.stop(deployment)
+            IDeploymentSystem.INSTANCE.stopAndDelete(deployment)
             
             call.respond(
                 HttpStatusCode.OK,
