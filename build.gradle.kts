@@ -57,6 +57,9 @@ dependencies {
     // discord for notifications
     implementation("club.minnced:discord-webhooks:0.8.4")
     
+    // ktx-serialization for yaml for configuration
+    implementation("com.charleskorn.kaml:kaml:0.56.0")
+
     testImplementation("io.ktor:ktor-server-tests-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 }

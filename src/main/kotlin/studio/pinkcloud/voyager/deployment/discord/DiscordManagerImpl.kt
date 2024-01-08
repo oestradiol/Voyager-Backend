@@ -4,12 +4,13 @@ import club.minnced.discord.webhook.WebhookClientBuilder
 import club.minnced.discord.webhook.send.WebhookEmbed
 import club.minnced.discord.webhook.send.WebhookEmbedBuilder
 import club.minnced.discord.webhook.send.WebhookMessageBuilder
+import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.utils.Env
 
 class DiscordManagerImpl : IDiscordManager {
     
     private val webhookClient by lazy { 
-        WebhookClientBuilder(Env.DEPLOYMENT_WEBHOOK).apply {
+        WebhookClientBuilder(VOYAGER_CONFIG.deploymentWebhook).apply {
             setThreadFactory { job -> 
                 Thread(job, "Discord Webhook Thread").apply { 
                     isDaemon = true
@@ -19,7 +20,6 @@ class DiscordManagerImpl : IDiscordManager {
             setWait(true)
         }.build()
     }
-    
     
     override fun sendDeploymentMessage(deploymentKey: String, port: Int, dockerContainer: String) {
         val message = WebhookEmbedBuilder().apply { 

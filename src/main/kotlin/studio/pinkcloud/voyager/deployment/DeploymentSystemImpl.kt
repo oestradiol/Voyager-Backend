@@ -48,7 +48,7 @@ class DeploymentSystemImpl : IDeploymentSystem {
         // add to cloudflare dns. [Done]
 
         // make sure this is done before adding to caddy or else caddy will fail because of SSL certs.
-        ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, Env.IP)
+        val cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, Env.IP)
 
         // build and deploy to docker.
         IDockerManager.INSTANCE.buildDockerImage(deploymentKey, dockerFile)
@@ -60,7 +60,8 @@ class DeploymentSystemImpl : IDeploymentSystem {
             Deployment(
                 deploymentKey,
                 port,
-                containerId
+                containerId,
+                cloudflareId
             )
         )
 
