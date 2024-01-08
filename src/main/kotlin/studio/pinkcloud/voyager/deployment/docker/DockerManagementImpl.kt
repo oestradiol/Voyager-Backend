@@ -86,6 +86,25 @@ class DockerManagementImpl : IDockerManager {
     }
 
     override fun getLogs(dockerContainer: String): String {
-        return "This is not yet implemented."
+        val logContainerCmd = dockerClient.logContainerCmd(dockerContainer).withStdOut(true).withStdErr(true);
+        val logs = ArrayList<String>();
+
+        try {
+            logContainerCmd.exec(object : ResultCallback.Adapter<>() {
+                                     override fun onNext(obj: Frame) {
+                                         logs.add(obj.toString());
+                                     }
+                                 }).awaitCompletion();
+
+        } catch (error: InterruptedException) {
+            error.printStackTrace()
+        }
+
+        var logsStr = "Size of logs: ${logs.size}\n"
+        for (line in logs) {
+            logsStr += line + "\n"
+        }
+
+        return logsStr;
     }
 }
