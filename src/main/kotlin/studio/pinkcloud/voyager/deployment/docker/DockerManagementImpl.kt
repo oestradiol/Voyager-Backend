@@ -86,15 +86,15 @@ class DockerManagementImpl : IDockerManager {
     }
 
     override fun getLogs(dockerContainer: String): String {
-        val logContainerCmd = dockerClient.logContainerCmd(dockerContainer).withStdOut(true).withStdErr(true);
-        val logs = ArrayList<String>();
+        val logContainerCmd = dockerClient.logContainerCmd(dockerContainer).withStdOut(true).withStdErr(true)
+        val logs = ArrayList<String>()
 
         try {
             logContainerCmd.exec(object : ResultCallback.Adapter<Frame>() {
                                      override fun onNext(obj: Frame) {
-                                         logs.add(obj.toString());
+                                         logs.add(obj.toString())
                                      }
-                                 }).awaitCompletion();
+                                 }).awaitCompletion()
 
         } catch (error: InterruptedException) {
             error.printStackTrace()
@@ -105,6 +105,6 @@ class DockerManagementImpl : IDockerManager {
             logsStr += line + "\n"
         }
 
-        return logsStr;
+        return logsStr
     }
 }
