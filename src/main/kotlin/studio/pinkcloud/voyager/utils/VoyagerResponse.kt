@@ -7,5 +7,5 @@ import kotlinx.serialization.Serializable
 data class VoyagerResponse(
     val success: Boolean,
     val message: String,
-    val data: @Contextual Any? = null
+    val data: String? = null
 )

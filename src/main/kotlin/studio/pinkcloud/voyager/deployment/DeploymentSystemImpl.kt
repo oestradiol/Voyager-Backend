@@ -100,7 +100,7 @@ class DeploymentSystemImpl : IDeploymentSystem {
     }
 
     override fun getLogs(deployment: Deployment): String {
-        return "Empty" // TODO
+        return IDockerManager.INSTANCE.getLogs(deployment.dockerContainer)
     }
 
     override fun getCaddyFileContent(): String {

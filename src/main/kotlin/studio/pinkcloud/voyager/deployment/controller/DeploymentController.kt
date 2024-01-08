@@ -14,12 +14,15 @@ import io.ktor.server.routing.*
 import org.eclipse.jgit.api.Git
 import studio.pinkcloud.voyager.deployment.IDeploymentSystem
 import studio.pinkcloud.voyager.github.VoyagerGithub
+import studio.pinkcloud.voyager.routing.annotations.LoggedIn
 import studio.pinkcloud.voyager.utils.VoyagerResponse
 import java.io.File
 import kotlin.random.Random
 
 fun Application.configureDeployment() {
-    routing {
+    
+    routing() {
+        @LoggedIn
         post("/api/deployments/preview") {
             
             // this is just temp till supabase is implemented and getting project info from there can be done

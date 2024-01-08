@@ -9,15 +9,17 @@ import io.ktor.util.pipeline.*
 import studio.pinkcloud.voyager.supabase.SUPABASE_ATTRIBUTE
 
 suspend fun PipelineContext<Unit, ApplicationCall>.authenticateWithSupabase() {
-    /*
+    
     val supabase = call.application.attributes[SUPABASE_ATTRIBUTE]
     val token = call.request.header("Authorization")?.removePrefix("Bearer ")
 
     // Validate the token with Supabase
     if (token != null) {
-        try {
-            supabase.auth.
-        } catch (error: SupabaseError) {
+        try { 
+            val user = supabase.auth.retrieveUser(token)
+            
+            user.id
+        } catch (error: RuntimeException) {
             // Handle authentication error
             call.respond(HttpStatusCode.Unauthorized, "Invalid token")
             finish()
@@ -27,6 +29,4 @@ suspend fun PipelineContext<Unit, ApplicationCall>.authenticateWithSupabase() {
         call.respond(HttpStatusCode.Unauthorized, "Token not provided")
         finish()
     }
-    
-     */
 }
