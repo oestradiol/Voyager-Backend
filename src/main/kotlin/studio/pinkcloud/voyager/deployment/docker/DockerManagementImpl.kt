@@ -90,7 +90,7 @@ class DockerManagementImpl : IDockerManager {
         val logs = ArrayList<String>();
 
         try {
-            logContainerCmd.exec(object : ResultCallback.Adapter<>() {
+            logContainerCmd.exec(object : ResultCallback.Adapter<Frame>() {
                                      override fun onNext(obj: Frame) {
                                          logs.add(obj.toString());
                                      }
