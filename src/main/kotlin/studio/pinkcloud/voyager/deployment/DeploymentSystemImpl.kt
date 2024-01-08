@@ -10,6 +10,8 @@ import studio.pinkcloud.voyager.deployment.docker.IDockerManager
 import studio.pinkcloud.voyager.utils.Env
 import studio.pinkcloud.voyager.utils.PortFinder
 import java.io.File
+import kotlinx.coroutines.*
+import java.util.Collections
 
 class DeploymentSystemImpl : IDeploymentSystem {
     private val deployments: MutableList<Deployment> = mutableListOf()
@@ -91,40 +93,46 @@ class DeploymentSystemImpl : IDeploymentSystem {
     }
 
     override suspend fun stop(deployment: Deployment) {
-        // stop docker container
-        if (deployment.state != DeploymentState.DEPLOYED) return
-        deployment.state = DeploymentState.STOPPING
-        IDockerManager.INSTANCE.stopContainer(deployment.dockerContainer);
-        deployment.state = DeploymentState.STOPPED
+        synchronized(deployment) {
+            // stop docker container
+            if (deployment.state != DeploymentState.DEPLOYED) return
+            deployment.state = DeploymentState.STOPPING
+            IDockerManager.INSTANCE.stopContainer(deployment.dockerContainer);
+            deployment.state = DeploymentState.STOPPED
+        }
     }
 
     override suspend fun delete(deployment: Deployment) {
-        // stop and remove docker container.
-        if (deployment.state != DeploymentState.STOPPED) return
-        deployment.state = DeploymentState.DELETING
-        IDockerManager.INSTANCE.deleteContainer(deployment.dockerContainer)
+        synchronized(deployment) {
+            // stop and remove docker container.
+            if (deployment.state != DeploymentState.STOPPED) return
+            deployment.state = DeploymentState.DELETING
+            IDockerManager.INSTANCE.deleteContainer(deployment.dockerContainer)
 
-        // remove any existing files.
-        File("/opt/pinkcloud/voyager/deployments/${deployment.deploymentKey}-preview").also {
-            if (it.exists()) {
-                it.deleteRecursively()
+            // remove any existing files.
+            File("/opt/pinkcloud/voyager/deployments/${deployment.deploymentKey}-preview").also {
+                if (it.exists()) {
+                    it.deleteRecursively()
+                }
             }
+
+            // remove from deployment list [done]
+            deployments.remove(deployment)
+
+            // remove from caddy after it is removed from internals deployments list. [done]
+            ICaddyManager.INSTANCE.updateCaddyFile(getCaddyFileContent())
+
+            // remove from cloudflare dns.[done]
+            runBlocking { ICloudflareManager.INSTANCE.removeDnsRecord(deployment.deploymentKey) }
+
+            deployment.state = DeploymentState.DELETED
         }
-
-        // remove from deployment list [done]
-        deployments.remove(deployment)
-
-        // remove from caddy after it is removed from internals deployments list. [done]
-        ICaddyManager.INSTANCE.updateCaddyFile(getCaddyFileContent())
-
-        // remove from cloudflare dns.[done]
-        ICloudflareManager.INSTANCE.removeDnsRecord(deployment.deploymentKey)
-
-        deployment.state = DeploymentState.DELETED
     }
 
     override fun getLogs(deployment: Deployment): String {
-        return IDockerManager.INSTANCE.getLogs(deployment.dockerContainer)
+        synchronized(deployment) {
+            return IDockerManager.INSTANCE.getLogs(deployment.dockerContainer)
+        }
     }
 
     override fun getCaddyFileContent(): String {
@@ -156,12 +164,18 @@ class DeploymentSystemImpl : IDeploymentSystem {
     }
 
     override fun isRunning(deployment: Deployment): Boolean {
-        if (deployment.state != DeploymentState.DEPLOYED) return false
-        return IDockerManager.INSTANCE.isContainerRunning(deployment.dockerContainer)
+        synchronized(deployment) {
+            if (deployment.state != DeploymentState.DEPLOYED) return false
+            return IDockerManager.INSTANCE.isContainerRunning(deployment.dockerContainer)
+        }
     }
 
     override suspend fun restart(deployment: Deployment) {
         if (deployment.state == DeploymentState.DEPLOYED) stopAndDelete(deployment)
         if (deployment.state != DeploymentState.STOPPED) return
+    }
+
+    override fun getDeployments(): MutableList<Deployment> {
+        return deployments
     }
 }

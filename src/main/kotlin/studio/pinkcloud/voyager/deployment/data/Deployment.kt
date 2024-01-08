@@ -10,4 +10,6 @@ data class Deployment(
     val dnsRecordId: String,
     var state: DeploymentState = DeploymentState.UNDEPLOYED,
     val createdAt: Long = System.currentTimeMillis(),
-)
+) {
+    // val mutex = Mutex()
+}

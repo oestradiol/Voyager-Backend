@@ -29,6 +29,8 @@ interface IDeploymentSystem {
 
     suspend fun restart(deployment: Deployment)
 
+    fun getDeployments(): MutableList<Deployment>
+
     companion object {
         /**
          * The main instance of the [IDeploymentSystem] until I decide to do DI.
