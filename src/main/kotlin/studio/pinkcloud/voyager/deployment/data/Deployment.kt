@@ -6,5 +6,6 @@ import kotlinx.serialization.Serializable
 data class Deployment(
     val deploymentKey: String,
     val port: Int,
-    val dockerContainer: String
+    val dockerContainer: String,
+    val createdAt: Long = System.currentTimeMillis()
 )
