@@ -39,7 +39,7 @@ class DockerHealthThread() : Thread() {
 
                             if (!AbstractDeploymentSystem.PRODUCTION_INSTANCE.isRunning(deployment)) {
                                 AbstractDeploymentSystem.PRODUCTION_INSTANCE.stop(deployment)
-                                println("Deployment ${deployment} has stopped.")
+                                println("Production Deployment ${deployment} has stopped.")
                                 // TODO: notify the user that the deployment stopped
                             }
                         } else {
@@ -49,7 +49,7 @@ class DockerHealthThread() : Thread() {
 
                             if (!AbstractDeploymentSystem.PREVIEW_INSTANCE.isRunning(deployment)) {
                                 AbstractDeploymentSystem.PREVIEW_INSTANCE.stop(deployment)
-                                println("Deployment ${deployment.dockerContainer} has stopped.")
+                                println("Preview Deployment ${deployment} has stopped.")
                                 // TODO: notify the user that the deployment stopped
                             }
                         }
