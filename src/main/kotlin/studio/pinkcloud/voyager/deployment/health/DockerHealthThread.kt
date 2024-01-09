@@ -4,6 +4,8 @@ import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
 import studio.pinkcloud.voyager.deployment.data.DeploymentState
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.*
+import studio.pinkcloud.voyager.utils.logging.LogType
+import studio.pinkcloud.voyager.utils.logging.log
 import kotlin.system.*
 
 class DockerHealthThread() : Thread() {
@@ -39,7 +41,7 @@ class DockerHealthThread() : Thread() {
 
                             if (!AbstractDeploymentSystem.PRODUCTION_INSTANCE.isRunning(deployment)) {
                                 AbstractDeploymentSystem.PRODUCTION_INSTANCE.stop(deployment)
-                                println("Production Deployment ${deployment} has stopped.")
+                                log("Production Deployment ${deployment} has stopped.", LogType.WARNING)
                                 // TODO: notify the user that the deployment stopped
                             }
                         } else {
@@ -49,7 +51,7 @@ class DockerHealthThread() : Thread() {
 
                             if (!AbstractDeploymentSystem.PREVIEW_INSTANCE.isRunning(deployment)) {
                                 AbstractDeploymentSystem.PREVIEW_INSTANCE.stop(deployment)
-                                println("Preview Deployment ${deployment} has stopped.")
+                                log("Preview Deployment ${deployment} has stopped.", LogType.WARNING)
                                 // TODO: notify the user that the deployment stopped
                             }
                         }

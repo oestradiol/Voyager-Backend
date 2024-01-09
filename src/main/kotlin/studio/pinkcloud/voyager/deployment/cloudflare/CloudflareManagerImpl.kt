@@ -9,6 +9,8 @@ import studio.pinkcloud.voyager.deployment.cloudflare.responses.CloudflareRespon
 import studio.pinkcloud.voyager.deployment.cloudflare.responses.CreateDNSData
 import studio.pinkcloud.voyager.utils.Env
 import studio.pinkcloud.voyager.utils.TimeUtils
+import studio.pinkcloud.voyager.utils.logging.LogType
+import studio.pinkcloud.voyager.utils.logging.log
 
 class CloudflareManagerImpl : ICloudflareManager {
     
@@ -45,8 +47,7 @@ class CloudflareManagerImpl : ICloudflareManager {
             headers["Content-Type"] = "application/json"
             headers["Authorization"] = VOYAGER_CONFIG.cloudflareApiToken
         }
-        
-        println(response.status)
-        println(response.bodyAsText())
+        log(response.status.toString(), LogType.INFORMATION)
+        log(response.bodyAsText(), LogType.INFORMATION)
     }
 }
