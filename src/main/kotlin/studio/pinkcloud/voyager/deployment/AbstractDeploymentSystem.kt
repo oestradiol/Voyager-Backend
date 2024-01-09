@@ -1,23 +1,31 @@
 package studio.pinkcloud.voyager.deployment
 
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
+import org.eclipse.jgit.api.Git
 import studio.pinkcloud.voyager.VOYAGER_JSON
 import studio.pinkcloud.voyager.deployment.caddy.ICaddyManager
 import studio.pinkcloud.voyager.deployment.cloudflare.ICloudflareManager
-import studio.pinkcloud.voyager.deployment.data.*
+import studio.pinkcloud.voyager.deployment.data.Deployment
+import studio.pinkcloud.voyager.deployment.data.DeploymentState
 import studio.pinkcloud.voyager.deployment.discord.IDiscordManager
 import studio.pinkcloud.voyager.deployment.docker.IDockerManager
+import studio.pinkcloud.voyager.github.VoyagerGithub
 import studio.pinkcloud.voyager.utils.Env
 import studio.pinkcloud.voyager.utils.PortFinder
 import java.io.File
-import kotlinx.coroutines.*
-import java.util.Collections
 
-class DeploymentSystemImpl : IDeploymentSystem {
-    private val deployments: MutableList<Deployment> = mutableListOf()
-    private val deploymentsFile = File("/opt/pinkcloud/voyager/deployments.json")
+abstract class AbstractDeploymentSystem(val prefix: String) {
+    
+    abstract val deploymentsFile: File
 
-    override fun load() {
+
+    /**
+     * @return the content that should be added to the file for each deployment in the [deployments] list.
+     */
+    abstract fun getCaddyFileContent(deployment: Deployment): String
+    
+    open fun load() {
         if (deploymentsFile.exists()) {
             deployments.addAll(
                 VOYAGER_JSON.decodeFromString(
@@ -29,19 +37,19 @@ class DeploymentSystemImpl : IDeploymentSystem {
         }
 
         // make sure caddy is updated and was not changed by another process.
-        ICaddyManager.INSTANCE.updateCaddyFile(getCaddyFileContent())
+        ICaddyManager.INSTANCE.updateCaddyFile()
 
         Runtime.getRuntime().addShutdownHook(
             Thread {
                 deploymentsFile.writeText(
                     VOYAGER_JSON.encodeToString(deployments),
                 )
-                ICaddyManager.INSTANCE.updateCaddyFile(getCaddyFileContent(), withOurApi = false)
+                ICaddyManager.INSTANCE.updateCaddyFile(withOurApi = false)
             },
         )
     }
 
-    override suspend fun deploy(
+    open suspend fun deploy(
         deploymentKey: String,
         dockerFile: File,
     ): String {
@@ -52,7 +60,7 @@ class DeploymentSystemImpl : IDeploymentSystem {
         // add to cloudflare dns. [Done]
 
         // make sure this is done before adding to caddy or else caddy will fail because of SSL certs.
-        val cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, Env.IP)
+        val cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, Env.IP, prefix.contains("prod"))
 
         // build and deploy to docker.
         IDockerManager.INSTANCE.buildDockerImage(deploymentKey, dockerFile)
@@ -74,12 +82,13 @@ class DeploymentSystemImpl : IDeploymentSystem {
                 port,
                 containerId,
                 cloudflareId,
-                DeploymentState.DEPLOYED
+                true,
+                DeploymentState.DEPLOYED,
             ),
         )
 
         // add to caddy.
-        ICaddyManager.INSTANCE.updateCaddyFile(getCaddyFileContent())
+        ICaddyManager.INSTANCE.updateCaddyFile()
 
         // notify discord bot.
         IDiscordManager.INSTANCE.sendDeploymentMessage(deploymentKey, port, containerId)
@@ -87,22 +96,22 @@ class DeploymentSystemImpl : IDeploymentSystem {
         return containerId
     }
 
-    override suspend fun stopAndDelete(deployment: Deployment) {
+    suspend fun stopAndDelete(deployment: Deployment) {
         stop(deployment)
         delete(deployment)
     }
 
-    override suspend fun stop(deployment: Deployment) {
+    fun stop(deployment: Deployment) {
         synchronized(deployment) {
             // stop docker container
             if (deployment.state != DeploymentState.DEPLOYED) return
             deployment.state = DeploymentState.STOPPING
-            IDockerManager.INSTANCE.stopContainer(deployment.dockerContainer);
+            IDockerManager.INSTANCE.stopContainer(deployment.dockerContainer)
             deployment.state = DeploymentState.STOPPED
         }
     }
 
-    override suspend fun delete(deployment: Deployment) {
+    open suspend fun delete(deployment: Deployment) {
         synchronized(deployment) {
             // stop and remove docker container.
             if (deployment.state != DeploymentState.STOPPED) return
@@ -110,7 +119,7 @@ class DeploymentSystemImpl : IDeploymentSystem {
             IDockerManager.INSTANCE.deleteContainer(deployment.dockerContainer)
 
             // remove any existing files.
-            File("/opt/pinkcloud/voyager/deployments/${deployment.deploymentKey}-preview").also {
+            File("/opt/pinkcloud/voyager/deployments/${deployment.deploymentKey}-$prefix").also {
                 if (it.exists()) {
                     it.deleteRecursively()
                 }
@@ -120,7 +129,7 @@ class DeploymentSystemImpl : IDeploymentSystem {
             deployments.remove(deployment)
 
             // remove from caddy after it is removed from internals deployments list. [done]
-            ICaddyManager.INSTANCE.updateCaddyFile(getCaddyFileContent())
+            ICaddyManager.INSTANCE.updateCaddyFile()
 
             // remove from cloudflare dns.[done]
             runBlocking { ICloudflareManager.INSTANCE.removeDnsRecord(deployment.dnsRecordId) }
@@ -129,33 +138,17 @@ class DeploymentSystemImpl : IDeploymentSystem {
         }
     }
 
-    override fun getLogs(deployment: Deployment): String {
+    fun getLogs(deployment: Deployment): String {
         synchronized(deployment) {
             return IDockerManager.INSTANCE.getLogs(deployment.dockerContainer)
         }
     }
 
-    override fun getCaddyFileContent(): String {
-        var content = ""
-
-        deployments.forEach { deployment ->
-            content +=
-                """
-                
-                ${deployment.deploymentKey}-preview.pinkcloud.studio {
-                    reverse_proxy localhost:${deployment.port}
-                }
-                """.trimIndent()
-        }
-
-        return content
-    }
-
-    override fun deploymentExists(deploymentKey: String): Boolean {
+    fun deploymentExists(deploymentKey: String): Boolean {
         return deployments.any { it.deploymentKey == deploymentKey }
     }
 
-    override fun get(deploymentKey: String): Deployment? {
+    fun get(deploymentKey: String): Deployment? {
         return deployments.firstOrNull { it.deploymentKey == deploymentKey }
     }
 
@@ -163,19 +156,39 @@ class DeploymentSystemImpl : IDeploymentSystem {
         return dockerFile.readText().substringAfter("EXPOSE ").substringBefore("\n").toInt()
     }
 
-    override fun isRunning(deployment: Deployment): Boolean {
+    fun isRunning(deployment: Deployment): Boolean {
         synchronized(deployment) {
             if (deployment.state != DeploymentState.DEPLOYED) return false
             return IDockerManager.INSTANCE.isContainerRunning(deployment.dockerContainer)
         }
     }
 
-    override suspend fun restart(deployment: Deployment) {
+    suspend fun restart(deployment: Deployment) {
         if (deployment.state == DeploymentState.DEPLOYED) stopAndDelete(deployment)
         if (deployment.state != DeploymentState.STOPPED) return
     }
+    
+    fun cloneFromGithub(
+        githubUrl: String,
+        projectDirectory: File,
+    ) {
+        Git
+            .cloneRepository()
+            .setURI("https://github.com/$githubUrl")
+            .setDirectory(projectDirectory)
+            .setCredentialsProvider(VoyagerGithub.credentialsProvider)
+            .call()
+            .close()
+    }
 
-    override fun getDeployments(): MutableList<Deployment> {
-        return deployments
+    companion object {
+        
+        /**
+         * The main instance's of the [AbstractDeploymentSystem] until I decide to do DI.
+         */
+        val PREVIEW_INSTANCE: AbstractDeploymentSystem = PreviewDeploymentSystem()
+        val PRODUCTION_INSTANCE: AbstractDeploymentSystem = ProductionDeploymentSystem()
+
+        val deployments: MutableList<Deployment> = mutableListOf() // stored here until we use a database, so we can write to the caddyfile correctly.
     }
 }

@@ -1,20 +1,29 @@
 package studio.pinkcloud.voyager.deployment.caddy
 
+import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
 import java.io.File
 
 class CaddyManagerImpl : ICaddyManager {
 
-    override fun updateCaddyFile(content: String, withOurApi: Boolean) {
+    override fun updateCaddyFile(withOurApi: Boolean) {
         val filePath = "/opt/pinkcloud/caddy/Caddyfile"
 
-        val newContent: String = if (withOurApi) {
+        var newContent: String = if (withOurApi) {
             """      
             voyager-api.pinkcloud.studio {
                 reverse_proxy localhost:8765
             }
-            """.trimIndent() + content
+            """.trimIndent()
         } else {
-            content
+            ""
+        }
+        
+        AbstractDeploymentSystem.deployments.forEach {
+            newContent += if (it.production) {
+                AbstractDeploymentSystem.PRODUCTION_INSTANCE.getCaddyFileContent(it)
+            } else {
+                AbstractDeploymentSystem.PREVIEW_INSTANCE.getCaddyFileContent(it)
+            }
         }
 
         File(filePath).writeText(newContent)
