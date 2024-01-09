@@ -123,7 +123,7 @@ class DeploymentSystemImpl : IDeploymentSystem {
             ICaddyManager.INSTANCE.updateCaddyFile(getCaddyFileContent())
 
             // remove from cloudflare dns.[done]
-            runBlocking { ICloudflareManager.INSTANCE.removeDnsRecord(deployment.deploymentKey) }
+            runBlocking { ICloudflareManager.INSTANCE.removeDnsRecord(deployment.dnsRecordId) }
 
             deployment.state = DeploymentState.DELETED
         }
