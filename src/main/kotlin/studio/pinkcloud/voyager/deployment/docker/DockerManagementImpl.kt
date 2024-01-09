@@ -50,7 +50,7 @@ class DockerManagementImpl : IDockerManager {
     override fun createAndStartContainer(deploymentKey: String, port: Int, internalPort: Int, dockerImage: String): String {
         val id = dockerClient
             .createContainerCmd(dockerImage)
-            .withName("voyager-preview-$deploymentKey")
+            .withName("voyager-preview-$deploymentKey") // todo: update this with prod switch
             // expose these ports inside the container
             .withExposedPorts(
                 ExposedPort.tcp(internalPort)

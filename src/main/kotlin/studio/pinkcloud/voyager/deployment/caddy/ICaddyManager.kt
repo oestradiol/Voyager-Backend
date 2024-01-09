@@ -1,7 +1,7 @@
 package studio.pinkcloud.voyager.deployment.caddy
 
 interface ICaddyManager {
-    fun updateCaddyFile(content: String,  withOurApi: Boolean = true)
+    fun updateCaddyFile(withOurApi: Boolean = true)
     
     companion object {
         /**

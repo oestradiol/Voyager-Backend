@@ -1,45 +1,38 @@
 package studio.pinkcloud.voyager.deployment.controller
 
-import com.github.dockerjava.api.async.ResultCallback
-import com.github.dockerjava.api.model.*
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.eclipse.jgit.api.Git
-import studio.pinkcloud.voyager.deployment.IDeploymentSystem
+import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
+import studio.pinkcloud.voyager.deployment.data.Deployment
 import studio.pinkcloud.voyager.github.VoyagerGithub
 import studio.pinkcloud.voyager.routing.annotations.LoggedIn
 import studio.pinkcloud.voyager.utils.VoyagerResponse
 import java.io.File
-import kotlin.random.Random
 
-fun Application.configureDeployment() {
-    
+fun Application.configureProductionDeployment() {
     routing() {
-        @LoggedIn
-        post("/api/deployments/preview") {
-            
+
+        post("/api/deployments/production") {
+
             // this is just temp till supabase is implemented and getting project info from there can be done
             val deploymentKey = call.request.header("X-Deployment-Key")
             val repoURL = call.request.header("X-Repo-URL")
-            
+
             if (deploymentKey == null) {
                 call.respond(
                     HttpStatusCode.BadRequest,
                     VoyagerResponse(
-                        success = false, 
+                        success = false,
                         message = "No X-Deployment-Key or X-Repo-URL provided"
                     )
                 )
                 return@post
             }
-            
+
             // ensures it is part of the pinkcloud studio org on github
             if (!repoURL!!.lowercase().startsWith("pinkcloudstudios/")) {
                 call.respond(
@@ -51,9 +44,9 @@ fun Application.configureDeployment() {
                 )
                 return@post
             }
-            
+
             // deployment already exists
-            if (IDeploymentSystem.INSTANCE.deploymentExists(deploymentKey)) {
+            if (AbstractDeploymentSystem.PREVIEW_INSTANCE.deploymentExists(deploymentKey)) {
                 call.respond(
                     HttpStatusCode.Conflict,
                     VoyagerResponse(
@@ -63,13 +56,13 @@ fun Application.configureDeployment() {
                 )
                 return@post
             }
-            
-            val projectDirectory: File = File("/opt/pinkcloud/voyager/deployments/$deploymentKey-preview").also { 
+
+            val projectDirectory: File = File("/opt/pinkcloud/voyager/deployments/$deploymentKey-prod").also {
                 if (it.exists()) {
                     it.deleteRecursively()
                 }
             }
-            
+
             try {
                 Git
                     .cloneRepository()
@@ -89,9 +82,9 @@ fun Application.configureDeployment() {
                 )
                 return@post
             }
-            
+
             val dockerFile = File(projectDirectory, "Dockerfile")
-            
+
             if (!dockerFile.exists()) {
                 call.respond(
                     HttpStatusCode.BadRequest,
@@ -102,9 +95,9 @@ fun Application.configureDeployment() {
                 )
                 return@post
             }
-            
-            val containerId = IDeploymentSystem.INSTANCE.deploy(deploymentKey, dockerFile)
-            
+
+            val containerId = AbstractDeploymentSystem.PRODUCTION_INSTANCE.deploy(deploymentKey, dockerFile)
+
             call.respond(
                 HttpStatusCode.OK,
                 VoyagerResponse(
@@ -114,10 +107,10 @@ fun Application.configureDeployment() {
                 )
             )
         }
-        
-        get("/api/deployments/preview/{preview}/logs") {
-            val previewId = call.parameters["preview"]
-            
+
+        get("/api/deployments/production/{production}/logs") {
+            val previewId = call.parameters["production"]
+
             if (previewId == null) {
                 call.respond(
                     HttpStatusCode.BadRequest,
@@ -128,59 +121,37 @@ fun Application.configureDeployment() {
                 )
                 return@get
             }
-            
-            val deployment = IDeploymentSystem.INSTANCE.get(previewId)
-            
-            if (deployment == null) {
-                call.respond(
-                    HttpStatusCode.NotFound,
-                    VoyagerResponse(
-                        success = false,
-                        message = "Deployment not found"
-                    )
-                )
-                return@get
-            }
-            
+
+            val deployment = getAndValidate(previewId, call) ?: return@get
+
             call.respond(
                 HttpStatusCode.OK,
                 VoyagerResponse(
                     success = true,
                     message = "Logs retrieved",
-                    data = IDeploymentSystem.INSTANCE.getLogs(deployment)
+                    data = AbstractDeploymentSystem.PRODUCTION_INSTANCE.getLogs(deployment)
                 )
             )
         }
-        
-        post("/api/deployments/preview/{preview_id}/stop") {
-            val previewId = call.parameters["preview_id"]
-            
+
+        post("/api/deployments/production/{production}/stop") {
+            val previewId = call.parameters["production"]
+
             if (previewId == null) {
                 call.respond(
                     HttpStatusCode.BadRequest,
                     VoyagerResponse(
                         success = false,
-                        message = "No preview id provided"
+                        message = "No production id provided"
                     )
                 )
                 return@post
             }
-            
-            val deployment = IDeploymentSystem.INSTANCE.get(previewId)
-            
-            if (deployment == null) {
-                call.respond(
-                    HttpStatusCode.NotFound,
-                    VoyagerResponse(
-                        success = false,
-                        message = "Deployment not found"
-                    )
-                )
-                return@post
-            }
-            
-            IDeploymentSystem.INSTANCE.stopAndDelete(deployment)
-            
+
+            val deployment = getAndValidate(previewId, call) ?: return@post
+
+            AbstractDeploymentSystem.PRODUCTION_INSTANCE.stopAndDelete(deployment)
+
             call.respond(
                 HttpStatusCode.OK,
                 VoyagerResponse(
@@ -190,4 +161,22 @@ fun Application.configureDeployment() {
             )
         }
     }
+}
+
+private suspend fun getAndValidate(previewId: String, call: ApplicationCall): Deployment? {
+    val deployment = AbstractDeploymentSystem.PRODUCTION_INSTANCE.get(previewId)
+
+    if (deployment == null) {
+        call.respond(
+            HttpStatusCode.NotFound,
+            VoyagerResponse(
+                success = false,
+                message = "Deployment not found"
+            )
+        )
+
+        return null
+    }
+
+    return deployment
 }
