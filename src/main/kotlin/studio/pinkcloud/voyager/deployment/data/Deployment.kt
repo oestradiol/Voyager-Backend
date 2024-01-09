@@ -8,5 +8,9 @@ data class Deployment(
     val port: Int,
     val dockerContainer: String,
     val dnsRecordId: String,
-    val createdAt: Long = System.currentTimeMillis()
-)
+    val production: Boolean,
+    var state: DeploymentState = DeploymentState.UNDEPLOYED,
+    val createdAt: Long = System.currentTimeMillis(),
+) {
+    // val mutex = Mutex()
+}

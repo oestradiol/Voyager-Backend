@@ -50,7 +50,7 @@ class DockerManagementImpl : IDockerManager {
     override fun createAndStartContainer(deploymentKey: String, port: Int, internalPort: Int, dockerImage: String): String {
         val id = dockerClient
             .createContainerCmd(dockerImage)
-            .withName("voyager-preview-$deploymentKey")
+            .withName("voyager-preview-$deploymentKey") // todo: update this with prod switch
             // expose these ports inside the container
             .withExposedPorts(
                 ExposedPort.tcp(internalPort)
@@ -75,14 +75,27 @@ class DockerManagementImpl : IDockerManager {
         return id
     }
 
+    override fun restartContainer(dockerContainer: String) {
+        if (isContainerRunning(dockerContainer)) dockerClient.stopContainerCmd(dockerContainer).exec()
+
+        dockerClient.startContainerCmd(dockerContainer)
+    }
+
+    override fun isContainerRunning(dockerContainer: String): Boolean {
+        return dockerClient.inspectContainerCmd(dockerContainer).exec().state.running ?: false
+    }
+
     override fun stopContainerAndDelete(dockerContainer: String) {
-        dockerClient
-            .stopContainerCmd(dockerContainer)
-            .exec()
-        
-        dockerClient
-            .removeContainerCmd(dockerContainer)
-            .exec()
+        stopContainer(dockerContainer)
+        deleteContainer(dockerContainer)
+    }
+
+    override fun stopContainer(dockerContainer: String) {
+        dockerClient.stopContainerCmd(dockerContainer).exec()
+    }
+
+    override fun deleteContainer(dockerContainer: String) {
+        dockerClient.removeContainerCmd(dockerContainer).exec()
     }
 
     override fun getLogs(dockerContainer: String): String {

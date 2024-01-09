@@ -12,9 +12,9 @@ import io.ktor.server.response.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import studio.pinkcloud.voyager.config.VoyagerConfig
-import studio.pinkcloud.voyager.deployment.IDeploymentSystem
-import studio.pinkcloud.voyager.deployment.controller.configureDeployment
-import studio.pinkcloud.voyager.utils.Env
+import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
+import studio.pinkcloud.voyager.deployment.controller.configurePreviewDeployment
+import studio.pinkcloud.voyager.deployment.controller.configureProductionDeployment
 import java.io.File
 
 fun main() {
@@ -63,8 +63,10 @@ fun Application.init() {
     
     //createVoyagerSupabaseClient()
     
-    configureDeployment()
-    IDeploymentSystem.INSTANCE.load()
+    configurePreviewDeployment()
+    configureProductionDeployment()
+    AbstractDeploymentSystem.PRODUCTION_INSTANCE.load()
+    AbstractDeploymentSystem.PREVIEW_INSTANCE.load()
 }
 
 val VOYAGER_JSON = Json { 
