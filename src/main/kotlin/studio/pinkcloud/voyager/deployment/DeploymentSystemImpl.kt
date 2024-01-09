@@ -88,6 +88,20 @@ class DeploymentSystemImpl : IDeploymentSystem {
             if (it.exists()) {
                 it.deleteRecursively()
             }
+<<<<<<< Updated upstream
+=======
+
+            // remove from deployment list [done]
+            deployments.remove(deployment)
+
+            // remove from caddy after it is removed from internals deployments list. [done]
+            ICaddyManager.INSTANCE.updateCaddyFile(getCaddyFileContent())
+
+            // remove from cloudflare dns.[done]
+            runBlocking { ICloudflareManager.INSTANCE.removeDnsRecord(deployment.dnsRecordId) }
+
+            deployment.state = DeploymentState.DELETED
+>>>>>>> Stashed changes
         }
         
         // remove from deployment list [done]
