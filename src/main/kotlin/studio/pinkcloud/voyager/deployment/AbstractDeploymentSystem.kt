@@ -104,7 +104,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
     fun stop(deployment: Deployment) {
         synchronized(deployment) {
             // stop docker container
-            if (deployment.state != DeploymentState.DEPLOYED) return
+            if (deployment.state != DeploymentState.DEPLOYED) throw Exception("Tried to stop deployment that is not deployed state: ${deployment}")
             deployment.state = DeploymentState.STOPPING
             IDockerManager.INSTANCE.stopContainer(deployment.dockerContainer)
             deployment.state = DeploymentState.STOPPED
@@ -114,7 +114,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
     open suspend fun delete(deployment: Deployment) {
         synchronized(deployment) {
             // stop and remove docker container.
-            if (deployment.state != DeploymentState.STOPPED) return
+            if (deployment.state != DeploymentState.STOPPED) throw Exception("Tried to stop deployment that is not in stopped state: ${deployment}")
             deployment.state = DeploymentState.DELETING
             IDockerManager.INSTANCE.deleteContainer(deployment.dockerContainer)
 

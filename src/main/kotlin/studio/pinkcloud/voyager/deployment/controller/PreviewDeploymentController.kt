@@ -151,15 +151,26 @@ fun Application.configurePreviewDeployment() {
             
             val deployment = getAndValidate(previewId, call) ?: return@post
 
-            AbstractDeploymentSystem.PREVIEW_INSTANCE.stopAndDelete(deployment)
-            
-            call.respond(
-                HttpStatusCode.OK,
-                VoyagerResponse(
-                    success = true,
-                    message = "Deployment stopped"
+            try {
+                AbstractDeploymentSystem.PREVIEW_INSTANCE.stopAndDelete(deployment)
+                call.respond(
+                    HttpStatusCode.OK,
+                    VoyagerResponse(
+                        success = true,
+                        message = "Deployment stopped"
+                    )
                 )
-            )
+            } catch (err: Exception) {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    VoyagerResponse(
+                        success = false,
+                        message = err.localizedMessage
+                    )
+                )
+            }
+            
+
         }
     }
 }

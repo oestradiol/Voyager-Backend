@@ -46,7 +46,7 @@ fun Application.configureProductionDeployment() {
             }
 
             // deployment already exists
-            if (AbstractDeploymentSystem.PREVIEW_INSTANCE.deploymentExists(deploymentKey)) {
+            if (AbstractDeploymentSystem.PRODUCTION_INSTANCE.deploymentExists(deploymentKey)) {
                 call.respond(
                     HttpStatusCode.Conflict,
                     VoyagerResponse(
@@ -150,15 +150,24 @@ fun Application.configureProductionDeployment() {
 
             val deployment = getAndValidate(previewId, call) ?: return@post
 
-            AbstractDeploymentSystem.PRODUCTION_INSTANCE.stopAndDelete(deployment)
-
-            call.respond(
-                HttpStatusCode.OK,
-                VoyagerResponse(
-                    success = true,
-                    message = "Deployment stopped"
+            try {
+                AbstractDeploymentSystem.PRODUCTION_INSTANCE.stopAndDelete(deployment)
+                call.respond(
+                    HttpStatusCode.OK,
+                    VoyagerResponse(
+                        success = true,
+                        message = "Deployment stopped"
+                    )
                 )
-            )
+            } catch (err: Exception) {
+                call.respond(
+                    HttpStatusCode.Forbidden,
+                    VoyagerResponse(
+                        success = false,
+                        message = err.localizedMessage
+                    )
+                )
+            }
         }
     }
 }
