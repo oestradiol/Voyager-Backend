@@ -40,12 +40,10 @@ class CloudflareManagerImpl : ICloudflareManager {
         ).result.id
     }
 
-    override suspend fun removeDnsRecord(deploymentKey: String) {
-        val response = httpClient.delete("https://api.cloudflare.com/client/v4/zones/3b8a859109d691942925b0eb9ceb059e/dns_records/${deploymentKey}-preview") {
+    override suspend fun removeDnsRecord(cloudflareId: String) {
+        val response = httpClient.delete("https://api.cloudflare.com/client/v4/zones/3b8a859109d691942925b0eb9ceb059e/dns_records/${cloudflareId}") {
             headers["Content-Type"] = "application/json"
             headers["Authorization"] = VOYAGER_CONFIG.cloudflareApiToken
-            headers["X-Auth-Email"] = "itzbunniyt@gmail.com"
-            headers["X-Auth-Key"] = VOYAGER_CONFIG.cloudflareApiToken.replace("Bearer ", "")
         }
         
         println(response.status)
