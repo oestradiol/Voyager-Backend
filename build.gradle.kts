@@ -34,6 +34,7 @@ application {
 repositories {
     mavenCentral()
     maven("https://jitpack.io")
+
 }
 
 dependencies {
@@ -62,6 +63,9 @@ dependencies {
 
     testImplementation("io.ktor:ktor-server-tests-jvm")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+
+    // Sentry
+    implementation("io.sentry:sentry:1.7.2")
 }
 
 kotlin {
