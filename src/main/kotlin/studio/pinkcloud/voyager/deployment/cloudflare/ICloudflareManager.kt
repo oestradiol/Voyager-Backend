@@ -2,7 +2,7 @@ package studio.pinkcloud.voyager.deployment.cloudflare
 
 interface ICloudflareManager {
     suspend fun addDnsRecord(deploymentKey: String, ip: String, production: Boolean): String
-    suspend fun removeDnsRecord(deploymentKey: String)
+    suspend fun removeDnsRecord(cloudflareId: String)
     
     companion object {
         /**
