@@ -12,6 +12,7 @@ import io.ktor.server.response.*
 import io.ktor.network.sockets.connect
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import studio.pinkcloud.voyager.config.VoyagerConfig
 import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
 import studio.pinkcloud.voyager.deployment.controller.configurePreviewDeployment
@@ -43,28 +44,7 @@ fun Application.init() {
     log("Running Voyager in ${mode}", LogType.INFORMATION)
 
     // initiate the config before anything else happens
-    log("Getting voyager config from file..", LogType.INFORMATION)
-    val configFile = File("config.yml").also { 
-        if (!it.exists()) {
-            log("Config file not found! Generating a template..", LogType.ERROR)
-            it.createNewFile()
-            it.writeText(
-                Yaml.default.encodeToString(
-                    VoyagerConfig()
-                ).replace(Regex("isDevelopment: (true|false)"), "")
-            )
-            throw Exception("Config file not found. Generated a template")
-        }
-    }
-
-    VOYAGER_CONFIG =
-        Yaml.default.decodeFromString(
-            VoyagerConfig.serializer(),
-            configFile.readText(Charsets.UTF_8)
-        )
-    for (prop in VoyagerConfig::class.memberProperties) {
-        if (prop.get(VOYAGER_CONFIG)?.equals("") ?: false) throw Exception("${prop.name} config not set")
-    }
+    loadVoyagerConfig()
 
     
     log("Installing modules", LogType.INFORMATION)
@@ -91,9 +71,33 @@ fun Application.init() {
 
     configurePreviewDeployment()
     configureProductionDeployment()
-    AbstractDeploymentSystem.PRODUCTION_INSTANCE.load()
-    AbstractDeploymentSystem.PREVIEW_INSTANCE.load()
 
+    log("All settings loaded. Voyager is up!", LogType.SUCCESS)
+}
+
+fun loadVoyagerConfig() {
+    log("Getting voyager config from file..", LogType.INFORMATION)
+    val configFile = File("config.yml").also {
+        if (!it.exists()) {
+            log("Config file not found! Generating a template..", LogType.ERROR)
+            it.createNewFile()
+            it.writeText(
+                Yaml.default.encodeToString(
+                    VoyagerConfig()
+                ).replace(Regex("isDevelopment: (true|false)"), "")
+            )
+            throw Exception("Config file not found. Generated a template")
+        }
+    }
+
+    VOYAGER_CONFIG =
+        Yaml.default.decodeFromString(
+            VoyagerConfig.serializer(),
+            configFile.readText(Charsets.UTF_8)
+        )
+    for (prop in VoyagerConfig::class.memberProperties) {
+        if (prop.get(VOYAGER_CONFIG)?.equals("") ?: false) throw Exception("${prop.name} config not set")
+    }
 }
 
 val VOYAGER_JSON = Json { 

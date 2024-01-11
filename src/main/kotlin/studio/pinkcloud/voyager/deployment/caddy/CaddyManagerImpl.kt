@@ -2,6 +2,7 @@ package studio.pinkcloud.voyager.deployment.caddy
 
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
+import studio.pinkcloud.voyager.deployment.data.Deployment
 import java.io.File
 
 class CaddyManagerImpl : ICaddyManager {
@@ -19,7 +20,7 @@ class CaddyManagerImpl : ICaddyManager {
                 ""
             }
 
-        AbstractDeploymentSystem.deployments.forEach {
+        Deployment.findAll().forEach {
             newContent +=
                 if (it.production) {
                     AbstractDeploymentSystem.PRODUCTION_INSTANCE.getCaddyFileContent(it)

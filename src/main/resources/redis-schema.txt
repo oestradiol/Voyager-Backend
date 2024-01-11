@@ -2,9 +2,9 @@ FT.CREATE deploymentIndex
     ON JSON
     PREFIX 1 deployment:
 SCHEMA
-    $.deploymentKey as deploymentKey TEXT NOINDEX
+    $.deploymentKey as deploymentKey TEXT
     $.port as port NUMERIC NOINDEX
-    $.dockerContainer as dockerContainer TEXT
+    $.dockerContainer as dockerContainer TEXT NOINDEX
     $.dnsRecordId as dnsRecordId TEXT NOINDEX
     $.production as production NUMERIC NOINDEX
     $.state as state TEXT

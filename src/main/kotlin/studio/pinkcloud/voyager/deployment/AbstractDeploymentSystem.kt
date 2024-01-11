@@ -2,6 +2,7 @@ package studio.pinkcloud.voyager.deployment
 
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.eclipse.jgit.api.Git
 import studio.pinkcloud.voyager.VOYAGER_JSON
 import studio.pinkcloud.voyager.deployment.caddy.ICaddyManager
@@ -15,45 +16,16 @@ import studio.pinkcloud.voyager.utils.PortFinder
 import java.io.File
 import studio.pinkcloud.voyager.utils.logging.*
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
+import studio.pinkcloud.voyager.redis.redisClient
 
 abstract class AbstractDeploymentSystem(val prefix: String) {
     
-    abstract val deploymentsFile: File
-
 
     /**
      * @return the content that should be added to the file for each deployment in the [deployments] list.
      */
     abstract fun getCaddyFileContent(deployment: Deployment): String
     
-    open fun load() {
-        log("Loading caddy deployment file: ${deploymentsFile.path}", LogType.INFORMATION)
-        if (deploymentsFile.exists()) {
-            log("Caddy deployment file found", LogType.INFORMATION)
-            deployments.addAll(
-                VOYAGER_JSON.decodeFromString(
-                    deploymentsFile.readText(),
-                ),
-            )
-        } else {
-            log("Deployments file not found, creating one", LogType.WARNING)
-            deploymentsFile.createNewFile()
-            deploymentsFile.writeText("[]")
-        }
-
-        // make sure caddy is updated and was not changed by another process.
-        ICaddyManager.INSTANCE.updateCaddyFile()
-
-        Runtime.getRuntime().addShutdownHook(
-            Thread {
-                deploymentsFile.writeText(
-                    VOYAGER_JSON.encodeToString(deployments),
-                )
-                ICaddyManager.INSTANCE.updateCaddyFile(withOurApi = false)
-            },
-        )
-    }
-
     open suspend fun deploy(
         deploymentKey: String,
         dockerFile: File,
@@ -81,7 +53,8 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
                 deploymentKey,
             )
 
-        deployments.add(
+
+        val deployment =
             Deployment(
                 deploymentKey,
                 port,
@@ -89,8 +62,9 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
                 cloudflareId,
                 true,
                 DeploymentState.DEPLOYED,
-            ),
-        )
+            )
+
+        deployment.save()
 
         // add to caddy.
         ICaddyManager.INSTANCE.updateCaddyFile()
@@ -113,6 +87,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
             deployment.state = DeploymentState.STOPPING
             IDockerManager.INSTANCE.stopContainer(deployment.dockerContainer)
             deployment.state = DeploymentState.STOPPED
+            deployment.save()
         }
     }
 
@@ -120,7 +95,6 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
         synchronized(deployment) {
             // stop and remove docker container.
             if (deployment.state != DeploymentState.STOPPED) throw Exception("Tried to stop deployment that is not in stopped state: ${deployment}")
-            deployment.state = DeploymentState.DELETING
             IDockerManager.INSTANCE.deleteContainer(deployment.dockerContainer)
 
             // remove any existing files.
@@ -131,15 +105,13 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
             }
 
             // remove from deployment list [done]
-            deployments.remove(deployment)
+            redisClient.set("deployment:${deployment.deploymentKey}", null)
 
             // remove from caddy after it is removed from internals deployments list. [done]
             ICaddyManager.INSTANCE.updateCaddyFile()
 
             // remove from cloudflare dns.[done]
             runBlocking { ICloudflareManager.INSTANCE.removeDnsRecord(deployment.dnsRecordId) }
-
-            deployment.state = DeploymentState.DELETED
         }
     }
 
@@ -150,11 +122,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
     }
 
     fun deploymentExists(deploymentKey: String): Boolean {
-        return deployments.any { it.deploymentKey == deploymentKey }
-    }
-
-    fun get(deploymentKey: String): Deployment? {
-        return deployments.firstOrNull { it.deploymentKey == deploymentKey }
+        return redisClient.get("deployment:$deploymentKey") != null
     }
 
     private fun findInternalDockerPort(dockerFile: File): Int {
@@ -194,6 +162,5 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
         val PREVIEW_INSTANCE: AbstractDeploymentSystem = PreviewDeploymentSystem()
         val PRODUCTION_INSTANCE: AbstractDeploymentSystem = ProductionDeploymentSystem()
 
-        val deployments: MutableList<Deployment> = mutableListOf() // stored here until we use a database, so we can write to the caddyfile correctly.
     }
 }

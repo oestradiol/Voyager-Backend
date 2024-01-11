@@ -177,7 +177,7 @@ fun Application.configurePreviewDeployment() {
 }
 
 private suspend fun getAndValidate(previewId: String, call: ApplicationCall): Deployment? {
-    val deployment = AbstractDeploymentSystem.PREVIEW_INSTANCE.get(previewId)
+    val deployment = Deployment.find(previewId)
     
     if (deployment == null) {
         call.respond(

@@ -1,0 +1,67 @@
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.testing.*
+import kotlin.test.*
+import kotlin.random.Random
+import studio.pinkcloud.voyager.utils.logging.*
+import studio.pinkcloud.voyager.redis.connectToRedis
+import studio.pinkcloud.voyager.redis.redisClient
+import studio.pinkcloud.voyager.deployment.data.Deployment
+import studio.pinkcloud.voyager.deployment.data.DeploymentState
+import studio.pinkcloud.voyager.loadVoyagerConfig
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
+import okio.utf8Size
+
+class VoyagerBackendTests {
+
+    companion object {
+        const val ALPHABET: String =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%¨&*()\\\n\r\t\"'><,.;:?/[]{}`´~^=+-_®°ŧ←↓→øþæßðđŋħʒĸłç«»©„“”µ•·°ºª§¬🥺❤😁️"
+
+        fun genRandomString(len: Int): String {
+            var result = ""
+            for (i in 0..len) {
+                result += ALPHABET.get(Random.nextInt(0, ALPHABET.length))
+            }
+
+            return result
+        }
+    }
+
+    @Test
+    fun testRedisConnection() = testApplication {
+        loadVoyagerConfig()
+        connectToRedis()
+        assertEquals(redisClient.ping(), "PONG")
+        var strings = Array<String>(100, {_: Int -> ""})
+        for (i in 0..99) {
+            strings[i] = genRandomString(100)
+            redisClient.set("testvar:$i", strings[i])
+        }
+        for (i in 0..99) {
+            val raw = redisClient.get("testvar:$i")
+            assertEquals(String(raw.toByteArray(), Charsets.UTF_8), String(strings[i].toByteArray(), Charsets.UTF_8))
+        }
+    }
+
+
+    @Test
+    fun testDeploymentEncoding() = testApplication {
+        loadVoyagerConfig()
+        for (i in 0..100) {
+            val deployment = Deployment(
+                genRandomString(100),
+                Random.nextInt(-1000, 1000),
+                genRandomString(100),
+                genRandomString(100),
+                Math.random() > 0.5,
+                DeploymentState.entries.get(Random.nextInt(0, DeploymentState.entries.size)),
+            )
+            Thread.sleep(5)
+            assertEquals(deployment, Json.decodeFromString<Deployment>(Json.encodeToString(Deployment.serializer(), deployment)))
+        }
+    }
+}

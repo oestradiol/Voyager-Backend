@@ -12,7 +12,6 @@ import java.io.File
 import kotlinx.coroutines.*
 
 class ProductionDeploymentSystem : AbstractDeploymentSystem("prod") {
-    override val deploymentsFile = File("production-deployments.json") // TODO: change this to redis in future for multi instance support.
 
     override suspend fun deploy(
         deploymentKey: String,

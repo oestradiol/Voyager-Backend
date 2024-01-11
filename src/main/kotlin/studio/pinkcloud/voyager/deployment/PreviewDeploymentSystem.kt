@@ -12,7 +12,6 @@ import java.io.File
 import kotlinx.coroutines.*
 
 class PreviewDeploymentSystem : AbstractDeploymentSystem("preview") {
-    override val deploymentsFile = File("preview-deployments.json") // TODO: change this to redis in future for multi instance support.
 
     override fun getCaddyFileContent(deployment: Deployment): String {
         return """

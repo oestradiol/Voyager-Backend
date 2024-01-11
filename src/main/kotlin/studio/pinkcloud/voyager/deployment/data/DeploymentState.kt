@@ -5,6 +5,4 @@ enum class DeploymentState {
     DEPLOYED,
     STOPPING,
     STOPPED,
-    DELETING,
-    DELETED,
 }

@@ -2,6 +2,7 @@ package studio.pinkcloud.voyager.deployment.health
 
 import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
 import studio.pinkcloud.voyager.deployment.data.DeploymentState
+import studio.pinkcloud.voyager.deployment.data.Deployment
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.*
 import studio.pinkcloud.voyager.utils.logging.LogType
@@ -32,7 +33,7 @@ class DockerHealthThread() : Thread() {
     // redeploy that part or just stops the deployment and cleans up & notifies the user.
     // returns elapsed synchronized block time in milliseconds
     private fun tick(): Long {
-        val deployments = AbstractDeploymentSystem.deployments
+        val deployments = Deployment.findAll()
         var elapsedTimeMillis: Long = 0
         for (deployment in deployments) {
             elapsedTimeMillis += measureTimeMillis {

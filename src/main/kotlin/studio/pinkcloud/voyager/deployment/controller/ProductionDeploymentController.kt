@@ -174,7 +174,7 @@ fun Application.configureProductionDeployment() {
 }
 
 private suspend fun getAndValidate(previewId: String, call: ApplicationCall): Deployment? {
-    val deployment = AbstractDeploymentSystem.PRODUCTION_INSTANCE.get(previewId)
+    val deployment = Deployment.find(previewId)
 
     if (deployment == null) {
         call.respond(
