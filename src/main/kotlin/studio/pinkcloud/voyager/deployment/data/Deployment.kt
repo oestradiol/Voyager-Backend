@@ -20,9 +20,16 @@ data class Deployment(
         }
     }
 
+    fun delete() {
+        synchronized(this) {
+            redisClient.del("deployment:$deploymentKey")
+        }
+    }
+
     companion object {
         fun find(deploymentKey: String): Deployment? {
-            return Json.decodeFromString<Deployment>(redisClient.get("deployment:$deploymentKey"))
+            val found = redisClient.get("deployment:$deploymentKey")
+            return found?.let { Json.decodeFromString<Deployment>(found) }
         }
 
         fun findAll(): List<Deployment> {

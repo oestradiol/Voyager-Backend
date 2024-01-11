@@ -105,7 +105,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
             }
 
             // remove from deployment list [done]
-            redisClient.set("deployment:${deployment.deploymentKey}", null)
+            deployment.delete()
 
             // remove from caddy after it is removed from internals deployments list. [done]
             ICaddyManager.INSTANCE.updateCaddyFile()

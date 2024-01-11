@@ -29,6 +29,17 @@ class VoyagerBackendTests {
 
             return result
         }
+
+        fun genRandomDeployment(): Deployment {
+            return Deployment(
+                genRandomString(100),
+                Random.nextInt(-1000, 1000),
+                genRandomString(100),
+                genRandomString(100),
+                Math.random() > 0.5,
+                DeploymentState.entries.get(Random.nextInt(0, DeploymentState.entries.size)),
+            )
+        }
     }
 
     @Test
@@ -36,9 +47,8 @@ class VoyagerBackendTests {
         loadVoyagerConfig()
         connectToRedis()
         assertEquals(redisClient.ping(), "PONG")
-        var strings = Array<String>(100, {_: Int -> ""})
+        var strings = Array<String>(100, {_: Int -> genRandomString(100)})
         for (i in 0..99) {
-            strings[i] = genRandomString(100)
             redisClient.set("testvar:$i", strings[i])
         }
         for (i in 0..99) {
@@ -52,16 +62,29 @@ class VoyagerBackendTests {
     fun testDeploymentEncoding() = testApplication {
         loadVoyagerConfig()
         for (i in 0..100) {
-            val deployment = Deployment(
-                genRandomString(100),
-                Random.nextInt(-1000, 1000),
-                genRandomString(100),
-                genRandomString(100),
-                Math.random() > 0.5,
-                DeploymentState.entries.get(Random.nextInt(0, DeploymentState.entries.size)),
-            )
+            val deployment = genRandomDeployment()
             Thread.sleep(5)
             assertEquals(deployment, Json.decodeFromString<Deployment>(Json.encodeToString(Deployment.serializer(), deployment)))
+        }
+    }
+
+    @Test
+    fun testDeploymentOnRedis() = testApplication {
+        loadVoyagerConfig()
+        connectToRedis()
+        assertEquals(redisClient.ping(), "PONG")
+        var deployments = Array<Deployment>(100, {_: Int -> genRandomDeployment()})
+        for (i in 0..99) {
+            deployments[i].save()
+        }
+        for (i in 0..99) {
+            val found = Deployment.find(deployments[i].deploymentKey)
+            assertEquals(String(found.toString().toByteArray(), Charsets.UTF_8), String(deployments[i].toString().toByteArray(), Charsets.UTF_8))
+            found?.delete()
+        }
+        for (i in 0..99) {
+            val found = Deployment.find(deployments[i].deploymentKey)
+            assertEquals(found, null)
         }
     }
 }
