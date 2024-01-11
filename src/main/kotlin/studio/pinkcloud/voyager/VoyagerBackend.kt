@@ -9,6 +9,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
+import io.ktor.network.sockets.connect
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import studio.pinkcloud.voyager.config.VoyagerConfig
@@ -17,6 +18,8 @@ import studio.pinkcloud.voyager.deployment.controller.configurePreviewDeployment
 import studio.pinkcloud.voyager.deployment.controller.configureProductionDeployment
 import java.io.File
 import studio.pinkcloud.voyager.utils.logging.*
+import studio.pinkcloud.voyager.redis.*
+import studio.pinkcloud.voyager.redis.connectToRedis
 import kotlin.reflect.full.memberProperties
 
 fun main() {
@@ -83,7 +86,9 @@ fun Application.init() {
     }
     
     //createVoyagerSupabaseClient()
-    
+    connectToRedis()
+    defineRedisSchema()
+
     configurePreviewDeployment()
     configureProductionDeployment()
     AbstractDeploymentSystem.PRODUCTION_INSTANCE.load()
@@ -97,5 +102,7 @@ val VOYAGER_JSON = Json {
     encodeDefaults = true
     prettyPrint = true
 }
+
+const val RESOURCES_DIR = "src/main/resources"
 
 lateinit var VOYAGER_CONFIG: VoyagerConfig

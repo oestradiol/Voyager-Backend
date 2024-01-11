@@ -15,5 +15,8 @@ data class VoyagerConfig(
     val supabaseUrl: String = "",
     val supabaseKey: String = "",
     val IP: String = "",
+    val redisUrl: String = "localhost",
+    val redisPort: Int = 6379,
+    val forceRedisSync: Boolean = false,
     val isDevelopment: Boolean = true,
 )

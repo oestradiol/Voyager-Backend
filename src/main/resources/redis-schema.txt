@@ -1,0 +1,13 @@
+FT.CREATE deploymentIndex
+    ON JSON
+    PREFIX 1 deployment:
+SCHEMA
+    $.deploymentKey as deploymentKey TEXT NOINDEX
+    $.port as port NUMERIC NOINDEX
+    $.dockerContainer as dockerContainer TEXT
+    $.dnsRecordId as dnsRecordId TEXT NOINDEX
+    $.production as production NUMERIC NOINDEX
+    $.state as state TEXT
+    $.createdAt as createdAt NUMERIC // milliseconds since unix-epoch
+
+---

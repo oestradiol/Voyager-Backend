@@ -53,8 +53,11 @@ dependencies {
     // Sentry
     implementation("io.sentry:sentry:1.7.2")
 
-    //reflection
+    // reflection
     implementation(kotlin("reflect"))
+
+    // redis
+    implementation("redis.clients:jedis:5.0.0")
 }
 
 kotlin {
