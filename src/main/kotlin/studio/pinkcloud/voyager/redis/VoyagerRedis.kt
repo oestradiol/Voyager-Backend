@@ -5,7 +5,6 @@ import redis.clients.jedis.commands.ProtocolCommand
 import redis.clients.jedis.util.SafeEncoder
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.utils.logging.*
-import studio.pinkcloud.voyager.deployment.data.defineDeploymentRedisSchema
 import studio.pinkcloud.voyager.RESOURCES_DIR
 import io.ktor.server.application.Application
 import java.io.File
@@ -64,7 +63,6 @@ fun redisSendBlockingCommand(command: String): Any {
 
 fun defineRedisSchema() {
     log("Defining redis schema..", LogType.INFORMATION)
-
 
     val redisSchema = File("$RESOURCES_DIR/redis-schema.txt")
     if (!redisSchema.exists()) throw FileNotFoundException("redis-schema.txt not found")
