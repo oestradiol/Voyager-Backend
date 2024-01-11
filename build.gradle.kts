@@ -13,22 +13,8 @@ plugins {
 group = "studios.pinkcloud"
 version = "0.0.1"
 
-sentry {
-    // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
-    // This enables source context, allowing you to see your source
-    // code as part of your stack traces in Sentry.
-    includeSourceContext = true
-
-    org = "pinkcloud"
-    projectName = "voyager-backend"
-    authToken = System.getenv("SENTRY_AUTH_TOKEN")
-}
-
 application {
     mainClass.set("studio.pinkcloud.voyager.VoyagerBackendKt")
-
-    val isDevelopment: Boolean = project.ext.has("development")
-    applicationDefaultJvmArgs = listOf("-Dio.ktor.development=$isDevelopment")
 }
 
 repositories {
@@ -66,8 +52,39 @@ dependencies {
 
     // Sentry
     implementation("io.sentry:sentry:1.7.2")
+
+    //reflection
+    implementation(kotlin("reflect"))
 }
 
 kotlin {
     jvmToolchain(17)
+}
+
+tasks.register("runDev") {
+    doFirst {
+        tasks.run.configure {
+            application.applicationDefaultJvmArgs = listOf("-Dio.ktor.development=true")
+            environment(mapOf("development" to 1))
+        }
+    }
+    finalizedBy("run")
+}
+
+tasks.register("buildWithSentry") {
+    doFirst {
+        tasks.build.configure {
+            sentry {
+                // Generates a JVM (Java, Kotlin, etc.) source bundle and uploads your source code to Sentry.
+                // This enables source context, allowing you to see your source
+                // code as part of your stack traces in Sentry.
+                includeSourceContext = true
+
+                org = "pinkcloud"
+                projectName = "voyager-backend"
+                authToken = System.getenv("SENTRY_AUTH_TOKEN")
+            }
+        }
+    }
+    finalizedBy("build")
 }

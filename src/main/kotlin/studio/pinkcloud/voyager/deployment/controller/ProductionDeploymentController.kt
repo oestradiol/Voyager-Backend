@@ -11,6 +11,7 @@ import studio.pinkcloud.voyager.deployment.data.Deployment
 import studio.pinkcloud.voyager.github.VoyagerGithub
 import studio.pinkcloud.voyager.routing.annotations.LoggedIn
 import studio.pinkcloud.voyager.utils.VoyagerResponse
+import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import java.io.File
 
 fun Application.configureProductionDeployment() {
@@ -34,7 +35,7 @@ fun Application.configureProductionDeployment() {
             }
 
             // ensures it is part of the pinkcloud studio org on github
-            if (!repoURL!!.lowercase().startsWith("pinkcloudstudios/")) {
+            if (!repoURL!!.lowercase().startsWith("${VOYAGER_CONFIG.githubOrgName}/")) {
                 call.respond(
                     HttpStatusCode.BadRequest,
                     VoyagerResponse(
@@ -57,7 +58,7 @@ fun Application.configureProductionDeployment() {
                 return@post
             }
 
-            val projectDirectory: File = File("/opt/pinkcloud/voyager/deployments/$deploymentKey-prod").also {
+            val projectDirectory: File = File("${VOYAGER_CONFIG.deploymentsDir}/$deploymentKey-prod").also {
                 if (it.exists()) {
                     it.deleteRecursively()
                 }

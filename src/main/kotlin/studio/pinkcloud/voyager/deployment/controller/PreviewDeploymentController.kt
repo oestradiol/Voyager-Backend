@@ -11,6 +11,7 @@ import studio.pinkcloud.voyager.deployment.data.Deployment
 import studio.pinkcloud.voyager.github.VoyagerGithub
 import studio.pinkcloud.voyager.routing.annotations.LoggedIn
 import studio.pinkcloud.voyager.utils.VoyagerResponse
+import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import java.io.File
 
 fun Application.configurePreviewDeployment() {
@@ -35,7 +36,7 @@ fun Application.configurePreviewDeployment() {
             }
             
             // ensures it is part of the pinkcloud studio org on github
-            if (!repoURL!!.lowercase().startsWith("pinkcloudstudios/")) {
+            if (!repoURL!!.lowercase().startsWith("${VOYAGER_CONFIG.githubOrgName}/")) {
                 call.respond(
                     HttpStatusCode.BadRequest,
                     VoyagerResponse(
@@ -58,7 +59,7 @@ fun Application.configurePreviewDeployment() {
                 return@post
             }
             
-            val projectDirectory: File = File("/opt/pinkcloud/voyager/deployments/$deploymentKey-preview").also { 
+            val projectDirectory: File = File("${VOYAGER_CONFIG.deploymentsDir}/$deploymentKey-preview").also {
                 if (it.exists()) {
                     it.deleteRecursively()
                 }

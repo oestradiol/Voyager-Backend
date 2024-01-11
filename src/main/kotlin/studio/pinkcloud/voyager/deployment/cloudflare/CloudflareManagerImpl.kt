@@ -7,7 +7,6 @@ import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.VOYAGER_JSON
 import studio.pinkcloud.voyager.deployment.cloudflare.responses.CloudflareResponse
 import studio.pinkcloud.voyager.deployment.cloudflare.responses.CreateDNSData
-import studio.pinkcloud.voyager.utils.Env
 import studio.pinkcloud.voyager.utils.TimeUtils
 import studio.pinkcloud.voyager.utils.logging.LogType
 import studio.pinkcloud.voyager.utils.logging.log
@@ -17,7 +16,7 @@ class CloudflareManagerImpl : ICloudflareManager {
     private val httpClient = HttpClient()
     
     override suspend fun addDnsRecord(deploymentKey: String, ip: String, production: Boolean): String { 
-        val response = httpClient.post("https://api.cloudflare.com/client/v4/zones/3b8a859109d691942925b0eb9ceb059e/dns_records") {
+        val response = httpClient.post("https://api.cloudflare.com/client/v4/zones/${VOYAGER_CONFIG.cloudflareZone}/dns_records") {
             headers["Content-Type"] = "application/json"
             headers["Authorization"] = VOYAGER_CONFIG.cloudflareApiToken
 
@@ -43,7 +42,7 @@ class CloudflareManagerImpl : ICloudflareManager {
     }
 
     override suspend fun removeDnsRecord(cloudflareId: String) {
-        val response = httpClient.delete("https://api.cloudflare.com/client/v4/zones/3b8a859109d691942925b0eb9ceb059e/dns_records/${cloudflareId}") {
+        val response = httpClient.delete("https://api.cloudflare.com/client/v4/zones/${VOYAGER_CONFIG.cloudflareZone}/dns_records/${cloudflareId}") {
             headers["Content-Type"] = "application/json"
             headers["Authorization"] = VOYAGER_CONFIG.cloudflareApiToken
         }

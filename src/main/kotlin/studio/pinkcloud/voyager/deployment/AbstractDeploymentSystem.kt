@@ -11,9 +11,10 @@ import studio.pinkcloud.voyager.deployment.data.DeploymentState
 import studio.pinkcloud.voyager.deployment.discord.IDiscordManager
 import studio.pinkcloud.voyager.deployment.docker.IDockerManager
 import studio.pinkcloud.voyager.github.VoyagerGithub
-import studio.pinkcloud.voyager.utils.Env
 import studio.pinkcloud.voyager.utils.PortFinder
 import java.io.File
+import studio.pinkcloud.voyager.utils.logging.*
+import studio.pinkcloud.voyager.VOYAGER_CONFIG
 
 abstract class AbstractDeploymentSystem(val prefix: String) {
     
@@ -26,14 +27,18 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
     abstract fun getCaddyFileContent(deployment: Deployment): String
     
     open fun load() {
+        log("Loading caddy deployment file: ${deploymentsFile.path}", LogType.INFORMATION)
         if (deploymentsFile.exists()) {
+            log("Caddy deployment file found", LogType.INFORMATION)
             deployments.addAll(
                 VOYAGER_JSON.decodeFromString(
                     deploymentsFile.readText(),
                 ),
             )
         } else {
+            log("Deployments file not found, creating one", LogType.WARNING)
             deploymentsFile.createNewFile()
+            deploymentsFile.writeText("[]")
         }
 
         // make sure caddy is updated and was not changed by another process.
@@ -60,7 +65,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
         // add to cloudflare dns. [Done]
 
         // make sure this is done before adding to caddy or else caddy will fail because of SSL certs.
-        val cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, Env.IP, prefix.contains("prod"))
+        val cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, VOYAGER_CONFIG.IP, prefix.contains("prod"))
 
         // build and deploy to docker.
         IDockerManager.INSTANCE.buildDockerImage(deploymentKey, dockerFile)
@@ -119,7 +124,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
             IDockerManager.INSTANCE.deleteContainer(deployment.dockerContainer)
 
             // remove any existing files.
-            File("/opt/pinkcloud/voyager/deployments/${deployment.deploymentKey}-$prefix").also {
+            File("${VOYAGER_CONFIG.deploymentsDir}/${deployment.deploymentKey}-$prefix").also {
                 if (it.exists()) {
                     it.deleteRecursively()
                 }

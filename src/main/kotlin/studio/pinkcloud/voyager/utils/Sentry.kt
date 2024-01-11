@@ -1,11 +1,11 @@
 package studio.pinkcloud.voyager.utils
 
-import io.sentry.context.Context
-import io.sentry.event.BreadcrumbBuilder
-import io.sentry.event.UserBuilder
 import io.sentry.Sentry
 import io.sentry.SentryClient
 import io.sentry.SentryClientFactory
+import io.sentry.context.Context
+import io.sentry.event.BreadcrumbBuilder
+import io.sentry.event.UserBuilder
 
 class Sentry {
     private lateinit var sentry: SentryClient
@@ -56,12 +56,12 @@ class Sentry {
 
         // Record a breadcrumb in the current context. By default the last 100 breadcrumbs are kept.
         Sentry.getContext().recordBreadcrumb(
-            BreadcrumbBuilder().setMessage("User made an action").build()
+            BreadcrumbBuilder().setMessage("User made an action").build(),
         )
 
         // Set the user in the current context.
         Sentry.getContext().setUser(
-            UserBuilder().setEmail("hello@sentry.io").build()
+            UserBuilder().setEmail("hello@sentry.io").build(),
         )
 
         // Add extra data to future events in this context.

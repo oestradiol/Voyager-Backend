@@ -16,6 +16,8 @@ import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
 import studio.pinkcloud.voyager.deployment.controller.configurePreviewDeployment
 import studio.pinkcloud.voyager.deployment.controller.configureProductionDeployment
 import java.io.File
+import studio.pinkcloud.voyager.utils.logging.*
+import kotlin.reflect.full.memberProperties
 
 fun main() {
     embeddedServer(
@@ -27,28 +29,45 @@ fun main() {
 }
 
 fun Application.init() {
+    val mode = if (System.getenv().contains("development")) { "development" } else { "production" }
+    val isDevelopment = if (mode == "development") { true } else { false }
+    log("Running Voyager in ${mode}", LogType.INFORMATION)
+
     // initiate the config before anything else happens
+    log("Getting voyager config from file..", LogType.INFORMATION)
     val configFile = File("config.yml").also { 
         if (!it.exists()) {
+            log("Config file not found! Generating a template.", LogType.ERROR)
             it.createNewFile()
             it.writeText(
                 Yaml.default.encodeToString(
                     VoyagerConfig()
-                )
+                ).replace(Regex("isDevelopment: (true|false)"), "")
             )
+            throw Exception("Config file not found. Generated a template")
         }
     }
+
+    try {
+        VOYAGER_CONFIG =
+            Yaml.default.decodeFromString(
+                VoyagerConfig.serializer(),
+                configFile.readText(Charsets.UTF_8)
+            )
+        for (prop in VoyagerConfig::class.memberProperties) {
+            if (prop.get(VOYAGER_CONFIG)?.equals("") ?: false) throw Exception("${prop.name} config not set")
+        }
+    } catch (err: Exception) {
+        log("Error parsing config file. Delete the file and run the program again to generate a template.", LogType.ERROR)
+        throw err
+    }
     
-    VOYAGER_CONFIG = 
-        Yaml.default.decodeFromString(
-            VoyagerConfig.serializer(), 
-            configFile.readText(Charsets.UTF_8)
-        )
-    
+    log("Installing modules", LogType.INFORMATION)
     install(ContentNegotiation) {
         json()
     }
 
+    log("Registering interceptors", LogType.INFORMATION)
     intercept(ApplicationCallPipeline.Call) {
         val apiKey = call.request.header("X-API-Key")
 
