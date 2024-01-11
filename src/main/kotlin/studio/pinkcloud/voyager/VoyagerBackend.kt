@@ -20,24 +20,30 @@ import studio.pinkcloud.voyager.utils.logging.*
 import kotlin.reflect.full.memberProperties
 
 fun main() {
-    embeddedServer(
-        Netty,
-        port = 8765,
-        host = "0.0.0.0",
-        module = Application::init
-    ).start(wait = true)
+    LoggerFileWriter.load()
+
+    try {
+        embeddedServer(
+            Netty,
+            port = 8765,
+            host = "0.0.0.0",
+            module = Application::init
+        ).start(wait = true)
+    } catch (err: Exception) {
+        log(err)
+        throw Exception()
+    }
 }
 
 fun Application.init() {
     val mode = if (System.getenv().contains("development")) { "development" } else { "production" }
-    val isDevelopment = if (mode == "development") { true } else { false }
     log("Running Voyager in ${mode}", LogType.INFORMATION)
 
     // initiate the config before anything else happens
     log("Getting voyager config from file..", LogType.INFORMATION)
     val configFile = File("config.yml").also { 
         if (!it.exists()) {
-            log("Config file not found! Generating a template.", LogType.ERROR)
+            log("Config file not found! Generating a template..", LogType.ERROR)
             it.createNewFile()
             it.writeText(
                 Yaml.default.encodeToString(
@@ -48,19 +54,15 @@ fun Application.init() {
         }
     }
 
-    try {
-        VOYAGER_CONFIG =
-            Yaml.default.decodeFromString(
-                VoyagerConfig.serializer(),
-                configFile.readText(Charsets.UTF_8)
-            )
-        for (prop in VoyagerConfig::class.memberProperties) {
-            if (prop.get(VOYAGER_CONFIG)?.equals("") ?: false) throw Exception("${prop.name} config not set")
-        }
-    } catch (err: Exception) {
-        log("Error parsing config file. Delete the file and run the program again to generate a template.", LogType.ERROR)
-        throw err
+    VOYAGER_CONFIG =
+        Yaml.default.decodeFromString(
+            VoyagerConfig.serializer(),
+            configFile.readText(Charsets.UTF_8)
+        )
+    for (prop in VoyagerConfig::class.memberProperties) {
+        if (prop.get(VOYAGER_CONFIG)?.equals("") ?: false) throw Exception("${prop.name} config not set")
     }
+
     
     log("Installing modules", LogType.INFORMATION)
     install(ContentNegotiation) {
@@ -86,6 +88,7 @@ fun Application.init() {
     configureProductionDeployment()
     AbstractDeploymentSystem.PRODUCTION_INSTANCE.load()
     AbstractDeploymentSystem.PREVIEW_INSTANCE.load()
+
 }
 
 val VOYAGER_JSON = Json { 

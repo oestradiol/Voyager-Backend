@@ -37,6 +37,7 @@ nb-configuration.xml
 config.yml
 production-deployments.json
 preview-deployments.json
+logs/
 
 # Plugin directory
 /.quarkus/cli/plugins/

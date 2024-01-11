@@ -15,6 +15,7 @@ object LoggerFileWriter {
     var unloadedLogQueue = mutableListOf<Pair<String, CustomLogType>>()
 
     fun load() {
+        log("Loading LoggerFileWriter..", LogType.INFORMATION)
         if(isLoaded) {
             log("[PrettyLog] FileWriter is already loaded!", LogType.ERROR)
             return

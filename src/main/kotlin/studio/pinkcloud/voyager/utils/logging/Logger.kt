@@ -16,7 +16,10 @@ enum class LoggerStyle(val pattern: String) {
     TEXT_ONLY("<foreground><prefix>: <message>"),
 }
 
-fun log(message: String, type: CustomLogType = LogType.RUNTIME) {
+fun log(
+    message: String,
+    type: CustomLogType = LogType.RUNTIME,
+) {
     var pattern = LoggerSettings.loggerStyle.pattern
     pattern = pattern.replace("<background>", type.colorPair.background.code)
     pattern = pattern.replace("<foreground>", type.colorPair.foreground.code)
@@ -26,7 +29,7 @@ fun log(message: String, type: CustomLogType = LogType.RUNTIME) {
     pattern = pattern.replace("<reset>", AnsiColor.RESET.code)
 
     println("$pattern${AnsiColor.RESET}")
-    if(LoggerSettings.saveToFile) LoggerFileWriter.writeToFile(message, type)
+    if (LoggerSettings.saveToFile) LoggerFileWriter.writeToFile(message, type)
 }
 
 fun log(exception: Exception) {
@@ -34,4 +37,13 @@ fun log(exception: Exception) {
     exception.stackTrace.forEach {
         log("   $it", LogType.EXCEPTION)
     }
+}
+
+fun logAndThrow(exception: Exception) {
+    log(exception)
+    throw exception
+}
+
+fun logAndThrow(message: String) {
+    logAndThrow(Exception(message))
 }

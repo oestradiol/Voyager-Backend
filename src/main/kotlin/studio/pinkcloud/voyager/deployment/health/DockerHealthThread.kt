@@ -10,15 +10,21 @@ import kotlin.system.*
 
 class DockerHealthThread() : Thread() {
     override fun run() {
-        while (true) {
-            val tickDurationMillis = tick()
+        try {
+            while (true) {
+                val tickDurationMillis = tick()
 
-            // ensures that tick() delays for no less than 200ms and sleeps for at least 95% of the time
-            // t_elapsed% = t_elapsed/(t_delay + t_elapsed)
-            // X = t_elapsed/(t_delay + t_elapsed) => X*t_delay = (1-X)*t_elapsed =>
-            // => t_delay = t_elapsed * (1-x) / X
-            // X = 5% = 0.05 => t_delay = 19 * t_elapsed
-            sleep(TimeUnit.SECONDS.toMillis(Math.max(200, tickDurationMillis * 19)))
+                // ensures that tick() delays for no less than 200ms and sleeps for at least 95% of the time
+                // t_elapsed% = t_elapsed/(t_delay + t_elapsed)
+                // X = t_elapsed/(t_delay + t_elapsed) => X*t_delay = (1-X)*t_elapsed =>
+                // => t_delay = t_elapsed * (1-x) / X
+                // X = 5% = 0.05 => t_delay = 19 * t_elapsed
+                sleep(TimeUnit.SECONDS.toMillis(Math.max(200, tickDurationMillis * 19)))
+            }
+        } catch (err: Exception) {
+            log("Exception thrown while running docker health checks, sleeping thread for 1 second..")
+            log(err)
+            sleep(TimeUnit.SECONDS.toMillis(1000))
         }
     }
 
