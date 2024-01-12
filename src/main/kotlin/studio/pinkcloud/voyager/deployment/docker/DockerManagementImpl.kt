@@ -9,6 +9,7 @@ import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.github.dockerjava.transport.DockerHttpClient
 import java.io.Closeable
 import java.io.File
+import studio.pinkcloud.voyager.utils.logging.log
 
 class DockerManagementImpl : IDockerManager {
     
@@ -33,7 +34,9 @@ class DockerManagementImpl : IDockerManager {
         )
     }
 
-    override fun buildDockerImage(deploymentKey: String, dockerfile: File) {
+    override fun buildDockerImage(deploymentKey: String, dockerfile: File): String {
+        var dockerImage = ""
+
         dockerClient
             .buildImageCmd()
             .withDockerfile(dockerfile)
@@ -42,9 +45,14 @@ class DockerManagementImpl : IDockerManager {
             )
             .exec(object : ResultCallback.Adapter<BuildResponseItem>() {
                 override fun onNext(item: BuildResponseItem?) {
+                    item?.imageId?.let { dockerImage = item.imageId }
                 }
             })
             .awaitCompletion() // block until the image is built
+
+        log("Docker image: $dockerImage")
+
+        return dockerImage
     }
 
     override fun createAndStartContainer(deploymentKey: String, port: Int, internalPort: Int, dockerImage: String): String {

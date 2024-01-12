@@ -15,7 +15,7 @@ class CloudflareManagerImpl : ICloudflareManager {
     
     private val httpClient = HttpClient()
     
-    override suspend fun addDnsRecord(deploymentKey: String, ip: String, production: Boolean): String { 
+    override suspend fun addDnsRecord(deploymentKey: String, ip: String, production: Boolean): String? {
         val response = httpClient.post("https://api.cloudflare.com/client/v4/zones/${VOYAGER_CONFIG.cloudflareZone}/dns_records") {
             headers["Content-Type"] = "application/json"
             headers["Authorization"] = VOYAGER_CONFIG.cloudflareApiToken
@@ -34,11 +34,15 @@ class CloudflareManagerImpl : ICloudflareManager {
                     """.trimIndent()
             )
         }
-        
-        return VOYAGER_JSON.decodeFromString(
-            CloudflareResponse.serializer(CreateDNSData.serializer()),
-            response.bodyAsText()
-        ).result.id
+
+        try {
+            return VOYAGER_JSON.decodeFromString(
+                CloudflareResponse.serializer(CreateDNSData.serializer()),
+                response.bodyAsText()
+            ).result.id
+        } catch (err: Exception) {
+            return null
+        }
     }
 
     override suspend fun removeDnsRecord(cloudflareId: String) {

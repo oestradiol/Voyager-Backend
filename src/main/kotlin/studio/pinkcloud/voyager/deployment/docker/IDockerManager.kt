@@ -12,7 +12,7 @@ interface IDockerManager {
     fun buildDockerImage(
         deploymentKey: String,
         dockerfile: File,
-    )
+    ): String
 
     /**
      * Creates and starts a container with the given [deploymentKey], [port] and [dockerImage].

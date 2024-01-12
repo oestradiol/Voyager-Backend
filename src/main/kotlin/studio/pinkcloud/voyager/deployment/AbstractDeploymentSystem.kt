@@ -49,10 +49,13 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
         // add to cloudflare dns. [Done]
 
         // make sure this is done before adding to caddy or else caddy will fail because of SSL certs.
-        val cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, VOYAGER_CONFIG.IP, prefix.contains("prod"))
+        var cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, VOYAGER_CONFIG.IP, prefix.contains("prod"))
+
+        // if record already exists, get from deployments
+        cloudflareId = cloudflareId ?: Deployment.find(deploymentKey)!!.dnsRecordId
 
         // build and deploy to docker.
-        IDockerManager.INSTANCE.buildDockerImage(deploymentKey, dockerFile)
+        val dockerImage = IDockerManager.INSTANCE.buildDockerImage(deploymentKey, dockerFile)
 
         val port = PortFinder.findFreePort() // the port that the reverse proxy needs to use.
 
@@ -62,7 +65,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
                 deploymentKey,
                 port,
                 findInternalDockerPort(dockerFile),
-                deploymentKey,
+                dockerImage,
             )
 
 
