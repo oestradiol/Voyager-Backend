@@ -47,7 +47,7 @@ class VoyagerBackendTests {
         loadVoyagerConfig()
         connectToRedis()
         assertEquals(redisClient.ping(), "PONG")
-        var strings = Array<String>(100, {_: Int -> genRandomString(100)})
+        val strings = Array(100) { _: Int -> genRandomString(100) }
         for (i in 0..99) {
             redisClient.set("testvar:$i", strings[i])
         }
@@ -73,7 +73,7 @@ class VoyagerBackendTests {
         loadVoyagerConfig()
         connectToRedis()
         assertEquals(redisClient.ping(), "PONG")
-        var deployments = Array<Deployment>(100, {_: Int -> genRandomDeployment()})
+        val deployments = Array(100) { _: Int -> genRandomDeployment() }
         for (i in 0..99) {
             deployments[i].save()
         }

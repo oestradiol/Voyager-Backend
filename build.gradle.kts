@@ -75,6 +75,7 @@ tasks.register("runDev") {
 }
 
 tasks.register("buildWithSentry") {
+    /* I dont know 9if this is working rn :kiss:
     doFirst {
         tasks.build.configure {
             sentry {
@@ -89,5 +90,7 @@ tasks.register("buildWithSentry") {
             }
         }
     }
+    
+     */
     finalizedBy("build")
 }
