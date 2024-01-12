@@ -10,6 +10,7 @@ import studio.pinkcloud.voyager.deployment.docker.IDockerManager
 import studio.pinkcloud.voyager.utils.PortFinder
 import java.io.File
 import kotlinx.coroutines.*
+import studio.pinkcloud.voyager.VOYAGER_CONFIG
 
 class PreviewDeploymentSystem : AbstractDeploymentSystem("preview") {
 
@@ -18,6 +19,10 @@ class PreviewDeploymentSystem : AbstractDeploymentSystem("preview") {
             
             ${deployment.deploymentKey}-preview.pinkcloud.studio {
                 reverse_proxy localhost:${deployment.port}
+                
+                tls {
+                        dns cloudflare "h_Eo2pCARwCvXxh__ZfseCKIleCG2cQA9GA59WeW"
+                }
             }
         """.trimIndent()
     }

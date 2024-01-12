@@ -21,6 +21,7 @@ fun Application.configurePreviewDeployment() {
         @LoggedIn
         post("/api/deployments/preview") {
             try {
+
                 // this is just temp till supabase is implemented and getting project info from there can be done
                 val deploymentKey = call.request.header("X-Deployment-Key")
                 val repoURL = call.request.header("X-Repo-URL")
@@ -36,8 +37,8 @@ fun Application.configurePreviewDeployment() {
                     return@post
                 }
 
-                // ensures it is part of the pinkcloud studio org on github
-                if (!repoURL!!.lowercase().startsWith("${VOYAGER_CONFIG.githubOrgName}/")) {
+                // ensures it is part of the pink cloud studio org on github
+                if (!repoURL!!.lowercase().startsWith("${VOYAGER_CONFIG.githubOrgName.lowercase()}/")) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         VoyagerResponse(
@@ -118,6 +119,7 @@ fun Application.configurePreviewDeployment() {
                         success = false,
                         message = "Deployment failed"
                     ))
+
             }
         }
         

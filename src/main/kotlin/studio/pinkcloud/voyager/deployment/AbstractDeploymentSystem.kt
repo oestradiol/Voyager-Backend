@@ -72,7 +72,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
                 port,
                 containerId,
                 cloudflareId,
-                true,
+                false, /// this will always deploy the thing as a preview.
                 DeploymentState.DEPLOYED,
             )
 

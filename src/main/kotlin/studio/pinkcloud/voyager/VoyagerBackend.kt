@@ -10,6 +10,7 @@ import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.network.sockets.connect
+import io.ktor.server.routing.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -27,6 +28,9 @@ val programStartTime = System.currentTimeMillis()
 
 fun main() {
     LoggerFileWriter.load()
+    Thread.setDefaultUncaughtExceptionHandler { _, throwable ->  
+        log(throwable)
+    }
 
     try {
         embeddedServer(
@@ -56,6 +60,16 @@ fun Application.init() {
 
     log("Registering interceptors", LogType.INFORMATION)
     intercept(ApplicationCallPipeline.Call) {
+        
+        // check if route is /status
+        if (call.request.path() == "/status") {
+            call.respond(
+                HttpStatusCode.OK,
+                "Voyager is up!"
+            )
+            return@intercept finish()
+        }
+        
         val apiKey = call.request.header("X-API-Key")
 
         if (apiKey == null || apiKey != VOYAGER_CONFIG.apiKey) {

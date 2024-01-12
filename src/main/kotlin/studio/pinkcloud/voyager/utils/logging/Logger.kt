@@ -39,6 +39,13 @@ fun log(exception: Exception) {
     }
 }
 
+fun log(exception: Throwable) {
+    log("$exception", LogType.EXCEPTION)
+    exception.stackTrace.forEach {
+        log("   $it", LogType.EXCEPTION)
+    }
+}
+
 fun logAndThrow(exception: Exception) {
     log(exception)
     throw exception

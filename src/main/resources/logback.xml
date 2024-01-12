@@ -1,6 +1,6 @@
 <!-- logback.xml -->
 <configuration>
-    <logger name="io.ktor" level="INFO" />
+    <logger name="io.ktor" level="ERROR" />
 
     <logger name="org.eclipse.jgit" level="INFO" />
     
