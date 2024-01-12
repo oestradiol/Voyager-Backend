@@ -11,6 +11,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.util.Scanner
 import com.sun.jna.StringArray
+import studio.pinkcloud.voyager.utils.VoyagerResponse
 
 lateinit var redisClient: JedisPooled
 
@@ -64,11 +65,11 @@ fun redisSendBlockingCommand(command: String): Any {
 fun defineRedisSchema() {
     log("Defining redis schema..", LogType.INFORMATION)
 
-    val redisSchema = File("$RESOURCES_DIR/redis-schema.txt")
-    if (!redisSchema.exists()) throw FileNotFoundException("redis-schema.txt not found")
-
+    val redisSchema = VoyagerResponse::class.java.getResource("/redis-schema.txt")?.readText()
+        ?: throw FileNotFoundException("redis-schema.txt not found")
+    
     try {
-        val formattedSchemaSplit = redisSchema.readText()
+        val formattedSchemaSplit = redisSchema
             .replace(Regex("//[^\\n]*"), "") // removing comments
             .replace(Regex("\\s+"), " ") // removing extra whitespace
             .trim()
@@ -76,10 +77,10 @@ fun defineRedisSchema() {
 
         log("Commands in redis-schema.txt:")
         for (command in formattedSchemaSplit) {
-            if (command.equals("")) continue
+            if (command == "") continue
             log("")
             log("Processing command:")
-            log("$command")
+            log(command)
             try {
                 redisSendBlockingCommand(command)
                 log("Success!", LogType.SUCCESS)

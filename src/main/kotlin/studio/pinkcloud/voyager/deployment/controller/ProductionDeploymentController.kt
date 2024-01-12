@@ -15,6 +15,8 @@ import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import java.io.File
 
 fun Application.configureProductionDeployment() {
+    AbstractDeploymentSystem.PRODUCTION_INSTANCE.load()
+    
     routing() {
 
         post("/api/deployments/production") {

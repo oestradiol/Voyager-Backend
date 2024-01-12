@@ -25,6 +25,17 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
      * @return the content that should be added to the file for each deployment in the [deployments] list.
      */
     abstract fun getCaddyFileContent(deployment: Deployment): String
+
+    open fun load() {
+        // make sure caddy is updated and was not changed by another process.
+        ICaddyManager.INSTANCE.updateCaddyFile()
+
+        Runtime.getRuntime().addShutdownHook(
+            Thread {
+                ICaddyManager.INSTANCE.updateCaddyFile(withOurApi = false)
+            },
+        )
+    }
     
     open suspend fun deploy(
         deploymentKey: String,
