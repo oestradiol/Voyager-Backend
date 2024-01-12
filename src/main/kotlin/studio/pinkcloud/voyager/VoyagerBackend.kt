@@ -23,6 +23,8 @@ import studio.pinkcloud.voyager.redis.*
 import studio.pinkcloud.voyager.redis.connectToRedis
 import kotlin.reflect.full.memberProperties
 
+val programStartTime = System.currentTimeMillis()
+
 fun main() {
     LoggerFileWriter.load()
 
@@ -72,7 +74,7 @@ fun Application.init() {
     configurePreviewDeployment()
     configureProductionDeployment()
 
-    log("All settings loaded. Voyager is up!", LogType.SUCCESS)
+    log("Done in ${System.currentTimeMillis() - programStartTime}ms. Voyager is up!", LogType.SUCCESS)
 }
 
 fun loadVoyagerConfig() {

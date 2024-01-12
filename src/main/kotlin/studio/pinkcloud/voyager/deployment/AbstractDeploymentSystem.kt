@@ -27,6 +27,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
     abstract fun getCaddyFileContent(deployment: Deployment): String
 
     open fun load() {
+        log("Loading caddy file..", LogType.INFORMATION)
         // make sure caddy is updated and was not changed by another process.
         ICaddyManager.INSTANCE.updateCaddyFile()
 

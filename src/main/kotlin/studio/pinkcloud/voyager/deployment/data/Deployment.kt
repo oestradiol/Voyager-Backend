@@ -33,9 +33,11 @@ data class Deployment(
         }
 
         fun findAll(): List<Deployment> {
+            val keys = redisClient.keys("deployment:*")?.toTypedArray()?.filterNotNull() ?: listOf()
+            if (keys.size == 0) return listOf()
             return redisClient
                 .mget(
-                    *(redisClient.keys("deployment:*")?.toTypedArray() ?: arrayOf())
+                    *(keys.toTypedArray())
                 )
                 .filterNotNull()
                 .map { jsonStr: String -> Json.decodeFromString<Deployment>(jsonStr) }
