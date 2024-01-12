@@ -9,6 +9,7 @@ data class VoyagerConfig(
     val apiKey: String = "",
     val deploymentWebhook: String = "",
     val caddyFilePath: String = "/opt/pinkcloud/caddy/Caddyfile",
+    val staticCaddyFilePath: String = "/opt/pinkcloud/voyager-backend/caddy/Caddyfile",
     val githubOrgName: String = "PinkCloudStudios",
     val deploymentsDir: String = "/opt/pinkcloud/voyager/deployments",
     val cloudflareZone: String = "",

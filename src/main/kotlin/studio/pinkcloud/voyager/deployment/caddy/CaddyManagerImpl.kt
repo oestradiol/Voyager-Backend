@@ -7,6 +7,7 @@ import java.io.File
 
 class CaddyManagerImpl : ICaddyManager {
     override fun updateCaddyFile(withOurApi: Boolean) {
+        val staticCaddyFile = VOYAGER_CONFIG.staticCaddyFilePath
         val filePath = VOYAGER_CONFIG.caddyFilePath
 
         var newContent: String =
@@ -19,6 +20,8 @@ class CaddyManagerImpl : ICaddyManager {
             } else {
                 ""
             }
+        
+        newContent += "\n# Static Configurations from $staticCaddyFile\n" + File(staticCaddyFile).readText()
 
         Deployment.findAll().forEach {
             newContent +=

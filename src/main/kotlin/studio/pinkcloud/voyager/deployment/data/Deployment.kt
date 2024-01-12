@@ -16,7 +16,7 @@ data class Deployment(
 ) {
     fun save() {
         synchronized(this) {
-            redisClient.set("deployment:$deploymentKey", Json.encodeToString(Deployment.serializer(), this))
+            redisClient.set("deployment:$deploymentKey", Json.encodeToString(serializer(), this))
         }
     }
 
@@ -37,8 +37,8 @@ data class Deployment(
                 .mget(
                     *(redisClient.keys("deployment:*")?.toTypedArray() ?: arrayOf())
                 )
-                .filter({jsonStr: String? -> jsonStr != null})
-                .map({jsonStr: String -> Json.decodeFromString<Deployment>(jsonStr)})
+                .filterNotNull()
+                .map { jsonStr: String -> Json.decodeFromString<Deployment>(jsonStr) }
         }
     }
 }
