@@ -103,7 +103,7 @@ fun Application.configureProductionDeployment() {
 
                 val containerId = AbstractDeploymentSystem.PRODUCTION_INSTANCE.deploy(
                     deploymentKey,
-                    dockerFile.parentFile,
+                    dockerFile,
                     domain ?: "${deploymentKey}.pinkcloud.studio"
                 )
 

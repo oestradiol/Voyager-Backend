@@ -176,7 +176,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
         fun getCaddyFileContent(deployment: Deployment): String {
             return """
             
-            ${deployment.domain} {
+            ${if (deployment.domain.startsWith(".")) { deployment.domain.replaceFirst(".", "") } else { deployment.domain }} {
                 reverse_proxy localhost:${deployment.port}
                 
                 tls {
