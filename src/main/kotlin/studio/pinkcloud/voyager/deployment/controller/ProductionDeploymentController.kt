@@ -23,9 +23,9 @@ fun Application.configureProductionDeployment() {
         post("/api/deployments/production") {
             try {
                 // this is just temp till supabase is implemented and getting project info from there can be done
-                val deploymentKey = call.request.header("X-Deployment-Key")
-                val repoURL = call.request.header("X-Repo-URL")
-                val domain = call.request.header("X-Domain")
+                val deploymentKey = call.request.header("X-Deployment-Key") ?: call.request.queryParameters["deploymentKey"]
+                val repoURL = call.request.header("X-Repo-URL") ?: call.request.queryParameters["repoUrl"]
+                val domain = call.request.header("X-Domain") ?: call.request.queryParameters["at"]
 
                 if (deploymentKey == null) {
                     call.respond(
@@ -129,9 +129,9 @@ fun Application.configureProductionDeployment() {
 
         get("/api/deployments/production/{production}/logs") {
             try {
-                val previewId = call.parameters["production"]
+                val deploymentKey = call.parameters["production"] ?: call.request.queryParameters["deploymentKey"]
 
-                if (previewId == null) {
+                if (deploymentKey == null) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         VoyagerResponse(
@@ -142,7 +142,7 @@ fun Application.configureProductionDeployment() {
                     return@get
                 }
 
-                val deployment = getAndValidate(previewId, call) ?: return@get
+                val deployment = getAndValidate(deploymentKey, call) ?: return@get
 
                 call.respond(
                     HttpStatusCode.OK,
@@ -166,9 +166,9 @@ fun Application.configureProductionDeployment() {
 
         post("/api/deployments/production/{production}/stop") {
             try {
-                val previewId = call.parameters["production"]
+                val deploymentKey = call.parameters["production"] ?: call.request.queryParameters["deploymentKey"]
 
-                if (previewId == null) {
+                if (deploymentKey == null) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         VoyagerResponse(
@@ -179,7 +179,7 @@ fun Application.configureProductionDeployment() {
                     return@post
                 }
 
-                val deployment = getAndValidate(previewId, call) ?: return@post
+                val deployment = getAndValidate(deploymentKey, call) ?: return@post
 
                 try {
                     AbstractDeploymentSystem.PRODUCTION_INSTANCE.stopAndDelete(deployment)

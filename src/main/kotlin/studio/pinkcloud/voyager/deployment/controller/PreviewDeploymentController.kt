@@ -23,8 +23,8 @@ fun Application.configurePreviewDeployment() {
             try {
 
                 // this is just temp till supabase is implemented and getting project info from there can be done
-                val deploymentKey = call.request.header("X-Deployment-Key")
-                val repoURL = call.request.header("X-Repo-URL")
+                val deploymentKey = call.request.header("X-Deployment-Key") ?: call.request.queryParameters["deploymentKey"]
+                val repoURL = call.request.header("X-Repo-URL") ?: call.request.queryParameters["repoUrl"]
 
                 if (deploymentKey == null) {
                     call.respond(
@@ -125,9 +125,9 @@ fun Application.configurePreviewDeployment() {
         
         get("/api/deployments/preview/{preview}/logs") {
             try {
-                val previewId = call.parameters["preview"]
+                val deploymentKey = call.parameters["preview"] ?: call.request.queryParameters["deploymentKey"]
 
-                if (previewId == null) {
+                if (deploymentKey == null) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         VoyagerResponse(
@@ -138,7 +138,7 @@ fun Application.configurePreviewDeployment() {
                     return@get
                 }
 
-                val deployment = getAndValidate(previewId, call) ?: return@get
+                val deployment = getAndValidate(deploymentKey, call) ?: return@get
 
                 call.respond(
                     HttpStatusCode.OK,
@@ -163,9 +163,9 @@ fun Application.configurePreviewDeployment() {
         
         post("/api/deployments/preview/{preview_id}/stop") {
             try {
-                val previewId = call.parameters["preview_id"]
+                val deploymentKey = call.parameters["preview_id"] ?: call.request.queryParameters["deploymentKey"]
 
-                if (previewId == null) {
+                if (deploymentKey == null) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         VoyagerResponse(
@@ -176,7 +176,7 @@ fun Application.configurePreviewDeployment() {
                     return@post
                 }
 
-                val deployment = getAndValidate(previewId, call) ?: return@post
+                val deployment = getAndValidate(deploymentKey, call) ?: return@post
 
                 try {
                     AbstractDeploymentSystem.PREVIEW_INSTANCE.stopAndDelete(deployment)
