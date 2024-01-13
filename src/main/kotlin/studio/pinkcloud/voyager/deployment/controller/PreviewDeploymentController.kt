@@ -100,7 +100,7 @@ fun Application.configurePreviewDeployment() {
                     return@post
                 }
 
-                val containerId = AbstractDeploymentSystem.PREVIEW_INSTANCE.deploy(deploymentKey, dockerFile)
+                val containerId = AbstractDeploymentSystem.PREVIEW_INSTANCE.deploy(deploymentKey, dockerFile, "${deploymentKey}-preview.pinkcloud.studio")
 
                 call.respond(
                     HttpStatusCode.OK,

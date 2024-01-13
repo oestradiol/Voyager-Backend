@@ -37,6 +37,7 @@ class VoyagerBackendTests {
                 genRandomString(100),
                 genRandomString(100),
                 Math.random() > 0.5,
+                genRandomString(100),
                 DeploymentState.entries.get(Random.nextInt(0, DeploymentState.entries.size)),
             )
         }

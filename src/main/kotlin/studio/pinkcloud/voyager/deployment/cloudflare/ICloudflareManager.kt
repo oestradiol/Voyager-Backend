@@ -5,6 +5,7 @@ interface ICloudflareManager {
         deploymentKey: String,
         ip: String,
         production: Boolean,
+        domain: String
     ): String?
 
     suspend fun removeDnsRecord(cloudflareId: String)

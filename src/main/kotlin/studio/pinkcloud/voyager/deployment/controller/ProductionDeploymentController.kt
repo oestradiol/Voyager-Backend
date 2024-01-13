@@ -25,6 +25,7 @@ fun Application.configureProductionDeployment() {
                 // this is just temp till supabase is implemented and getting project info from there can be done
                 val deploymentKey = call.request.header("X-Deployment-Key")
                 val repoURL = call.request.header("X-Repo-URL")
+                val domain = call.request.header("X-Domain")
 
                 if (deploymentKey == null) {
                     call.respond(
@@ -100,7 +101,11 @@ fun Application.configureProductionDeployment() {
                     return@post
                 }
 
-                val containerId = AbstractDeploymentSystem.PRODUCTION_INSTANCE.deploy(deploymentKey, dockerFile)
+                val containerId = AbstractDeploymentSystem.PRODUCTION_INSTANCE.deploy(
+                    deploymentKey,
+                    dockerFile.parentFile,
+                    domain ?: "${deploymentKey}.pinkcloud.studio"
+                )
 
                 call.respond(
                     HttpStatusCode.OK,

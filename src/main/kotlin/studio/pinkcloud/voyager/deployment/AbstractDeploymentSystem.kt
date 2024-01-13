@@ -19,12 +19,6 @@ import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.redis.redisClient
 
 abstract class AbstractDeploymentSystem(val prefix: String) {
-    
-
-    /**
-     * @return the content that should be added to the file for each deployment in the [deployments] list.
-     */
-    abstract fun getCaddyFileContent(deployment: Deployment): String
 
     open fun load() {
         log("Loading caddy file..", LogType.INFORMATION)
@@ -41,6 +35,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
     open suspend fun deploy(
         deploymentKey: String,
         dockerFile: File,
+        domain: String
     ): String {
         // call deployment functions in IDockerManager [Done]
         // notify discord bot.
@@ -49,7 +44,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
         // add to cloudflare dns. [Done]
 
         // make sure this is done before adding to caddy or else caddy will fail because of SSL certs.
-        var cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, VOYAGER_CONFIG.IP, prefix.contains("prod"))
+        var cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, VOYAGER_CONFIG.IP, prefix.contains("prod"), domain)
 
         // if record already exists, get from deployments
         cloudflareId = cloudflareId ?: Deployment.find(deploymentKey)!!.dnsRecordId
@@ -76,7 +71,8 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
                 containerId,
                 cloudflareId,
                 prefix.contains("prod"),
-                DeploymentState.DEPLOYED,
+                domain,
+                DeploymentState.DEPLOYED
             )
 
         deployment.save()
@@ -177,5 +173,17 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
         val PREVIEW_INSTANCE: AbstractDeploymentSystem = PreviewDeploymentSystem()
         val PRODUCTION_INSTANCE: AbstractDeploymentSystem = ProductionDeploymentSystem()
 
+        fun getCaddyFileContent(deployment: Deployment): String {
+            return """
+            
+            ${deployment.domain} {
+                reverse_proxy localhost:${deployment.port}
+                
+                tls {
+                        dns cloudflare "${VOYAGER_CONFIG.cloudflareApiToken.replace("Bearer ", "")}"
+                }
+            }
+        """.trimIndent()
+        }
     }
 }

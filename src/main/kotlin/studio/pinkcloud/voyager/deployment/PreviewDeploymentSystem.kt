@@ -13,17 +13,4 @@ import kotlinx.coroutines.*
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
 
 class PreviewDeploymentSystem : AbstractDeploymentSystem("preview") {
-
-    override fun getCaddyFileContent(deployment: Deployment): String {
-        return """
-            
-            ${deployment.deploymentKey}-preview.pinkcloud.studio {
-                reverse_proxy localhost:${deployment.port}
-                
-                tls {
-                        dns cloudflare "h_Eo2pCARwCvXxh__ZfseCKIleCG2cQA9GA59WeW"
-                }
-            }
-        """.trimIndent()
-    }
 }

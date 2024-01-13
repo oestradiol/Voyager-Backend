@@ -24,12 +24,7 @@ class CaddyManagerImpl : ICaddyManager {
         newContent += "\n# Static Configurations from $staticCaddyFile\n" + File(staticCaddyFile).readText()
 
         Deployment.findAll().forEach {
-            newContent +=
-                if (it.production) {
-                    AbstractDeploymentSystem.PRODUCTION_INSTANCE.getCaddyFileContent(it)
-                } else {
-                    AbstractDeploymentSystem.PREVIEW_INSTANCE.getCaddyFileContent(it)
-                }
+            newContent += AbstractDeploymentSystem.getCaddyFileContent(it)
         }
 
         File(filePath).writeText(newContent)

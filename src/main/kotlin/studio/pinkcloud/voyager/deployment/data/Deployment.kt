@@ -11,6 +11,7 @@ data class Deployment(
     val dockerContainer: String,
     val dnsRecordId: String,
     val production: Boolean,
+    val domain: String, // full doamin ex: test.pinkcloud.studio or pinkcloud.studio (can be either)
     var state: DeploymentState = DeploymentState.UNDEPLOYED,
     var createdAt: Long = System.currentTimeMillis(),
 ) {
@@ -34,7 +35,7 @@ data class Deployment(
 
         fun findAll(): List<Deployment> {
             val keys = redisClient.keys("deployment:*")?.toTypedArray()?.filterNotNull() ?: listOf()
-            if (keys.size == 0) return listOf()
+            if (keys.isEmpty()) return listOf()
             return redisClient
                 .mget(
                     *(keys.toTypedArray())
