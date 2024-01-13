@@ -1,28 +1,39 @@
 # Cloudflare
 
-## Creating an API 
+<h1>Cloudflare API Token Creation</h1>
 
-1. Go to https://dash.cloudflare.com/profile/api-tokens
-![Cloudflare API Tokens](../images/cloudflare/IMG_1.png)
+<ol>
+<li>
+  <p>Go to <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">https://dash.cloudflare.com/profile/api-tokens</a></p>
+  <img src="../images/cloudflare/IMG_1.png" alt="Step 1">
+</li>
 
-2. Navigate to API Tokens Section
-<br>
-![Cloudflare API Tokens](../images/cloudflare/IMG_2.png)
+<li>
+  <p>Navigate to the API Tokens Section</p>
+  <img src="../images/cloudflare/IMG_2.png" alt="Step 2">
+</li>
 
-3. Click on Create Token
-<br>
-![Cloudflare API Tokens](../images/cloudflare/IMG_3.png)
+<li>
+  <p>Click on Create Token</p>
+  <img src="../images/cloudflare/IMG_3.png" alt="Step 3">
+</li>
 
-4. Click on Create Custom Token
-<br>
-![Cloudflare API Tokens](../images/cloudflare/IMG_4.png)
+<li>
+  <p>Click on Create Custom Token</p>
+  <img src="../images/cloudflare/IMG_4.png" alt="Step 4">
+</li>
 
-5. Give the token a name and select the permissions from the images below.
-<br>
-![Cloudflare API Tokens](../images/cloudflare/IMG_5.png)
+<li>
+  <p>Give the token a name and select the permissions from the images below</p>
+  <img src="../images/cloudflare/IMG_5.png" alt="Step 5">
+</li>
 
-6. Click on Continue to Summary
-<br>
-![Cloudflare API Tokens](../images/cloudflare/IMG_6.png)
+<li>
+  <p>Click on Continue to Summary</p>
+  <img src="../images/cloudflare/IMG_6.png" alt="Step 6">
+</li>
 
-7. Store the token somewhere safe. You will not be able to see it again.
+<li>
+  <p>Store the token somewhere safe. You will not be able to see it again.</p>
+</li>
+</ol>
