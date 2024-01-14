@@ -1,55 +1,77 @@
 package studio.pinkcloud.voyager.utils.logging
 
 import java.io.File
+import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.*
-object LoggerFileWriter {
-    var isLoaded = false
-    lateinit var file: File
-    private val logFileName: String = SimpleDateFormat(LoggerSettings.logFileNameFormat).format(Calendar.getInstance().time)
+import java.util.concurrent.ConcurrentLinkedQueue
+import redis.clients.jedis.resps.Tuple
 
-    // Store the logs that come before the FileWriter is loaded
-    var unloadedLogQueue = mutableListOf<Pair<String, CustomLogType>>()
+class LoggerFileWriter {
+    companion object {
+        private var isLoaded = false
+        private lateinit var logFileFull: File
+        private lateinit var logFileLatest: File
+        private val logFileName: String = SimpleDateFormat(LoggerSettings.logFileNameFormat).format(Calendar.getInstance().time)
 
-    fun load() {
-        log("Loading LoggerFileWriter..", LogType.INFORMATION)
-        if(isLoaded) {
-            log("[PrettyLog] FileWriter is already loaded!", LogType.ERROR)
-            return
+        internal class LogEntry(
+            val message: String,
+            val logType: CustomLogType,
+            val date: String,
+            val threadName: String
+        )
+
+        // Store the logs that come before the FileWriter is loaded
+        private var unloadedLogQueue = ConcurrentLinkedQueue<LogEntry>()
+
+        fun load() {
+            if(isLoaded) {
+                log("FileWriter is already loaded!", LogType.ERROR)
+                return
+            }
+
+            log("Loading LoggerFileWriter..", LogType.INFO)
+
+            //Make sure the path has the correct format
+            if(!LoggerSettings.saveDirectoryPath.endsWith("/")) LoggerSettings.saveDirectoryPath += "/"
+
+            logFileFull = File("${LoggerSettings.saveDirectoryPath}${logFileName}.log")
+            logFileLatest = File("${LoggerSettings.saveDirectoryPath}latest.log")
+
+            // Create the directory if it doesn't exist
+            if(!directoryExists(LoggerSettings.saveDirectoryPath)) {
+                log("Specified log directory (${LoggerSettings.saveDirectoryPath}) was not found, creating one..", LogType.WARN)
+                val path = Paths.get(LoggerSettings.saveDirectoryPath)
+                Files.createDirectories(path)
+                log("Log directory created!", LogType.INFO)
+            }
+
+            if(logFileFull.exists()) logFileFull.delete()
+            if(logFileLatest.exists()) logFileLatest.delete()
+
+            logFileFull.createNewFile()
+            logFileLatest.createNewFile()
+
+            //Write all logs that came before the FileWriter is loaded
+            unloadedLogQueue.forEach { writeToFile(it.message, it.logType, it.date, it.threadName) }
+
+            log("LoggerFileWriter loaded succesfully.", LogType.INFO)
+
+            isLoaded = true
         }
 
-        //Make sure the path has the correct format
-        if(!LoggerSettings.saveDirectoryPath.endsWith("/")) LoggerSettings.saveDirectoryPath += "/"
-        file = File("${LoggerSettings.saveDirectoryPath}${logFileName}.log")
+        fun writeToFile(message: String, type: CustomLogType, date: String, threadName: String) {
+            if(!isLoaded) {
+                unloadedLogQueue.add(LogEntry(message, type, date, threadName))
+                return
+            }
 
-        // Create the directory if it doesn't exist
-        if(!directoryExists(LoggerSettings.saveDirectoryPath)) {
-            log("[PrettyLog] Specified log directory (${LoggerSettings.saveDirectoryPath}) was not found, creating one..", LogType.WARNING)
-            val path = Paths.get(LoggerSettings.saveDirectoryPath)
-            Files.createDirectories(path)
-            log("[PrettyLog] Log directory created!", LogType.SUCCESS)
+            logFileFull.appendText("$date [$threadName] [${type.name}] $message\n")
+            logFileLatest.appendText("$date [$threadName] [${type.name}] $message\n")
         }
-
-        // Create the file if it doesn't exist
-        if(!file.exists()) file.createNewFile()
-
-        //Mark the FileWriter as loaded
-        isLoaded = true
-
-        //Write all logs that came before the FileWriter is loaded
-        unloadedLogQueue.forEach { writeToFile(it.first, it.second) }
-    }
-
-    fun writeToFile(message: String, type: CustomLogType) {
-        if(!isLoaded) {
-            unloadedLogQueue.add(Pair(message, type))
-            return
-        }
-        val date = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(Calendar.getInstance().time)
-        file.writeText("${file.readText()}$date [${type.name.uppercase()}] $message\n")
     }
 }
 

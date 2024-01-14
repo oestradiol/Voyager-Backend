@@ -21,7 +21,7 @@ import studio.pinkcloud.voyager.redis.redisClient
 abstract class AbstractDeploymentSystem(val prefix: String) {
 
     open fun load() {
-        log("Loading caddy file..", LogType.INFORMATION)
+        log("Loading caddy file..", LogType.INFO)
         // make sure caddy is updated and was not changed by another process.
         ICaddyManager.INSTANCE.updateCaddyFile()
 

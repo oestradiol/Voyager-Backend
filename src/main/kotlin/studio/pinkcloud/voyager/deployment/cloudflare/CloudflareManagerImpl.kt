@@ -50,7 +50,7 @@ class CloudflareManagerImpl : ICloudflareManager {
             headers["Content-Type"] = "application/json"
             headers["Authorization"] = VOYAGER_CONFIG.cloudflareApiToken
         }
-        log(response.status.toString(), LogType.INFORMATION)
-        log(response.bodyAsText(), LogType.INFORMATION)
+        log(response.status.toString(), LogType.INFO)
+        log(response.bodyAsText(), LogType.INFO)
     }
 }

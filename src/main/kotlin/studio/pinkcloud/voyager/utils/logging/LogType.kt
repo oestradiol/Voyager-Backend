@@ -1,18 +1,35 @@
 package studio.pinkcloud.voyager.utils.logging
 
-import studio.pinkcloud.voyager.utils.AnsiPair
+import com.github.ajalt.mordant.rendering.TextColors.*
+import com.github.ajalt.mordant.rendering.TextColors
+import com.github.ajalt.mordant.rendering.TextStyle
+import com.github.ajalt.colormath.model.RGB
 
 object LogType {
-    val INFORMATION = CustomLogType("ℹ\uFE0F Information", AnsiPair.CYAN)
-    val RUNTIME = CustomLogType("✨ Runtime", AnsiPair.PINK)
-    val NETWORK = CustomLogType("\uD83D\uDD0C Network", AnsiPair.BLUE)
-    val SUCCESS = CustomLogType("✔\uFE0F Success", AnsiPair.GREEN)
-    val WARNING = CustomLogType("⚠\uFE0F Warning", AnsiPair.YELLOW)
-    val ERROR = CustomLogType("⛔ Error", AnsiPair.RED)
-    val EXCEPTION = CustomLogType("\uD83D\uDCA3 Exception", AnsiPair.RED)
+    val TRACE = CustomLogType("TRACE", brightCyan, 0)
+    val DEBUG = CustomLogType("DEBUG", brightGreen, 1)
+    val INFO = CustomLogType("INFO", brightWhite, 2)
+    val WARN = CustomLogType("WARN", brightYellow, 3)
+    val ERROR = CustomLogType("ERROR", mix(brightYellow, brightRed), 4)
+    val FATAL = CustomLogType("FATAL", mix(brightRed, mix(brightRed, white)), 5)
 }
 
 data class CustomLogType(
     val name: String,
-    val colorPair: AnsiPair
+    val color: TextStyle,
+    val severity: Int,
 )
+
+fun mix(c1: RGB, c2: RGB): RGB {
+
+    val c3r = (c1.r + c2.r) / 2
+    val c3g = (c1.g + c2.g) / 2
+    val c3b = (c1.b + c2.b) / 2
+
+    return RGB(c3r, c3g, c3b)
+}
+
+fun mix(c1: TextStyle, c2: TextStyle): TextStyle {
+    val c3 = mix(c1.color!!.toSRGB(), c2.color!!.toSRGB())
+    return TextColors.rgb(c3.r, c3.g, c3.b)
+}

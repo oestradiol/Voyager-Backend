@@ -19,5 +19,6 @@ data class VoyagerConfig(
     val redisUrl: String = "localhost",
     val redisPort: Int = 6379,
     val forceRedisSync: Boolean = false,
+    val minLogDisplay: String = "INFO",
     val isDevelopment: Boolean = true,
 )

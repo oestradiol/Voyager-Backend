@@ -116,7 +116,7 @@ fun Application.configureProductionDeployment() {
                     )
                 )
             } catch (err: Exception) {
-                log("Error processing request", LogType.EXCEPTION)
+                log("Error processing request", LogType.ERROR)
                 log(err)
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -153,7 +153,7 @@ fun Application.configureProductionDeployment() {
                     )
                 )
             } catch (err: Exception) {
-                log("Error processing request", LogType.EXCEPTION)
+                log("Error processing request", LogType.ERROR)
                 log(err)
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -200,7 +200,7 @@ fun Application.configureProductionDeployment() {
                     )
                 }
             } catch (err: Exception) {
-                log("Error processing request", LogType.EXCEPTION)
+                log("Error processing request", LogType.ERROR)
                 log(err)
                 call.respond(
                     HttpStatusCode.InternalServerError,
