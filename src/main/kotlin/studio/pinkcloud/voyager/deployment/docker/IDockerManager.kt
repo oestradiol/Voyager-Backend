@@ -11,7 +11,7 @@ interface IDockerManager {
      */
     fun buildDockerImage(
         deploymentKey: String,
-        dockerfile: File,
+        dockerfile: File
     ): String
 
     /**
@@ -27,6 +27,7 @@ interface IDockerManager {
         port: Int,
         internalPort: Int,
         dockerImage: String,
+        domain: String
     ): String
 
     fun restartContainer(dockerContainer: String)

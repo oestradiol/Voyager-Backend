@@ -23,13 +23,17 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
     open fun load() {
         log("Loading caddy file..", LogType.INFO)
         // make sure caddy is updated and was not changed by another process.
-        ICaddyManager.INSTANCE.updateCaddyFile()
+        // disabled since we switched to traefik.
+        //ICaddyManager.INSTANCE.updateCaddyFile()
 
+        /*
         Runtime.getRuntime().addShutdownHook(
             Thread {
                 ICaddyManager.INSTANCE.updateCaddyFile(withOurApi = false)
             },
         )
+        
+         */
     }
     
     open suspend fun deploy(
@@ -61,6 +65,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
                 port,
                 findInternalDockerPort(dockerFile),
                 dockerImage,
+                domain
             )
 
 
@@ -78,7 +83,8 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
         deployment.save()
 
         // add to caddy.
-        ICaddyManager.INSTANCE.updateCaddyFile()
+        // disabled since we switched to traefik.
+        //ICaddyManager.INSTANCE.updateCaddyFile()
 
         // notify discord bot.
         IDiscordManager.INSTANCE.sendDeploymentMessage(deploymentKey, port, containerId)
@@ -119,7 +125,8 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
             deployment.delete()
 
             // remove from caddy after it is removed from internals deployments list. [done]
-            ICaddyManager.INSTANCE.updateCaddyFile()
+            // disabled since we switched to traefik.
+            //ICaddyManager.INSTANCE.updateCaddyFile()
 
             // remove from cloudflare dns.[done]
             runBlocking { ICloudflareManager.INSTANCE.removeDnsRecord(deployment.dnsRecordId) }
