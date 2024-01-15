@@ -21,7 +21,7 @@ fun connectToRedis() {
         redisClient = JedisPooled(VOYAGER_CONFIG.redisUrl, VOYAGER_CONFIG.redisPort)
         if (!redisClient.ping().equals("PONG")) throw Exception("Redis client created but PING failed")
     } catch (err: Exception) {
-        log("Failed to connect to redis", LogType.ERROR)
+        log("Failed to connect to redis", LogType.FATAL)
         throw err
     }
     log("Connected to redis successfully", LogType.INFO)
@@ -85,7 +85,7 @@ fun defineRedisSchema() {
                 redisSendBlockingCommand(command)
             } catch (err: Exception) {
                 if (!err.message.equals("Index already exists")) {
-                    log("Command failed: ${err.message}. It is unrecoverable, aborting..", LogType.ERROR)
+                    log("Command failed: ${err.message}. It is unrecoverable, aborting..", LogType.FATAL)
                     throw err
                 }
 
@@ -108,7 +108,7 @@ fun defineRedisSchema() {
     } catch (err: Exception) {
         log("Redis schema defining failed: ${err.message}", LogType.ERROR)
         if (VOYAGER_CONFIG.forceRedisSync) {
-            log("forceRedisSync is set to true, aborting..", LogType.ERROR)
+            log("forceRedisSync is set to true, aborting..", LogType.FATAL)
             throw err
         }
     }

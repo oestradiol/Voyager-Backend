@@ -36,7 +36,7 @@ data class Deployment(
         suspend fun find(deploymentKey: String): Deployment? {
             return withContext(context) {
                 val found = redisClient.get("deployment:$deploymentKey")
-                return@withContext found?.let { Json.decodeFromString<Deployment>(found) }
+                return@withContext found?.let { runCatching { Json.decodeFromString<Deployment>(found) }.getOrNull() }
             }
         }
 
@@ -44,10 +44,9 @@ data class Deployment(
             return withContext(context) {
                 val keys = redisClient.keys("deployment:*")?.toTypedArray()?.filterNotNull() ?: listOf()
                 if (keys.isEmpty()) return@withContext listOf()
+
                 return@withContext redisClient
-                    .mget(
-                        *(keys.toTypedArray())
-                    )
+                    .mget( *(keys.toTypedArray()) )
                     .filterNotNull()
                     .map { jsonStr: String -> runCatching { Json.decodeFromString<Deployment>(jsonStr) } }
                     .map { result: Result<Deployment> -> result.getOrNull() }
@@ -193,7 +192,7 @@ data class Deployment(
         return withContext(context) {
             // stop docker container
             if (state != DeploymentState.DEPLOYED) {
-                return@withContext Result.failure(Exception("Tried to stop deployment that is not deployed state: ${deployment}"))
+                return@withContext Result.failure(Exception("Tried to stop deployment that is not in deployed state: ${deployment}"))
             }
             state = DeploymentState.STOPPING
             DockerManager.stopContainer(dockerContainer)
@@ -201,6 +200,24 @@ data class Deployment(
             save()
 
             return@withContext Result.success(Unit)
+        }
+    }
+
+    suspend fun start(): Result<Unit> {
+        val deployment = this
+        return withContext(context) {
+            if (state != DeploymentState.STOPPED) {
+                return@withContext Result.failure(Exception("Tried to start deployment that is not in stopped state"))
+            }
+
+            return@withContext DockerManager.restartContainer(dockerContainer).fold(
+                {_ ->
+                    state = DeploymentState.DEPLOYED
+                    save()
+                    Result.success(Unit)
+                },
+                {err: Throwable -> Result.failure(err)}
+            )
         }
     }
 
@@ -224,24 +241,13 @@ data class Deployment(
         }
     }
 
-    suspend fun restart() {
-        withContext(context) {
-            if (state == DeploymentState.DEPLOYED) stopAndDelete()
-            if (state != DeploymentState.STOPPED) return@withContext
+    suspend fun restart(): Result<Unit> {
+        return withContext(context) {
+            return@withContext stop().fold(
+                {_ -> start()},
+                {err: Throwable -> Result.failure(err)}
+            )
         }
-    }
-
-    fun cloneFromGithub(
-        githubUrl: String,
-        projectDirectory: File,
-    ) {
-        Git
-            .cloneRepository()
-            .setURI("https://github.com/$githubUrl")
-            .setDirectory(projectDirectory)
-            .setCredentialsProvider(VoyagerGithub.credentialsProvider)
-            .call()
-            .close()
     }
 
     fun getCaddyFileContent(): String {

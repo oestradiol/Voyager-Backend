@@ -36,6 +36,17 @@ fun main() {
 }
 
 fun Application.init() {
+    val globalExceptionHandler =
+        object : Thread.UncaughtExceptionHandler {
+            override fun uncaughtException(thread: Thread, err: Throwable) {
+                log("Uncaught exception in thread ${thread.name}:", LogType.FATAL)
+                log(err)
+            }
+        }
+
+    Thread.setDefaultUncaughtExceptionHandler(globalExceptionHandler)
+
+
     runBlocking { LoggerFileWriter.load() }
 
     // initiate the config before anything else happens

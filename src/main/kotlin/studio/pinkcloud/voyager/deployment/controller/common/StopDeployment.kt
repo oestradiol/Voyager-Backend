@@ -22,10 +22,17 @@ suspend fun stopDeployment(deploymentKey: String?): VoyagerResponse {
         )
     }
 
-    deployment.stopAndDelete()
-
-    return VoyagerResponse(
-        HttpStatusCode.OK.value,
-        "Deployment stopped"
+    return deployment.stopAndDelete().fold(
+        {_ -> VoyagerResponse(
+                    HttpStatusCode.OK.value,
+                    "Deployment stopped"
+              )
+        },
+        {err -> VoyagerResponse(
+                    HttpStatusCode.InternalServerError.value,
+                    "Deployment was unable to be stopped: $err"
+            )
+        }
     )
+
 }
