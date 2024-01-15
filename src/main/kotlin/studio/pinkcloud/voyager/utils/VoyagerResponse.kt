@@ -1,11 +1,10 @@
 package studio.pinkcloud.voyager.utils
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class VoyagerResponse(
-    val success: Boolean,
+    val code: Int,
     val message: String,
-    val data: String? = null
+    val data: String? = null,
 )

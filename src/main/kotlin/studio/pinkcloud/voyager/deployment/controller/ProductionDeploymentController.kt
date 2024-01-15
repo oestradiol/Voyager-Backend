@@ -6,8 +6,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.eclipse.jgit.api.Git
-import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
-import studio.pinkcloud.voyager.deployment.data.Deployment
+import studio.pinkcloud.voyager.deployment.model.*
+import studio.pinkcloud.voyager.deployment.controller.common.*
 import studio.pinkcloud.voyager.github.VoyagerGithub
 import studio.pinkcloud.voyager.routing.annotations.LoggedIn
 import studio.pinkcloud.voyager.utils.VoyagerResponse
@@ -16,141 +16,43 @@ import java.io.File
 import studio.pinkcloud.voyager.utils.logging.*
 
 fun Application.configureProductionDeployment() {
-    AbstractDeploymentSystem.PRODUCTION_INSTANCE.load()
-    
-    routing() {
-
+routing() {
+        @LoggedIn
         post("/api/deployments/production") {
             try {
                 // this is just temp till supabase is implemented and getting project info from there can be done
                 val deploymentKey = call.request.header("X-Deployment-Key") ?: call.request.queryParameters["deploymentKey"]
                 val repoURL = call.request.header("X-Repo-URL") ?: call.request.queryParameters["repoUrl"]
-                val domain = call.request.header("X-Domain") ?: call.request.queryParameters["at"]
+                val subdomain = call.request.header("X-Domain") ?: call.request.queryParameters["domain"]
 
-                if (deploymentKey == null) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "No X-Deployment-Key or X-Repo-URL provided"
-                        )
-                    )
-                    return@post
-                }
-
-                // ensures it is part of the pinkcloud studio org on github
-                if (!repoURL!!.lowercase().startsWith("${VOYAGER_CONFIG.githubOrgName}/")) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "Invalid repo URL"
-                        )
-                    )
-                    return@post
-                }
-
-                // deployment already exists
-                if (AbstractDeploymentSystem.PRODUCTION_INSTANCE.deploymentExists(deploymentKey)) {
-                    call.respond(
-                        HttpStatusCode.Conflict,
-                        VoyagerResponse(
-                            success = false,
-                            message = "Deployment already exists"
-                        )
-                    )
-                    return@post
-                }
-
-                val projectDirectory: File = File("${VOYAGER_CONFIG.deploymentsDir}/$deploymentKey-prod").also {
-                    if (it.exists()) {
-                        it.deleteRecursively()
-                    }
-                }
-
-                try {
-                    Git
-                        .cloneRepository()
-                        .setURI("https://github.com/${repoURL}")
-                        .setDirectory(projectDirectory)
-                        .setCredentialsProvider(VoyagerGithub.credentialsProvider)
-                        .call()
-                        .close()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "Failed to clone repository"
-                        )
-                    )
-                    return@post
-                }
-
-                val dockerFile = File(projectDirectory, "Dockerfile")
-
-                if (!dockerFile.exists()) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "Dockerfile not found"
-                        )
-                    )
-                    return@post
-                }
-
-                val containerId = AbstractDeploymentSystem.PRODUCTION_INSTANCE.deploy(
-                    deploymentKey,
-                    dockerFile,
-                    domain ?: "${deploymentKey}.pinkcloud.studio"
-                )
+                val response = deploy(deploymentKey, repoURL, DeploymentMode.PRODUCTION, subdomain)
 
                 call.respond(
-                    HttpStatusCode.OK,
-                    VoyagerResponse(
-                        success = true,
-                        message = "Deployment created",
-                        data = containerId
-                    )
+                    HttpStatusCode.fromValue(response.code),
+                    response
                 )
-            } catch (err: Exception) {
-                log("Error processing request", LogType.ERROR)
-                log(err)
+            } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     VoyagerResponse(
-                        success = false,
-                        message = "Deployment failed"
-                    ))
+                        HttpStatusCode.InternalServerError.value,
+                        "Error processing request"
+                    )
+                )
+                return@post
             }
         }
 
-        get("/api/deployments/production/{production}/logs") {
+        @LoggedIn
+        get("/api/deployments/preview/{deploymentKey}/logs") {
             try {
-                val deploymentKey = call.parameters["production"] ?: call.request.queryParameters["deploymentKey"]
+                val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
 
-                if (deploymentKey == null) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "No preview id provided"
-                        )
-                    )
-                    return@get
-                }
-
-                val deployment = getAndValidate(deploymentKey, call) ?: return@get
+                val response = getLogs(deploymentKey)
 
                 call.respond(
-                    HttpStatusCode.OK,
-                    VoyagerResponse(
-                        success = true,
-                        message = "Logs retrieved",
-                        data = AbstractDeploymentSystem.PRODUCTION_INSTANCE.getLogs(deployment)
-                    )
+                    HttpStatusCode.fromValue(response.code),
+                    response
                 )
             } catch (err: Exception) {
                 log("Error processing request", LogType.ERROR)
@@ -158,75 +60,33 @@ fun Application.configureProductionDeployment() {
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     VoyagerResponse(
-                        success = false,
-                        message = "Deployment failed"
+                        HttpStatusCode.InternalServerError.value,
+                        "Error processing request"
                     ))
+
             }
         }
 
-        post("/api/deployments/production/{production}/stop") {
+        post("/api/deployments/preview/{deploymentKey}/stop") {
             try {
-                val deploymentKey = call.parameters["production"] ?: call.request.queryParameters["deploymentKey"]
+                val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
 
-                if (deploymentKey == null) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "No production id provided"
-                        )
-                    )
-                    return@post
-                }
+                val response = stopDeployment(deploymentKey)
 
-                val deployment = getAndValidate(deploymentKey, call) ?: return@post
-
-                try {
-                    AbstractDeploymentSystem.PRODUCTION_INSTANCE.stopAndDelete(deployment)
-                    call.respond(
-                        HttpStatusCode.OK,
-                        VoyagerResponse(
-                            success = true,
-                            message = "Deployment stopped"
-                        )
-                    )
-                } catch (err: Exception) {
-                    call.respond(
-                        HttpStatusCode.Forbidden,
-                        VoyagerResponse(
-                            success = false,
-                            message = err.localizedMessage
-                        )
-                    )
-                }
+                call.respond(
+                    HttpStatusCode.fromValue(response.code),
+                    response
+                )
             } catch (err: Exception) {
                 log("Error processing request", LogType.ERROR)
                 log(err)
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     VoyagerResponse(
-                        success = false,
-                        message = "Deployment failed"
+                        HttpStatusCode.InternalServerError.value,
+                        "Error processing request"
                     ))
             }
         }
     }
-}
-
-private suspend fun getAndValidate(previewId: String, call: ApplicationCall): Deployment? {
-    val deployment = Deployment.find(previewId)
-
-    if (deployment == null) {
-        call.respond(
-            HttpStatusCode.NotFound,
-            VoyagerResponse(
-                success = false,
-                message = "Deployment not found"
-            )
-        )
-
-        return null
-    }
-
-    return deployment
 }

@@ -30,7 +30,7 @@ dependencies {
     implementation("io.ktor:ktor-server-netty-jvm")
     implementation("ch.qos.logback:logback-classic:$logback_version")
     
-    // supabase shit
+    // supabase
     implementation("io.github.jan-tennert.supabase:gotrue-kt:$supabase_version")
     implementation("io.ktor:ktor-client-cio:$ktor_version")
     
@@ -53,13 +53,26 @@ dependencies {
     // Sentry
     implementation("io.sentry:sentry:1.7.2")
 
-    // reflection
+    // Reflection
     implementation(kotlin("reflect"))
 
-    // redis
+    // Redis
     implementation("redis.clients:jedis:5.0.0")
 
+    // Console text styling
     implementation("com.github.ajalt.mordant:mordant:2.2.0")
+
+    // Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+
+    // json serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+
+    // Arrow-kt
+    implementation("io.arrow-kt:arrow-core:1.2.0")
+    implementation("io.arrow-kt:arrow-fx-coroutines:1.2.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.2")
 }
 
 kotlin {

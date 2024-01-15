@@ -9,7 +9,7 @@ object LoggerSettings {
     var saveToFile = true
     var saveDirectoryPath = "./logs/"
     var loggerStyle = LoggerStyle.TEXT_ONLY_BOLD
-    var logFileNameFormat = "yyyy-MM-dd-HH:mm:ss"
+    var logFileNameFormat = "yyyy-MM-dd'T'HH:mm:ss:SSSXXX"
     var minDisplaySeverity = LogType.INFO.severity
 }
 

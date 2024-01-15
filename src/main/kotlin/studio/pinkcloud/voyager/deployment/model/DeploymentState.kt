@@ -1,4 +1,4 @@
-package studio.pinkcloud.voyager.deployment.data
+package studio.pinkcloud.voyager.deployment.model
 
 enum class DeploymentState {
     UNDEPLOYED,

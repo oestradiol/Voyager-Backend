@@ -1,8 +1,8 @@
 package studio.pinkcloud.voyager.deployment.health
 
-import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
-import studio.pinkcloud.voyager.deployment.data.DeploymentState
-import studio.pinkcloud.voyager.deployment.data.Deployment
+import studio.pinkcloud.voyager.deployment.model.DeploymentState
+import studio.pinkcloud.voyager.deployment.model.Deployment
+import studio.pinkcloud.voyager.deployment.model.DeploymentMode
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.*
 import studio.pinkcloud.voyager.utils.logging.LogType
@@ -13,7 +13,7 @@ class DockerHealthThread() : Thread() {
     override fun run() {
         try {
             while (true) {
-                val tickDurationMillis = tick()
+                val tickDurationMillis = runBlocking { tick() }
 
                 // ensures that tick() delays for no less than 200ms and sleeps for at least 95% of the time
                 // t_elapsed% = t_elapsed/(t_delay + t_elapsed)
@@ -32,36 +32,32 @@ class DockerHealthThread() : Thread() {
     // perform health checks to make sure that if any part of the deployment has gone wrong it either trys to
     // redeploy that part or just stops the deployment and cleans up & notifies the user.
     // returns elapsed synchronized block time in milliseconds
-    private fun tick(): Long {
+    private suspend fun tick(): Long {
         val deployments = Deployment.findAll()
         var elapsedTimeMillis: Long = 0
         for (deployment in deployments) {
             elapsedTimeMillis += measureTimeMillis {
-                synchronized(deployment) {
-                    runBlocking {
-                        if (deployment.state != DeploymentState.DEPLOYED) return@runBlocking
+                if (deployment.state != DeploymentState.DEPLOYED) return@measureTimeMillis
 
-                        if (deployment.production) {
-                            if (AbstractDeploymentSystem.PRODUCTION_INSTANCE.isRunning(deployment)) return@runBlocking
+                if (deployment.mode == DeploymentMode.PRODUCTION) {
+                    if (deployment.isRunning().getOrDefault(false)) { return@measureTimeMillis }
 
-                            AbstractDeploymentSystem.PRODUCTION_INSTANCE.restart(deployment)
+                    deployment.restart()
 
-                            if (!AbstractDeploymentSystem.PRODUCTION_INSTANCE.isRunning(deployment)) {
-                                AbstractDeploymentSystem.PRODUCTION_INSTANCE.stop(deployment)
-                                log("Production Deployment ${deployment} has stopped.", LogType.WARN)
-                                // TODO: notify the user that the deployment stopped
-                            }
-                        } else {
-                            if (AbstractDeploymentSystem.PREVIEW_INSTANCE.isRunning(deployment)) return@runBlocking
+                    if (!deployment.isRunning().getOrDefault(false)) {
+                        deployment.stop()
+                        log("Production Deployment ${deployment.deploymentKey} has stopped.", LogType.WARN)
+                        // TODO: notify the user that the deployment stopped
+                    }
+                } else {
+                    if (deployment.isRunning().getOrDefault(false)) { return@measureTimeMillis }
 
-                                AbstractDeploymentSystem.PREVIEW_INSTANCE.restart(deployment)
+                    deployment.restart()
 
-                            if (!AbstractDeploymentSystem.PREVIEW_INSTANCE.isRunning(deployment)) {
-                                AbstractDeploymentSystem.PREVIEW_INSTANCE.stop(deployment)
-                                log("Preview Deployment ${deployment} has stopped.", LogType.WARN)
-                                // TODO: notify the user that the deployment stopped
-                            }
-                        }
+                    if (!deployment.isRunning().getOrDefault(false)) {
+                        deployment.stop()
+                        log("Preview Deployment ${deployment.deploymentKey} has stopped.", LogType.WARN)
+                        // TODO: notify the user that the deployment stopped
                     }
                 }
             }

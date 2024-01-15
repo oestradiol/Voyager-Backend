@@ -8,8 +8,7 @@ import kotlin.random.Random
 import studio.pinkcloud.voyager.utils.logging.*
 import studio.pinkcloud.voyager.redis.connectToRedis
 import studio.pinkcloud.voyager.redis.redisClient
-import studio.pinkcloud.voyager.deployment.data.Deployment
-import studio.pinkcloud.voyager.deployment.data.DeploymentState
+import studio.pinkcloud.voyager.deployment.model.*
 import studio.pinkcloud.voyager.loadVoyagerConfig
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -36,9 +35,10 @@ class VoyagerBackendTests {
                 Random.nextInt(-1000, 1000),
                 genRandomString(100),
                 genRandomString(100),
-                Math.random() > 0.5,
+                DeploymentMode.PREVIEW,
                 genRandomString(100),
-                DeploymentState.entries.get(Random.nextInt(0, DeploymentState.entries.size)),
+                DeploymentState.STOPPED,
+                Random.nextLong(1000000000)
             )
         }
     }
@@ -81,7 +81,7 @@ class VoyagerBackendTests {
         for (i in 0..99) {
             val found = Deployment.find(deployments[i].deploymentKey)
             assertEquals(String(found.toString().toByteArray(), Charsets.UTF_8), String(deployments[i].toString().toByteArray(), Charsets.UTF_8))
-            found?.delete()
+            found?.deleteFromRedis()
         }
         for (i in 0..99) {
             val found = Deployment.find(deployments[i].deploymentKey)

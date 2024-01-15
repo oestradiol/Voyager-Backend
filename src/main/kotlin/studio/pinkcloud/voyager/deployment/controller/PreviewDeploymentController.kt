@@ -6,14 +6,17 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.eclipse.jgit.api.Git
-import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
-import studio.pinkcloud.voyager.deployment.data.Deployment
+import studio.pinkcloud.voyager.deployment.model.Deployment
+import studio.pinkcloud.voyager.deployment.controller.common.deploy
+import studio.pinkcloud.voyager.deployment.controller.common.getLogs
+import studio.pinkcloud.voyager.deployment.controller.common.stopDeployment
 import studio.pinkcloud.voyager.github.VoyagerGithub
 import studio.pinkcloud.voyager.routing.annotations.LoggedIn
 import studio.pinkcloud.voyager.utils.VoyagerResponse
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import java.io.File
 import studio.pinkcloud.voyager.utils.logging.*
+import studio.pinkcloud.voyager.deployment.model.*
 
 fun Application.configurePreviewDeployment() {
     
@@ -21,94 +24,36 @@ fun Application.configurePreviewDeployment() {
         @LoggedIn
         post("/api/deployments/preview") {
             try {
-
                 // this is just temp till supabase is implemented and getting project info from there can be done
                 val deploymentKey = call.request.header("X-Deployment-Key") ?: call.request.queryParameters["deploymentKey"]
                 val repoURL = call.request.header("X-Repo-URL") ?: call.request.queryParameters["repoUrl"]
-
-                if (deploymentKey == null) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "No X-Deployment-Key or X-Repo-URL provided"
-                        )
+                val response = deploy(deploymentKey, repoURL, DeploymentMode.PREVIEW, null)
+                call.respond(
+                    HttpStatusCode.fromValue(response.code),
+                    response
+                )
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    VoyagerResponse(
+                        HttpStatusCode.InternalServerError.value,
+                        "Error processing request"
                     )
-                    return@post
-                }
+                )
+                return@post
+            }
+        }
+        
+        @LoggedIn
+        get("/api/deployments/preview/{deploymentKey}/logs") {
+            try {
+                val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
 
-                // ensures it is part of the pink cloud studio org on github
-                if (!repoURL!!.lowercase().startsWith("${VOYAGER_CONFIG.githubOrgName.lowercase()}/")) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "Invalid repo URL"
-                        )
-                    )
-                    return@post
-                }
-
-                // deployment already exists
-                if (AbstractDeploymentSystem.PREVIEW_INSTANCE.deploymentExists(deploymentKey)) {
-                    call.respond(
-                        HttpStatusCode.Conflict,
-                        VoyagerResponse(
-                            success = false,
-                            message = "Deployment already exists"
-                        )
-                    )
-                    return@post
-                }
-
-                val projectDirectory: File = File("${VOYAGER_CONFIG.deploymentsDir}/$deploymentKey-preview").also {
-                    if (it.exists()) {
-                        it.deleteRecursively()
-                    }
-                }
-
-                try {
-                    Git
-                        .cloneRepository()
-                        .setURI("https://github.com/${repoURL}")
-                        .setDirectory(projectDirectory)
-                        .setCredentialsProvider(VoyagerGithub.credentialsProvider)
-                        .call()
-                        .close()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "Failed to clone repository"
-                        )
-                    )
-                    return@post
-                }
-
-                val dockerFile = File(projectDirectory, "Dockerfile")
-
-                if (!dockerFile.exists()) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "Dockerfile not found"
-                        )
-                    )
-                    return@post
-                }
-
-                val containerId = AbstractDeploymentSystem.PREVIEW_INSTANCE.deploy(deploymentKey, dockerFile, "${deploymentKey}-preview.pinkcloud.studio")
+                val response = getLogs(deploymentKey)
 
                 call.respond(
-                    HttpStatusCode.OK,
-                    VoyagerResponse(
-                        success = true,
-                        message = "Deployment created",
-                        data = containerId
-                    )
+                    HttpStatusCode.fromValue(response.code),
+                    response
                 )
             } catch (err: Exception) {
                 log("Error processing request", LogType.ERROR)
@@ -116,37 +61,22 @@ fun Application.configurePreviewDeployment() {
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     VoyagerResponse(
-                        success = false,
-                        message = "Deployment failed"
+                        HttpStatusCode.InternalServerError.value,
+                        "Error processing request"
                     ))
 
             }
         }
         
-        get("/api/deployments/preview/{preview}/logs") {
+        post("/api/deployments/preview/{deploymentKey}/stop") {
             try {
-                val deploymentKey = call.parameters["preview"] ?: call.request.queryParameters["deploymentKey"]
+                val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
 
-                if (deploymentKey == null) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "No preview id provided"
-                        )
-                    )
-                    return@get
-                }
-
-                val deployment = getAndValidate(deploymentKey, call) ?: return@get
+                val response = stopDeployment(deploymentKey)
 
                 call.respond(
-                    HttpStatusCode.OK,
-                    VoyagerResponse(
-                        success = true,
-                        message = "Logs retrieved",
-                        data = AbstractDeploymentSystem.PREVIEW_INSTANCE.getLogs(deployment)
-                    )
+                    HttpStatusCode.fromValue(response.code),
+                    response
                 )
             } catch (err: Exception) {
                 log("Error processing request", LogType.ERROR)
@@ -154,79 +84,11 @@ fun Application.configurePreviewDeployment() {
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     VoyagerResponse(
-                        success = false,
-                        message = "Deployment failed"
+                        HttpStatusCode.InternalServerError.value,
+                        "Error processing request"
                     ))
-
             }
-        }
-        
-        post("/api/deployments/preview/{preview_id}/stop") {
-            try {
-                val deploymentKey = call.parameters["preview_id"] ?: call.request.queryParameters["deploymentKey"]
-
-                if (deploymentKey == null) {
-                    call.respond(
-                        HttpStatusCode.BadRequest,
-                        VoyagerResponse(
-                            success = false,
-                            message = "No preview id provided"
-                        )
-                    )
-                    return@post
-                }
-
-                val deployment = getAndValidate(deploymentKey, call) ?: return@post
-
-                try {
-                    AbstractDeploymentSystem.PREVIEW_INSTANCE.stopAndDelete(deployment)
-                    call.respond(
-                        HttpStatusCode.OK,
-                        VoyagerResponse(
-                            success = true,
-                            message = "Deployment stopped"
-                        )
-                    )
-                } catch (err: Exception) {
-                    call.respond(
-                        HttpStatusCode.Forbidden,
-                        VoyagerResponse(
-                            success = false,
-                            message = err.localizedMessage
-                        )
-                    )
-                }
-            } catch (err: Exception) {
-                log("Error processing request", LogType.ERROR)
-                log(err)
-                call.respond(
-                    HttpStatusCode.InternalServerError,
-                    VoyagerResponse(
-                        success = false,
-                        message = "Deployment failed"
-                    ))
-
-            }
-            
-
         }
     }
 }
 
-private suspend fun getAndValidate(previewId: String, call: ApplicationCall): Deployment? {
-    val deployment = Deployment.find(previewId)
-    
-    if (deployment == null) {
-        call.respond(
-            HttpStatusCode.NotFound,
-            VoyagerResponse(
-                success = false,
-                message = "Deployment not found"
-            )
-        )
-        
-        return null
-    }
-    
-    return deployment
-}
