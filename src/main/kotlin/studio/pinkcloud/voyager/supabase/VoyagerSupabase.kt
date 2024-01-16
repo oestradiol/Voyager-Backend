@@ -2,14 +2,14 @@ package studio.pinkcloud.voyager.supabase
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.gotrue.Auth
-import io.github.jan.supabase.gotrue.auth
 import io.ktor.server.application.*
 import io.ktor.util.*
-import io.netty.handler.codec.AsciiHeadersEncoder.NewlineType
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
+import studio.pinkcloud.voyager.utils.logging.log
 
 fun Application.createVoyagerSupabaseClient() {
+    log("Creating supabase client..")
+
     val supabase = createSupabaseClient(
         VOYAGER_CONFIG.supabaseUrl,
         VOYAGER_CONFIG.supabaseKey
@@ -18,6 +18,8 @@ fun Application.createVoyagerSupabaseClient() {
     }
     
     attributes.put(SUPABASE_ATTRIBUTE, supabase)
+
+    log("Supabase client created")
 }
 
 val SUPABASE_ATTRIBUTE = SupabaseAttribute("voyager-supabase")

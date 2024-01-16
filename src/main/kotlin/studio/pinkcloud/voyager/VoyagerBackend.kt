@@ -9,19 +9,19 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
-import io.ktor.network.sockets.connect
-import io.ktor.server.routing.*
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
-import kotlinx.coroutines.runBlocking
 import studio.pinkcloud.voyager.config.VoyagerConfig
 import studio.pinkcloud.voyager.deployment.controller.configurePreviewDeployment
 import studio.pinkcloud.voyager.deployment.controller.configureProductionDeployment
-import java.io.File
-import studio.pinkcloud.voyager.utils.logging.*
-import studio.pinkcloud.voyager.redis.*
 import studio.pinkcloud.voyager.redis.connectToRedis
+import studio.pinkcloud.voyager.redis.defineRedisSchema
+import studio.pinkcloud.voyager.utils.logging.LogType
+import studio.pinkcloud.voyager.utils.logging.LoggerFileWriter
+import studio.pinkcloud.voyager.utils.logging.LoggerSettings
+import studio.pinkcloud.voyager.utils.logging.log
+import java.io.File
 import kotlin.reflect.full.memberProperties
 
 val programStartTime = System.currentTimeMillis()
@@ -37,15 +37,12 @@ fun main() {
 
 fun Application.init() {
     val globalExceptionHandler =
-        object : Thread.UncaughtExceptionHandler {
-            override fun uncaughtException(thread: Thread, err: Throwable) {
-                log("Uncaught exception in thread ${thread.name}:", LogType.FATAL)
-                log(err)
-            }
+        Thread.UncaughtExceptionHandler { thread, err ->
+            log("Uncaught exception in thread ${thread.name}:", LogType.FATAL)
+            log(err)
         }
 
     Thread.setDefaultUncaughtExceptionHandler(globalExceptionHandler)
-
 
     runBlocking { LoggerFileWriter.load() }
 
@@ -64,15 +61,15 @@ fun Application.init() {
         }.severity
 
     val mode = if (System.getenv().contains("development")) { "development" } else { "production" }
-    log("Running Voyager in ${mode} mode on port 8765", LogType.INFO)
+    log("Running Voyager in $mode mode on port 8765", LogType.INFO)
 
     
-    log("Installing modules", LogType.INFO)
+    log("Installing modules..", LogType.INFO)
     install(ContentNegotiation) {
         json()
     }
 
-    log("Registering interceptors", LogType.INFO)
+    log("Registering call interceptors..", LogType.INFO)
     intercept(ApplicationCallPipeline.Call) {
         
         // check if route is /status
@@ -87,6 +84,7 @@ fun Application.init() {
         val apiKey = call.request.header("X-API-Key")
 
         if (apiKey == null || apiKey != VOYAGER_CONFIG.apiKey) {
+            log("User tried to connect with invalid API Key: ${call.request.local}", LogType.DEBUG)
             call.respond(
                 HttpStatusCode.Unauthorized,
                 "Invalid API Key"
@@ -136,7 +134,5 @@ val VOYAGER_JSON = Json {
     encodeDefaults = true
     prettyPrint = true
 }
-
-const val RESOURCES_DIR = "src/main/resources"
 
 lateinit var VOYAGER_CONFIG: VoyagerConfig

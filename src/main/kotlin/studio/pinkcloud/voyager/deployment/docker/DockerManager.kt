@@ -7,26 +7,14 @@ import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.github.dockerjava.transport.DockerHttpClient
-import java.io.Closeable
-import java.io.File
-import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.Executors
-import studio.pinkcloud.voyager.utils.logging.log
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import studio.pinkcloud.voyager.utils.logging.LogType
-import studio.pinkcloud.voyager.deployment.model.Deployment
-import kotlin.getOrThrow
+import studio.pinkcloud.voyager.utils.logging.log
+import java.io.File
 
 object DockerManager {
 
-    @OptIn(ExperimentalStdlibApi::class)
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val mainContext = newSingleThreadContext("DockerThreadMain")
     
     private val dockerConfig: DefaultDockerClientConfig by lazy {
@@ -52,25 +40,30 @@ object DockerManager {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     suspend fun buildDockerImage(tags: Set<String>, dockerfile: File): Result<String> = coroutineScope {
+        log("Building docker image with tags: $tags, Dockerfile: $dockerfile", LogType.INFO)
         val context = newSingleThreadContext("DockerBuildThread-${dockerfile.hashCode()}")
 
-        var dockerImage: String
+        val dockerImage: String
 
         try {
 
             dockerImage = async(context) {
                 var dockerImageBuilding = ""
 
+                log("Building docker image and blocking this thread.. ", LogType.DEBUG)
                 dockerClient
                     .buildImageCmd()
                     .withDockerfile(dockerfile)
                     .withTags(tags)
                     .exec(object : ResultCallback.Adapter<BuildResponseItem>() {
                         override fun onNext(item: BuildResponseItem?) {
+                            log("Current BuildResponseItem: ${item?.stream.toString()}", LogType.TRACE)
                             item?.imageId?.let { dockerImageBuilding = item.imageId }
                         }
                     })
                     .awaitCompletion() // block until the image is built
+
+                log("docker image built: $dockerImageBuilding", LogType.DEBUG)
 
                 return@async dockerImageBuilding
             }.await()
@@ -95,12 +88,14 @@ object DockerManager {
         internalPort: Int,
         dockerImage: String
     ): Result<String> = coroutineScope {
+        log("Creating and starting container with name: $name, port: $port, internal port: $internalPort, docker image: $dockerImage", LogType.INFO)
         val context = newSingleThreadContext("DockerThread-${dockerImage.hashCode()}")
 
         val id: String
 
         try {
             id = async(context) {
+                log("Building docker id and blocking this thread..", LogType.DEBUG)
                 val idIn =
                     dockerClient
                         .createContainerCmd(dockerImage)
@@ -122,9 +117,14 @@ object DockerManager {
                         .exec()
                         .id // the id of the container that was created. (this container is not running yet)
 
+                log("Container built with id $idIn", LogType.DEBUG)
+                log("Starting container with id $idIn", LogType.DEBUG)
+
                 dockerClient
                     .startContainerCmd(idIn)
                     .exec()
+
+                log("Container with id $idIn started", LogType.DEBUG)
 
                 return@async idIn
             }.await()
@@ -144,105 +144,138 @@ object DockerManager {
     }
 
     fun findInternalDockerPort(dockerFile: File): Int {
+        log("Finding internal docker port for docker file $dockerFile", LogType.DEBUG)
         return dockerFile.readText().substringAfter("EXPOSE ").substringBefore("\n").toInt()
     }
 
-    suspend fun restartContainer(dockerContainer: String): Result<Unit> {
+    suspend fun restartContainer(containerId: String): Result<Unit> {
+        log("Restarting container with id: $containerId", LogType.INFO)
         return withContext(mainContext) {
             try {
-                if (isContainerRunning(dockerContainer).getOrThrow()) dockerClient.stopContainerCmd(dockerContainer).exec()
+                if (isContainerRunning(containerId).getOrThrow()) {
+                    log("Stopping container with container id $containerId", LogType.DEBUG)
+                    dockerClient.stopContainerCmd(containerId).exec()
+                    log("Container with id $containerId stopped", LogType.DEBUG)
+                }
 
-                dockerClient.startContainerCmd(dockerContainer).exec()
+                log("Starting container with id $containerId", LogType.DEBUG)
+                dockerClient.startContainerCmd(containerId).exec()
+                log("Container with id $containerId started")
 
                 return@withContext Result.success(Unit)
             } catch (err: Exception) {
+                log("Error restarting container with id $containerId: ${err.localizedMessage}", LogType.ERROR)
                 return@withContext Result.failure(err)
             }
         }
     }
 
-    suspend fun isContainerRunning(dockerContainer: String): Result<Boolean> {
+    suspend fun isContainerRunning(containerId: String): Result<Boolean> {
+        log("Checking if container with id $containerId is running", LogType.DEBUG)
         return withContext(mainContext) {
             try {
+                log("Inspecting container with id $containerId", LogType.TRACE)
                 return@withContext Result.success(
-                    dockerClient.inspectContainerCmd(dockerContainer).exec().state.running ?: false
+                    dockerClient.inspectContainerCmd(containerId).exec().state.running ?: false
                 )
 
             } catch (err: Exception) {
+                log("Error checking if container with id $containerId is running: ${err.localizedMessage}", LogType.ERROR)
                 return@withContext Result.failure(err)
             }
         }
     }
 
-    suspend fun stopContainerAndDelete(dockerContainer: String): Result<Unit> {
-        return stopContainer(dockerContainer).fold(
-            {_ -> deleteContainer(dockerContainer)},
+    suspend fun stopContainerAndDelete(containerId: String): Result<Unit> {
+        log("Stopping and deleting container with id $containerId", LogType.INFO)
+        return stopContainer(containerId).fold(
+            {_ -> deleteContainer(containerId)},
             {err -> Result.failure(err)}
         )
     }
 
-    suspend fun stopContainer(dockerContainer: String): Result<Unit> {
+    suspend fun stopContainer(containerId: String): Result<Unit> {
+        log("Stopping container with id $containerId", LogType.INFO)
         return withContext(mainContext) {
             try {
-                dockerClient.stopContainerCmd(dockerContainer).exec()
+                log("Sending stop command to container with id $containerId", LogType.DEBUG)
+                dockerClient.stopContainerCmd(containerId).exec()
 
                 return@withContext Result.success(Unit)
             } catch (err: Exception) {
+                log("Stop command to container with id $containerId failed: ${err.localizedMessage}", LogType.ERROR)
                 return@withContext Result.failure(err)
             }
         }
     }
 
-    suspend fun deleteContainer(dockerContainer: String): Result<Unit> {
+    suspend fun deleteContainer(containerId: String): Result<Unit> {
+        log("Deleting container with id $containerId", LogType.INFO)
         return withContext(mainContext) {
             try {
-                dockerClient.removeContainerCmd(dockerContainer).exec()
+                log("Sending remove command to container with id $containerId", LogType.DEBUG)
+                dockerClient.removeContainerCmd(containerId).exec()
 
                 return@withContext Result.success(Unit)
             } catch (err: Exception) {
+                log("Remove command to container with id $containerId failed: ${err.localizedMessage}", LogType.ERROR)
                 return@withContext Result.failure(err)
             }
         }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    suspend fun getLogs(dockerContainer: String): Result<String> = coroutineScope {
-        val context = newSingleThreadContext("DockerLogThread-${dockerContainer.hashCode()}")
+    suspend fun getLogs(containerId: String): Result<String> = coroutineScope {
+        log("Getting logs for container with id $containerId", LogType.INFO)
+        val context = newSingleThreadContext("DockerLogThread-${containerId.hashCode()}")
 
-        var logsStr: String
+        val logsStr: String
 
         try {
 
             logsStr = async(context) {
+                log("Building log command for container id $containerId", LogType.DEBUG)
                 val logContainerCmd =
                     dockerClient
-                        .logContainerCmd(dockerContainer)
+                        .logContainerCmd(containerId)
                         .withStdOut(true)
                         .withStdErr(true)
 
                 val logs = ArrayList<String>()
 
                 try {
+                    log("Executing log command for container id $containerId", LogType.DEBUG)
                     logContainerCmd.exec(object : ResultCallback.Adapter<Frame>() {
                                             override fun onNext(obj: Frame) {
+                                                log("Current log frame object: $obj", LogType.TRACE)
                                                 logs.add(obj.toString())
                                             }
                                         }).awaitCompletion()
 
+                    log("Done executing log command for container id $containerId", LogType.DEBUG)
+
                 } catch (error: InterruptedException) {
+                    log("Failed retrieving logs for container with id $containerId: ${error.localizedMessage}", LogType.ERROR)
                     error.printStackTrace()
                 }
 
+                log("Creating stringified logs for container with id $containerId", LogType.DEBUG)
+
                 var logsStrIn = "Size of logs: ${logs.size}\n"
+                log(logsStrIn, LogType.TRACE)
+
                 for (line in logs) {
+                    log(line, LogType.TRACE)
                     logsStrIn += line + "\n"
                 }
+
+                log("Logs for container with id $containerId retrieved.", LogType.DEBUG)
+
                 return@async logsStrIn
             }.await()
 
         } catch (err: Exception) {
-            log("Error getting logs from container:", LogType.ERROR)
-            log(err, LogType.ERROR)
+            log("Error getting logs from container: ${err.localizedMessage}", LogType.ERROR)
             context.close()
             return@coroutineScope Result.failure(err)
         } finally {

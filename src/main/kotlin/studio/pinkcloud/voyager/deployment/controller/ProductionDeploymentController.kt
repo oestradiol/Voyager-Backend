@@ -5,21 +5,21 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.eclipse.jgit.api.Git
-import studio.pinkcloud.voyager.deployment.model.*
-import studio.pinkcloud.voyager.deployment.controller.common.*
-import studio.pinkcloud.voyager.github.VoyagerGithub
+import studio.pinkcloud.voyager.deployment.controller.common.deploy
+import studio.pinkcloud.voyager.deployment.controller.common.getLogs
+import studio.pinkcloud.voyager.deployment.controller.common.stopDeployment
+import studio.pinkcloud.voyager.deployment.model.DeploymentMode
 import studio.pinkcloud.voyager.routing.annotations.LoggedIn
 import studio.pinkcloud.voyager.utils.VoyagerResponse
-import studio.pinkcloud.voyager.VOYAGER_CONFIG
-import java.io.File
-import studio.pinkcloud.voyager.utils.logging.*
+import studio.pinkcloud.voyager.utils.logging.LogType
+import studio.pinkcloud.voyager.utils.logging.log
 
 fun Application.configureProductionDeployment() {
 routing() {
         @LoggedIn
         post("/api/deployments/production") {
             try {
+                log("Request received at route /api/deployments/production", LogType.INFO)
                 // this is just temp till supabase is implemented and getting project info from there can be done
                 val deploymentKey = call.request.header("X-Deployment-Key") ?: call.request.queryParameters["deploymentKey"]
                 val repoURL = call.request.header("X-Repo-URL") ?: call.request.queryParameters["repoUrl"]
@@ -32,6 +32,7 @@ routing() {
                     response
                 )
             } catch (e: Exception) {
+                log("Error processing request at route /api/deployments/production: ${e.localizedMessage}", LogType.ERROR)
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     VoyagerResponse(
@@ -45,8 +46,10 @@ routing() {
 
         @LoggedIn
         get("/api/deployments/preview/{deploymentKey}/logs") {
+            val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
+
             try {
-                val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
+                log("Request received at route /api/deployments/production/${deploymentKey ?: "null"}/logs", LogType.INFO)
 
                 val response = getLogs(deploymentKey)
 
@@ -55,8 +58,7 @@ routing() {
                     response
                 )
             } catch (err: Exception) {
-                log("Error processing request", LogType.ERROR)
-                log(err)
+                log("Error processing request at route /api/deployments/production/${deploymentKey ?: "null"}/logs: ${err.localizedMessage}", LogType.ERROR)
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     VoyagerResponse(
@@ -68,8 +70,10 @@ routing() {
         }
 
         post("/api/deployments/preview/{deploymentKey}/stop") {
+            val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
+
             try {
-                val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
+                log("Request received at route /api/deployments/production/${deploymentKey ?: "null"}/stop", LogType.INFO)
 
                 val response = stopDeployment(deploymentKey)
 
@@ -78,8 +82,7 @@ routing() {
                     response
                 )
             } catch (err: Exception) {
-                log("Error processing request", LogType.ERROR)
-                log(err)
+                log("Error processing request at route /api/deployments/production/${deploymentKey ?: "null"}/stop: ${err.localizedMessage}", LogType.ERROR)
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     VoyagerResponse(

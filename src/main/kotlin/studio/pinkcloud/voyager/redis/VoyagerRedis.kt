@@ -1,17 +1,13 @@
 package studio.pinkcloud.voyager.redis
 
-import redis.clients.jedis.*
+import redis.clients.jedis.JedisPooled
 import redis.clients.jedis.commands.ProtocolCommand
 import redis.clients.jedis.util.SafeEncoder
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
-import studio.pinkcloud.voyager.utils.logging.*
-import studio.pinkcloud.voyager.RESOURCES_DIR
-import io.ktor.server.application.Application
-import java.io.File
-import java.io.FileNotFoundException
-import java.util.Scanner
-import com.sun.jna.StringArray
 import studio.pinkcloud.voyager.utils.VoyagerResponse
+import studio.pinkcloud.voyager.utils.logging.LogType
+import studio.pinkcloud.voyager.utils.logging.log
+import java.io.FileNotFoundException
 
 lateinit var redisClient: JedisPooled
 
@@ -28,23 +24,29 @@ fun connectToRedis() {
 }
 
 fun redisGetCommandName(command: String): String {
+    log("Getting redis command name for command: $command", LogType.TRACE)
     return command.substringBefore(' ')
 }
 
 fun redisGetCommandArgsStr(command: String): String {
+    log("Getting redis command arguments string for command: $command", LogType.TRACE)
     return command.substringAfter(' ').trim()
 }
 
 fun redisGetCommandArgsArray(command: String): Array<String> {
+    log("Getting redis command arguments array for command: $command", LogType.TRACE)
     return redisGetCommandArgsStr(command).split(" ").toTypedArray()
 }
 
 fun formatRedisCommand(command: String): Pair<String, Array<String>> {
+    log("Formatting redis command: $command", LogType.TRACE)
     return Pair(redisGetCommandName(command), redisGetCommandArgsArray(command))
 }
 
 fun redisSendCommand(command: String): Any {
+    log("Sending redis command: $command", LogType.DEBUG)
     val formatted = formatRedisCommand(command)
+    log("Formatted redis command: $formatted, original: $command", LogType.TRACE)
     return redisClient.sendCommand(object : ProtocolCommand {
                                 override fun getRaw(): ByteArray {
                                     return SafeEncoder.encode(formatted.first)
@@ -53,7 +55,9 @@ fun redisSendCommand(command: String): Any {
 }
 
 fun redisSendBlockingCommand(command: String): Any {
+    log("Sending redis blocking command: $command", LogType.DEBUG)
     val formatted = formatRedisCommand(command)
+    log("Formatted redis command: $formatted, original: $command", LogType.TRACE)
     return redisClient.sendBlockingCommand(object : ProtocolCommand {
                                 override fun getRaw(): ByteArray {
                                     return SafeEncoder.encode(formatted.first)
@@ -69,6 +73,7 @@ fun defineRedisSchema() {
         ?: throw FileNotFoundException("redis-schema.txt not found")
     
     try {
+        log("Formatting redis schema", LogType.DEBUG)
         val formattedSchemaSplit = redisSchema
             .replace(Regex("//[^\\n]*"), "") // removing comments
             .replace(Regex("\\s+"), " ") // removing extra whitespace
@@ -95,7 +100,7 @@ fun defineRedisSchema() {
                     log("forceRedisSync is set to true, dropping old index", LogType.WARN)
                     redisSendBlockingCommand("FT.DROP " + redisGetCommandArgsStr(command).substringBefore(' '))
                     redisSendBlockingCommand(command)
-                    log("Success!", LogType.INFO)
+                    log("Redis index updated", LogType.WARN)
                     return
                 }
 
@@ -103,7 +108,7 @@ fun defineRedisSchema() {
             }
         }
 
-        log("Success!", LogType.INFO)
+        log("Redis is in sync", LogType.INFO)
 
     } catch (err: Exception) {
         log("Redis schema defining failed: ${err.message}", LogType.ERROR)
