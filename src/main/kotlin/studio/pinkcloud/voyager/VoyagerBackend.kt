@@ -9,7 +9,6 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import studio.pinkcloud.voyager.config.VoyagerConfig
@@ -18,7 +17,7 @@ import studio.pinkcloud.voyager.deployment.controller.configureProductionDeploym
 import studio.pinkcloud.voyager.redis.connectToRedis
 import studio.pinkcloud.voyager.redis.defineRedisSchema
 import studio.pinkcloud.voyager.utils.logging.LogType
-import studio.pinkcloud.voyager.utils.logging.LoggerFileWriter
+import studio.pinkcloud.voyager.utils.logging.Logger
 import studio.pinkcloud.voyager.utils.logging.LoggerSettings
 import studio.pinkcloud.voyager.utils.logging.log
 import java.io.File
@@ -36,15 +35,41 @@ fun main() {
 }
 
 fun Application.init() {
+
+    try {
+        Logger.load()
+    } catch (err: Exception) {
+        println("[FATAL] Error initializing logger")
+    }
+
     val globalExceptionHandler =
         Thread.UncaughtExceptionHandler { thread, err ->
-            log("Uncaught exception in thread ${thread.name}:", LogType.FATAL)
-            log(err)
+            try {
+                log("Uncaught exception in thread ${thread.name}:", LogType.FATAL)
+                log(err)
+
+                Logger.cleanup()
+            } catch (err2: Exception) {
+                err.printStackTrace()
+                err2.printStackTrace()
+            }
         }
 
     Thread.setDefaultUncaughtExceptionHandler(globalExceptionHandler)
 
-    runBlocking { LoggerFileWriter.load() }
+    Runtime.getRuntime().addShutdownHook(
+        object : Thread() {
+            override fun run() {
+                try {
+                    log("Shutdown hook called, cleaning up..", LogType.WARN)
+
+                    Logger.cleanup()
+                } catch (err: Exception) {
+                    err.printStackTrace()
+                }
+            }
+        }
+    )
 
     // initiate the config before anything else happens
     loadVoyagerConfig()

@@ -1,6 +1,7 @@
 package studio.pinkcloud.voyager.utils.logging
 
 import java.io.File
+import java.io.FileWriter
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -13,14 +14,9 @@ class LoggerFileWriter {
         private var isLoaded = false
         private lateinit var logFileFull: File
         private lateinit var logFileLatest: File
+        private lateinit var fileWriterFull: FileWriter
+        private lateinit var fileWriterLatest: FileWriter
         private val logFileName: String = SimpleDateFormat(LoggerSettings.logFileNameFormat).format(Calendar.getInstance().time)
-
-        internal class LogEntry(
-            val message: String,
-            val logType: CustomLogType,
-            val date: String,
-            val threadName: String
-        )
 
         // Store the logs that come before the FileWriter is loaded
         private var unloadedLogQueue = ConcurrentLinkedQueue<LogEntry>()
@@ -53,8 +49,8 @@ class LoggerFileWriter {
             logFileFull.createNewFile()
             logFileLatest.createNewFile()
 
-            //Write all logs that came before the FileWriter is loaded
-            unloadedLogQueue.forEach { writeToFile(it.message, it.logType, it.date, it.threadName) }
+            fileWriterFull = FileWriter(logFileFull, Charsets.UTF_8, true)
+            fileWriterLatest = FileWriter(logFileLatest, Charsets.UTF_8, true)
 
             log("LoggerFileWriter loaded successfully.", LogType.INFO)
 
@@ -62,13 +58,22 @@ class LoggerFileWriter {
         }
 
         fun writeToFile(message: String, type: CustomLogType, date: String, threadName: String) {
-            if(!isLoaded) {
-                unloadedLogQueue.add(LogEntry(message, type, date, threadName))
-                return
-            }
 
-            logFileFull.appendText("$date [$threadName] [${type.name}] $message\n")
-            logFileLatest.appendText("$date [$threadName] [${type.name}] $message\n")
+            val logMessage = "$date [${type.name}] [$threadName] $message\n"
+
+            fileWriterFull.write(logMessage)
+            fileWriterLatest.write(logMessage)
+
+        }
+
+        fun flush() {
+            fileWriterFull.flush()
+            fileWriterLatest.flush()
+        }
+
+        fun close() {
+            fileWriterFull.close()
+            fileWriterLatest.close()
         }
     }
 }

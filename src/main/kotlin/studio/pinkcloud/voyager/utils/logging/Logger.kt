@@ -1,12 +1,13 @@
 package studio.pinkcloud.voyager.utils.logging
 
+import arrow.core.Either
+import com.github.ajalt.mordant.rendering.TextColors.black
+import com.github.ajalt.mordant.rendering.TextStyles.bold
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import com.github.ajalt.mordant.rendering.TextColors.*
-import com.github.ajalt.mordant.rendering.TextStyles.*
+import java.util.*
+import java.util.concurrent.ConcurrentLinkedQueue
 
 object LoggerSettings {
-    var saveToFile = true
     var saveDirectoryPath = "./logs/"
     var loggerStyle = LoggerStyle.TEXT_ONLY_BOLD
     var logFileNameFormat = "yyyy-MM-dd'T'HH:mm:ss:SSSXXX"
@@ -18,82 +19,150 @@ enum class LoggerStyle(val cast: (type: CustomLogType, msg: String, date: String
           msg: String,
           date: String,
           threadName: String ->
-             (black on type.color)("$date [$threadName] [${type.name}] $msg")
+             (black on type.color)("$date [${type.name}] [$threadName] $msg")
          }),
     PREFIX({type: CustomLogType,
             msg: String,
             date: String,
             threadName: String->
-               (black on type.color)("$date [$threadName] [${type.name}]") +
+               (black on type.color)("$date [${type.name}] [$threadName]") +
                    type.color(" $msg")
            }),
     SUFFIX({type: CustomLogType,
             msg: String,
             date: String,
             threadName: String ->
-               type.color("$date [$threadName] [${type.name}]") +
+               type.color("$date [${type.name}] [$threadName]") +
                    (black on type.color)(" $msg")
            }),
     TEXT_ONLY({type: CustomLogType,
                msg: String,
                date: String,
                threadName: String ->
-                  type.color("$date [$threadName] [${type.name}] $msg")
+                  type.color("$date [${type.name}] [$threadName] $msg")
               }),
     TEXT_ONLY_BOLD({type: CustomLogType,
                     msg: String,
                     date: String,
                     threadName: String ->
                        type.color(
-                           bold("$date [$threadName] [${type.name}]") +
+                           bold("$date [${type.name}] [$threadName]") +
                                " $msg")
                    }),
 }
 
-fun log(
-    message: String,
-    type: CustomLogType = LogType.INFO,
-) {
-    // ISO 8601 date format
-    val date = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSSXXX").format(Calendar.getInstance().time)
-    val threadName = Thread.currentThread().name
+class LogEntry(
+    val content: Either<Throwable, String>,
+    val type: CustomLogType,
+    val date: Date,
+    val threadName: String
+)
 
-    if (LoggerSettings.saveToFile) LoggerFileWriter.writeToFile(message, type, date, threadName)
+object Logger {
+    val logQueue: Queue<LogEntry> = ConcurrentLinkedQueue()
+    private lateinit var loggerThread: Thread
 
-    if (LoggerSettings.minDisplaySeverity > type.severity) {
-        return
+    fun load() {
+        loggerThread = object : Thread("LoggerThread") {
+            override fun run() {
+                try {
+                    while (true) {
+                        Thread.sleep(100)
+
+                        while (logQueue.isNotEmpty()) {
+                            logInternal(logQueue.element())
+                            logQueue.remove()
+                        }
+
+                        LoggerFileWriter.flush()
+                    }
+                } catch (err: InterruptedException) {
+                    log("Interruption caught in LoggerThread, cleaning up..", LogType.DEBUG)
+
+                    while (logQueue.isNotEmpty()) {
+                        logInternal(logQueue.element())
+                        logQueue.remove()
+                    }
+
+                    LoggerFileWriter.flush()
+                    LoggerFileWriter.close()
+                }
+            }
+        }
+
+        LoggerFileWriter.load()
+
+        loggerThread.start()
     }
 
-    println(LoggerSettings.loggerStyle.cast(type, message, date, threadName))
+    fun logInternal(entry: LogEntry) {
+        // ISO 8601 date format
+        val date = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSSXXX").format(entry.date)
+        val content = entry.content
+        val type = entry.type
+        val threadName = entry.threadName
+
+        if (LoggerSettings.minDisplaySeverity > type.severity) {
+            content
+                .onLeft {
+                    LoggerFileWriter.writeToFile(it.message ?: "Exception in thread $threadName", type, date, threadName)
+
+                    for (line in it.stackTrace) {
+                        LoggerFileWriter.writeToFile("\t$line", type, date, threadName)
+                    }
+                }
+                .onRight {
+                    LoggerFileWriter.writeToFile(it, type, date, threadName)
+                }
+        } else {
+            content
+                .onLeft {
+                    val message = it.message ?: "Exception in thread $threadName"
+
+                    LoggerFileWriter.writeToFile(message, type, date, threadName)
+                    println(LoggerSettings.loggerStyle.cast(type, message, date, threadName))
+
+                    for (line in it.stackTrace) {
+                        LoggerFileWriter.writeToFile("\t$line", type, date, threadName)
+                        println(LoggerSettings.loggerStyle.cast(type, "\t$line", date, threadName))
+                    }
+                }
+                .onRight {
+                    LoggerFileWriter.writeToFile(it, type, date, threadName)
+                    println(LoggerSettings.loggerStyle.cast(type, it, date, threadName))
+                }
+        }
+    }
+
+    fun cleanup() {
+        loggerThread.interrupt()
+    }
 }
 
-fun log(
-    exception: Exception,
-    logType: CustomLogType = LogType.FATAL,
-) {
-    log("$exception", logType)
-    exception.stackTrace.forEach { log("   $it", logType) }
+fun log(message: String, type: CustomLogType = LogType.INFO) {
+    val threadName = Thread.currentThread().name
+
+    synchronized(Logger) {
+        val date = Calendar.getInstance().time
+        Logger.logQueue.add(LogEntry(Either.Right(message), type, date, threadName))
+    }
 }
 
-fun log(
-    exception: Throwable,
-    logType: CustomLogType = LogType.FATAL,
-) {
-    log("$exception", logType)
-    exception.stackTrace.forEach { log("   $it", logType) }
+
+fun log(exception: Throwable, type: CustomLogType = LogType.FATAL) {
+    val threadName = Thread.currentThread().name
+
+    synchronized(Logger) {
+        val date = Calendar.getInstance().time
+        Logger.logQueue.add(LogEntry(Either.Left(exception), type, date, threadName))
+    }
 }
 
-fun logAndThrow(
-    exception: Exception,
-    logType: CustomLogType = LogType.FATAL,
-) {
+fun logAndThrow(exception: Exception, logType: CustomLogType = LogType.FATAL) {
     log(exception, logType)
     throw exception
 }
 
-fun logAndThrow(
-    message: String,
-    logType: CustomLogType = LogType.FATAL,
-) {
+fun logAndThrow(message: String, logType: CustomLogType = LogType.FATAL) {
     logAndThrow(Exception(message), logType)
 }
