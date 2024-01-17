@@ -53,12 +53,13 @@ class LoggerFileWriter {
             logFileFull.createNewFile()
             logFileLatest.createNewFile()
 
+            isLoaded = true
+
             //Write all logs that came before the FileWriter is loaded
             unloadedLogQueue.forEach { writeToFile(it.message, it.logType, it.date, it.threadName) }
 
             log("LoggerFileWriter loaded succesfully.", LogType.INFO)
 
-            isLoaded = true
         }
 
         fun writeToFile(message: String, type: CustomLogType, date: String, threadName: String) {

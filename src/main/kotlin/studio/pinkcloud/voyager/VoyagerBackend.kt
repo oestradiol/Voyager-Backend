@@ -11,9 +11,7 @@ import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import studio.pinkcloud.voyager.config.ConfigProperty
 import studio.pinkcloud.voyager.config.VoyagerConfig
 import studio.pinkcloud.voyager.deployment.controller.configurePreviewDeployment
 import studio.pinkcloud.voyager.deployment.controller.configureProductionDeployment
@@ -23,7 +21,6 @@ import studio.pinkcloud.voyager.utils.logging.LogType
 import studio.pinkcloud.voyager.utils.logging.LoggerFileWriter
 import studio.pinkcloud.voyager.utils.logging.LoggerSettings
 import studio.pinkcloud.voyager.utils.logging.log
-import java.io.File
 import kotlin.reflect.full.memberProperties
 
 val programStartTime = System.currentTimeMillis()
@@ -103,48 +100,26 @@ fun Application.init() {
 }
 
 fun loadVoyagerConfig() {
-    log("Getting voyager config from file..", LogType.INFO)
+    log("Loading voyager config..", LogType.INFO)
 
-    // if its running in a docker conatiner we will use ENV vars
-    if (System.getenv("DOCKER_CONTAINER")?.equals("true") == true) {
-        // remember to add volume for docker socket
-        VOYAGER_CONFIG::class.java.fields.forEach {
-            if (it.isAnnotationPresent(ConfigProperty::class.java)) {
-                val envName = it.getAnnotation(ConfigProperty::class.java).envName
-                val value = System.getenv(envName)
+    var toDecodeYaml = ""
 
-                if (value != null) {
-                    when (it.type) {
-                        String::class.java -> it.set(VOYAGER_CONFIG, value)
-                        Int::class.java -> it.set(VOYAGER_CONFIG, value.toInt())
-                        Boolean::class.java -> it.set(VOYAGER_CONFIG, value.toBoolean())
-                        else -> throw Exception("Unknown type for config property ${it.type} ${it.name}")
-                    }
+    log("Getting voyager config from env variables..", LogType.INFO)
 
-                    it.set(VOYAGER_CONFIG, value)
-                }
-            }
-        }
-    } else {
-        val configFile = File("config.yml").also {
-            if (!it.exists()) {
-                log("Config file not found! Generating a template..", LogType.ERROR)
-                it.createNewFile()
-                it.writeText(
-                    Yaml.default.encodeToString(
-                        VoyagerConfig()
-                    ).replace(Regex("isDevelopment: (true|false)"), "")
-                )
-                throw Exception("Config file not found. Generated a template")
-            }
-        }
+    VoyagerConfig::class.memberProperties.forEach {
+        val value = System.getenv(it.name) ?: return@forEach
 
-        VOYAGER_CONFIG =
-            Yaml.default.decodeFromString(
-                VoyagerConfig.serializer(),
-                configFile.readText(Charsets.UTF_8)
-            )
+        toDecodeYaml += "${it.name}: \"$value\"\n"
     }
+
+    log("Configs got from environment: ", LogType.INFO)
+    log("\n$toDecodeYaml", LogType.INFO)
+
+    VOYAGER_CONFIG =
+        Yaml.default.decodeFromString(
+            VoyagerConfig.serializer(),
+            toDecodeYaml
+        )
 
     for (prop in VoyagerConfig::class.memberProperties) {
         if (prop.get(VOYAGER_CONFIG)?.equals("") == true) throw Exception("${prop.name} config not set")
