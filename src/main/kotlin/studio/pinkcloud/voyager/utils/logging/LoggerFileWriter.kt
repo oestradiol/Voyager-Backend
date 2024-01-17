@@ -1,7 +1,10 @@
 package studio.pinkcloud.voyager.utils.logging
 
 import java.io.File
+<<<<<<< HEAD
 import java.io.FileWriter
+=======
+>>>>>>> origin/main
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths

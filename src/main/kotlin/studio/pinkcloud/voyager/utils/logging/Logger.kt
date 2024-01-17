@@ -1,11 +1,17 @@
 package studio.pinkcloud.voyager.utils.logging
 
+<<<<<<< HEAD
 import arrow.core.Either
+=======
+>>>>>>> origin/main
 import com.github.ajalt.mordant.rendering.TextColors.black
 import com.github.ajalt.mordant.rendering.TextStyles.bold
 import java.text.SimpleDateFormat
 import java.util.*
+<<<<<<< HEAD
 import java.util.concurrent.ConcurrentLinkedQueue
+=======
+>>>>>>> origin/main
 
 object LoggerSettings {
     var saveDirectoryPath = "./logs/"
