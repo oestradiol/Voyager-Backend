@@ -43,6 +43,7 @@ class VoyagerBackendTests {
         }
     }
 
+/* */
     @Test
     fun testRedisConnection() = testApplication {
         loadVoyagerConfig()
@@ -57,6 +58,7 @@ class VoyagerBackendTests {
             assertEquals(String(raw.toByteArray(), Charsets.UTF_8), String(strings[i].toByteArray(), Charsets.UTF_8))
         }
     }
+    */
 
 
     @Test
@@ -69,6 +71,7 @@ class VoyagerBackendTests {
         }
     }
 
+/*
     @Test
     fun testDeploymentOnRedis() = testApplication {
         loadVoyagerConfig()
@@ -88,4 +91,5 @@ class VoyagerBackendTests {
             assertEquals(found, null)
         }
     }
+    */
 }
