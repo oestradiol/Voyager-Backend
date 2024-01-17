@@ -1,9 +1,11 @@
 package studio.pinkcloud.voyager.utils.logging
 
-<<<<<<< HEAD
+import com.github.ajalt.mordant.rendering.TextColors.black
+import com.github.ajalt.mordant.rendering.TextStyles.bold
+
+import java.util.Calendar, java.util.*
 import arrow.core.Either
-=======
->>>>>>> origin/main
+ origin/main
 import com.github.ajalt.mordant.rendering.TextColors.black
 import com.github.ajalt.mordant.rendering.TextStyles.bold
 import java.text.SimpleDateFormat
