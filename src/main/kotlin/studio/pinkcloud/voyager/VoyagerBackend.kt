@@ -7,6 +7,7 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import kotlinx.coroutines.runBlocking
@@ -53,18 +54,24 @@ fun Application.init() {
             else -> LogType.INFO
         }.severity
 
-    val mode = if (System.getenv().contains("development")) { "development" } else { "production" }
-    log("Running Voyager in ${mode} mode on port 8765", LogType.INFO)
+    val mode = if (System.getenv().contains("development")) {
+        "development"
+    } else {
+        "production"
+    }
+    log("Running Voyager in $mode mode on port 8765", LogType.INFO)
 
-    
+
     log("Installing modules", LogType.INFO)
     install(ContentNegotiation) {
         json()
     }
 
+    install(HttpsRedirect)
+    
     log("Registering interceptors", LogType.INFO)
     intercept(ApplicationCallPipeline.Call) {
-        
+
         // check if route is /status
         if (call.request.path() == "/status") {
             call.respond(
@@ -73,7 +80,7 @@ fun Application.init() {
             )
             return@intercept finish()
         }
-        
+
         val apiKey = call.request.header("X-API-Key")
 
         if (apiKey == null || apiKey != VOYAGER_CONFIG.apiKey) {
@@ -84,7 +91,7 @@ fun Application.init() {
             return@intercept finish()
         }
     }
-    
+
     //createVoyagerSupabaseClient()
     connectToRedis()
     defineRedisSchema()
@@ -97,7 +104,7 @@ fun Application.init() {
 
 fun loadVoyagerConfig() {
     log("Getting voyager config from file..", LogType.INFO)
-    
+
     // if its running in a docker conatiner we will use ENV vars
     if (System.getenv("DOCKER_CONTAINER")?.equals("true") == true) {
         // remember to add volume for docker socket
@@ -105,7 +112,7 @@ fun loadVoyagerConfig() {
             if (it.isAnnotationPresent(ConfigProperty::class.java)) {
                 val envName = it.getAnnotation(ConfigProperty::class.java).envName
                 val value = System.getenv(envName)
-                
+
                 if (value != null) {
                     when (it.type) {
                         String::class.java -> it.set(VOYAGER_CONFIG, value)
@@ -113,7 +120,7 @@ fun loadVoyagerConfig() {
                         Boolean::class.java -> it.set(VOYAGER_CONFIG, value.toBoolean())
                         else -> throw Exception("Unknown type for config property ${it.type} ${it.name}")
                     }
-                    
+
                     it.set(VOYAGER_CONFIG, value)
                 }
             }
@@ -138,13 +145,13 @@ fun loadVoyagerConfig() {
                 configFile.readText(Charsets.UTF_8)
             )
     }
-    
+
     for (prop in VoyagerConfig::class.memberProperties) {
         if (prop.get(VOYAGER_CONFIG)?.equals("") == true) throw Exception("${prop.name} config not set")
     }
 }
 
-val VOYAGER_JSON = Json { 
+val VOYAGER_JSON = Json {
     ignoreUnknownKeys = true
     isLenient = true
     encodeDefaults = true
