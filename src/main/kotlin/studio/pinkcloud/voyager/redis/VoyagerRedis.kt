@@ -16,15 +16,15 @@ import studio.pinkcloud.voyager.utils.VoyagerResponse
 lateinit var redisClient: JedisPooled
 
 fun connectToRedis() {
-    log("Connecting to redis..", LogType.INFORMATION)
+    log("Connecting to redis..", LogType.INFO)
     try {
         redisClient = JedisPooled(VOYAGER_CONFIG.redisUrl, VOYAGER_CONFIG.redisPort)
         if (!redisClient.ping().equals("PONG")) throw Exception("Redis client created but PING failed")
     } catch (err: Exception) {
-        log("Failed to connect to redis", LogType.EXCEPTION)
+        log("Failed to connect to redis", LogType.ERROR)
         throw err
     }
-    log("Connected to redis successfully", LogType.INFORMATION)
+    log("Connected to redis successfully", LogType.INFO)
 }
 
 fun redisGetCommandName(command: String): String {
@@ -63,7 +63,7 @@ fun redisSendBlockingCommand(command: String): Any {
 }
 
 fun defineRedisSchema() {
-    log("Defining redis schema..", LogType.INFORMATION)
+    log("Defining redis schema..", LogType.INFO)
 
     val redisSchema = VoyagerResponse::class.java.getResource("/redis-schema.txt")?.readText()
         ?: throw FileNotFoundException("redis-schema.txt not found")
@@ -75,34 +75,35 @@ fun defineRedisSchema() {
             .trim()
             .split("---") // splitting commands
 
-        log("Commands in redis-schema.txt:")
+        log("Commands in redis-schema.txt:", LogType.DEBUG)
         for (command in formattedSchemaSplit) {
             if (command == "") continue
-            log("")
-            log("Processing command:")
-            log(command)
+            log("", LogType.DEBUG)
+            log("Processing command:", LogType.DEBUG)
+            log(command, LogType.DEBUG)
             try {
                 redisSendBlockingCommand(command)
-                log("Success!", LogType.SUCCESS)
             } catch (err: Exception) {
                 if (!err.message.equals("Index already exists")) {
                     log("Command failed: ${err.message}. It is unrecoverable, aborting..", LogType.ERROR)
                     throw err
                 }
 
-                log("Index already exists.", LogType.WARNING)
+                log("Index already exists.", LogType.WARN)
 
                 if (VOYAGER_CONFIG.forceRedisSync) {
-                    log("forceRedisSync is set to true, dropping old index", LogType.WARNING)
+                    log("forceRedisSync is set to true, dropping old index", LogType.WARN)
                     redisSendBlockingCommand("FT.DROP " + redisGetCommandArgsStr(command).substringBefore(' '))
                     redisSendBlockingCommand(command)
-                    log("Success!", LogType.SUCCESS)
+                    log("Success!", LogType.INFO)
                     return
                 }
 
-                log("forceRedisSync is set to false, ignoring..", LogType.WARNING)
+                log("forceRedisSync is set to false, ignoring..", LogType.WARN)
             }
         }
+
+        log("Success!", LogType.INFO)
 
     } catch (err: Exception) {
         log("Redis schema defining failed: ${err.message}", LogType.ERROR)

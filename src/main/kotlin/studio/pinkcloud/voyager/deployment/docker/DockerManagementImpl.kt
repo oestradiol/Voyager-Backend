@@ -55,7 +55,7 @@ class DockerManagementImpl : IDockerManager {
         return dockerImage
     }
 
-    override fun createAndStartContainer(deploymentKey: String, port: Int, internalPort: Int, dockerImage: String): String {
+    override fun createAndStartContainer(deploymentKey: String, port: Int, internalPort: Int, dockerImage: String, domain: String): String {
         val id = dockerClient
             .createContainerCmd(dockerImage)
             .withName("voyager-preview-$deploymentKey") // todo: update this with prod switch
@@ -63,6 +63,21 @@ class DockerManagementImpl : IDockerManager {
             .withExposedPorts(
                 ExposedPort.tcp(internalPort)
             )
+            .withLabels(
+                mapOf(
+                    "traefik.enable" to "true",
+                    "traefik.http.routers.voyager-${deploymentKey}.entrypoints" to "http,https",
+                    "traefik.http.routers.voyager-${deploymentKey}.rule" to "Host(`${domain}`)",
+                    "traefik.http.routers.voyager-${deploymentKey}.service" to "voyager-${deploymentKey}-service",
+                    "traefik.http.services.voyager-${deploymentKey}-service.loadbalancer.server.port" to "$internalPort",
+                    "traefik.http.routers.voyager-${deploymentKey}.tls" to "true",
+                    )
+            )
+            .withHostConfig(
+                HostConfig.newHostConfig()
+                    .withNetworkMode("proxy") // the traefik network
+            )
+            /* TODO: We shouldn't need this because traefik will be on the same network as the container.
             .withHostConfig(
                 HostConfig.newHostConfig()
                     .withPortBindings(
@@ -73,6 +88,7 @@ class DockerManagementImpl : IDockerManager {
                         )
                     )
             )
+            */
             .exec()
             .id // the id of the container that was created. (this container is not running yet)
         

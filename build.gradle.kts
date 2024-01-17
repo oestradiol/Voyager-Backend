@@ -58,6 +58,8 @@ dependencies {
 
     // redis
     implementation("redis.clients:jedis:5.0.0")
+
+    implementation("com.github.ajalt.mordant:mordant:2.2.0")
 }
 
 kotlin {
