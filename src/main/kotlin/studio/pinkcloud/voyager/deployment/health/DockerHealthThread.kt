@@ -1,13 +1,13 @@
 package studio.pinkcloud.voyager.deployment.health
 
+import kotlinx.coroutines.runBlocking
 import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
-import studio.pinkcloud.voyager.deployment.data.DeploymentState
 import studio.pinkcloud.voyager.deployment.data.Deployment
-import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.*
+import studio.pinkcloud.voyager.deployment.data.DeploymentState
 import studio.pinkcloud.voyager.utils.logging.LogType
 import studio.pinkcloud.voyager.utils.logging.log
-import kotlin.system.*
+import java.util.concurrent.TimeUnit
+import kotlin.system.measureTimeMillis
 
 class DockerHealthThread() : Thread() {
     override fun run() {

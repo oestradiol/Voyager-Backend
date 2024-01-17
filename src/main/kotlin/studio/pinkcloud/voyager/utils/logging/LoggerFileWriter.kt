@@ -1,14 +1,12 @@
 package studio.pinkcloud.voyager.utils.logging
 
 import java.io.File
-import java.io.FileOutputStream
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentLinkedQueue
-import redis.clients.jedis.resps.Tuple
 
 class LoggerFileWriter {
     companion object {

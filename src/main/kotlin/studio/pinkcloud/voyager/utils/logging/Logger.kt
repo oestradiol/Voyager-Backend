@@ -1,9 +1,9 @@
 package studio.pinkcloud.voyager.utils.logging
 
+import com.github.ajalt.mordant.rendering.TextColors.black
+import com.github.ajalt.mordant.rendering.TextStyles.bold
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import com.github.ajalt.mordant.rendering.TextColors.*
-import com.github.ajalt.mordant.rendering.TextStyles.*
+import java.util.*
 
 object LoggerSettings {
     var saveToFile = true

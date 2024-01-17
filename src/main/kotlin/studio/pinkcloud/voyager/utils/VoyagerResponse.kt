@@ -1,6 +1,5 @@
 package studio.pinkcloud.voyager.utils
 
-import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 
 @Serializable

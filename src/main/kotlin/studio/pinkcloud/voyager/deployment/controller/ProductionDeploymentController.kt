@@ -6,14 +6,14 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.eclipse.jgit.api.Git
+import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
 import studio.pinkcloud.voyager.deployment.data.Deployment
 import studio.pinkcloud.voyager.github.VoyagerGithub
-import studio.pinkcloud.voyager.routing.annotations.LoggedIn
 import studio.pinkcloud.voyager.utils.VoyagerResponse
-import studio.pinkcloud.voyager.VOYAGER_CONFIG
+import studio.pinkcloud.voyager.utils.logging.LogType
+import studio.pinkcloud.voyager.utils.logging.log
 import java.io.File
-import studio.pinkcloud.voyager.utils.logging.*
 
 fun Application.configureProductionDeployment() {
     AbstractDeploymentSystem.PRODUCTION_INSTANCE.load()

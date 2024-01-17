@@ -1,39 +1,23 @@
 package studio.pinkcloud.voyager.deployment
 
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import org.eclipse.jgit.api.Git
-import studio.pinkcloud.voyager.VOYAGER_JSON
-import studio.pinkcloud.voyager.deployment.caddy.ICaddyManager
+import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.deployment.cloudflare.ICloudflareManager
 import studio.pinkcloud.voyager.deployment.data.Deployment
 import studio.pinkcloud.voyager.deployment.data.DeploymentState
 import studio.pinkcloud.voyager.deployment.discord.IDiscordManager
 import studio.pinkcloud.voyager.deployment.docker.IDockerManager
 import studio.pinkcloud.voyager.github.VoyagerGithub
-import studio.pinkcloud.voyager.utils.PortFinder
-import java.io.File
-import studio.pinkcloud.voyager.utils.logging.*
-import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.redis.redisClient
+import studio.pinkcloud.voyager.utils.PortFinder
+import studio.pinkcloud.voyager.utils.logging.LogType
+import studio.pinkcloud.voyager.utils.logging.log
+import java.io.File
 
 abstract class AbstractDeploymentSystem(val prefix: String) {
 
     open fun load() {
-        log("Loading caddy file..", LogType.INFO)
-        // make sure caddy is updated and was not changed by another process.
-        // disabled since we switched to traefik.
-        //ICaddyManager.INSTANCE.updateCaddyFile()
-
-        /*
-        Runtime.getRuntime().addShutdownHook(
-            Thread {
-                ICaddyManager.INSTANCE.updateCaddyFile(withOurApi = false)
-            },
-        )
-        
-         */
     }
     
     open suspend fun deploy(
@@ -48,7 +32,7 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
         // add to cloudflare dns. [Done]
 
         // make sure this is done before adding to caddy or else caddy will fail because of SSL certs.
-        var cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, VOYAGER_CONFIG.IP, prefix.contains("prod"), domain)
+        var cloudflareId = ICloudflareManager.INSTANCE.addDnsRecord(deploymentKey, VOYAGER_CONFIG.ip, prefix.contains("prod"), domain)
 
         // if record already exists, get from deployments
         cloudflareId = cloudflareId ?: Deployment.find(deploymentKey)!!.dnsRecordId
@@ -179,18 +163,5 @@ abstract class AbstractDeploymentSystem(val prefix: String) {
          */
         val PREVIEW_INSTANCE: AbstractDeploymentSystem = PreviewDeploymentSystem()
         val PRODUCTION_INSTANCE: AbstractDeploymentSystem = ProductionDeploymentSystem()
-
-        fun getCaddyFileContent(deployment: Deployment): String {
-            return """
-            
-            ${if (deployment.domain.startsWith(".")) { deployment.domain.replaceFirst(".", "") } else { deployment.domain }} {
-                reverse_proxy localhost:${deployment.port}
-                
-                tls {
-                        dns cloudflare "${VOYAGER_CONFIG.cloudflareApiToken.replace("Bearer ", "")}"
-                }
-            }
-        """.trimIndent()
-        }
     }
 }

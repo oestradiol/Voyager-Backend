@@ -2,11 +2,8 @@ package studio.pinkcloud.voyager.supabase
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.gotrue.Auth
-import io.github.jan.supabase.gotrue.auth
 import io.ktor.server.application.*
 import io.ktor.util.*
-import io.netty.handler.codec.AsciiHeadersEncoder.NewlineType
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
 
 fun Application.createVoyagerSupabaseClient() {

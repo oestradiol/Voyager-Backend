@@ -1,17 +1,13 @@
 package studio.pinkcloud.voyager.redis
 
-import redis.clients.jedis.*
+import redis.clients.jedis.JedisPooled
 import redis.clients.jedis.commands.ProtocolCommand
 import redis.clients.jedis.util.SafeEncoder
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
-import studio.pinkcloud.voyager.utils.logging.*
-import studio.pinkcloud.voyager.RESOURCES_DIR
-import io.ktor.server.application.Application
-import java.io.File
-import java.io.FileNotFoundException
-import java.util.Scanner
-import com.sun.jna.StringArray
 import studio.pinkcloud.voyager.utils.VoyagerResponse
+import studio.pinkcloud.voyager.utils.logging.LogType
+import studio.pinkcloud.voyager.utils.logging.log
+import java.io.FileNotFoundException
 
 lateinit var redisClient: JedisPooled
 

@@ -1,6 +1,6 @@
 package studio.pinkcloud.voyager.deployment.data
 
-import kotlinx.serialization.*
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import studio.pinkcloud.voyager.redis.redisClient
 
