@@ -16,12 +16,12 @@ import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.deployment.AbstractDeploymentSystem
 import studio.pinkcloud.voyager.deployment.data.Deployment
 import studio.pinkcloud.voyager.github.VoyagerGithub
->>>>>>> origin/main
+
 import studio.pinkcloud.voyager.routing.annotations.LoggedIn
 import studio.pinkcloud.voyager.utils.VoyagerResponse
 import studio.pinkcloud.voyager.utils.logging.LogType
 import studio.pinkcloud.voyager.utils.logging.log
-<<<<<<< HEAD
+
 =======
 import java.io.File
 >>>>>>> origin/main
