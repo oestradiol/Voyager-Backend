@@ -1,8 +1,14 @@
 package studio.pinkcloud.voyager.utils.logging
 
 import java.io.File
-<<<<<<< HEAD
+
 import java.io.FileWriter
+import java.io.FileOutputStream
+import studio.pinkcloud.voyager.utils.logging.LoggerFileWriter.Companion.log
+import studio.pinkcloud.voyager.utils.logging.LogType
+import java.io.FileOutputStream
+import studio.pinkcloud.voyager.utils.logging.LoggerFileWriter.Companion.log
+import studio.pinkcloud.voyager.utils.logging.LogType
 =======
 >>>>>>> origin/main
 import java.nio.file.Files
