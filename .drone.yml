@@ -4,7 +4,12 @@ type: docker
 name: Build & Test Pipeline
 
 steps:
-- name: build
+- name: Start Redis Test Container
+  image: redis
+  commands:
+    - docker run -d --name voyager-backend-testign redis
+
+- name: Build & Test Voyager Backend
   image: gradle:jdk17
   commands:
   - gradle build
