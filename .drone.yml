@@ -5,7 +5,7 @@ name: Build & Test Pipeline
 
 steps:
 - name: Start Redis Test Container
-  image: redis
+  image: redis/redis-stack-server:latest
   commands:
     - docker run -d --name voyager-backend-testing redis
 
