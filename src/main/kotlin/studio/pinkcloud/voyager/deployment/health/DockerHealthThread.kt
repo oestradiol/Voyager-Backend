@@ -1,13 +1,13 @@
 package studio.pinkcloud.voyager.deployment.health
 
-import studio.pinkcloud.voyager.deployment.model.DeploymentState
+import kotlinx.coroutines.runBlocking
 import studio.pinkcloud.voyager.deployment.model.Deployment
 import studio.pinkcloud.voyager.deployment.model.DeploymentMode
-import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.*
+import studio.pinkcloud.voyager.deployment.model.DeploymentState
 import studio.pinkcloud.voyager.utils.logging.LogType
 import studio.pinkcloud.voyager.utils.logging.log
-import kotlin.system.*
+import java.util.concurrent.TimeUnit
+import kotlin.system.measureTimeMillis
 
 class DockerHealthThread() : Thread() {
     override fun run() {
@@ -46,7 +46,7 @@ class DockerHealthThread() : Thread() {
 
                     if (!deployment.isRunning().getOrDefault(false)) {
                         deployment.stop()
-                        log("Production Deployment ${deployment.deploymentKey} has stopped.", LogType.WARN)
+                        log("Production Deployment ${deployment.id} has stopped.", LogType.WARN)
                         // TODO: notify the user that the deployment stopped
                     }
                 } else {
@@ -56,7 +56,7 @@ class DockerHealthThread() : Thread() {
 
                     if (!deployment.isRunning().getOrDefault(false)) {
                         deployment.stop()
-                        log("Preview Deployment ${deployment.deploymentKey} has stopped.", LogType.WARN)
+                        log("Preview Deployment ${deployment.id} has stopped.", LogType.WARN)
                         // TODO: notify the user that the deployment stopped
                     }
                 }

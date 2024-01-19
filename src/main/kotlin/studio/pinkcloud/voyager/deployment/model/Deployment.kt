@@ -6,38 +6,73 @@ import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import redis.clients.jedis.search.Document
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
-import studio.pinkcloud.voyager.deployment.caddy.CaddyManager
 import studio.pinkcloud.voyager.deployment.cloudflare.CloudflareManager
 import studio.pinkcloud.voyager.deployment.cloudflare.responses.CloudflareError
 import studio.pinkcloud.voyager.deployment.discord.DiscordManager
 import studio.pinkcloud.voyager.deployment.docker.DockerManager
+import studio.pinkcloud.voyager.deployment.traefik.TraefikManager
 import studio.pinkcloud.voyager.redis.redisClient
 import studio.pinkcloud.voyager.utils.PortFinder
 import studio.pinkcloud.voyager.utils.logging.LogType
 import studio.pinkcloud.voyager.utils.logging.log
 import java.io.File
+import java.util.*
 
 @Serializable
 data class Deployment(
-    val deploymentKey: String,
+    val id: String,
+    val containerId: String,
     val port: Int,
-    val dockerContainer: String,
     val dnsRecordId: String,
     val mode: DeploymentMode,
-    val domain: String, // full domain ex: test.pinkcloud.studio or pinkcloud.studio (can be either)
+    val host: String, // full domain ex: test.pinkcloud.studio or pinkcloud.studio (can be either)
     var state: DeploymentState = DeploymentState.UNDEPLOYED,
+    val directory: String,
     var createdAt: Long = System.currentTimeMillis(),
 ) {
     companion object {
         @OptIn(ExperimentalCoroutinesApi::class)
         val context = newSingleThreadContext("DeploymentThread")
 
-        suspend fun find(deploymentKey: String): Deployment? {
-            log("Finding deployment with deployment key $deploymentKey..", LogType.DEBUG)
+        suspend fun findById(id: String): Deployment? {
+            log("Finding deployment with id $id..", LogType.DEBUG)
             return withContext(context) {
-                val found = redisClient.get("deployment:$deploymentKey")
-                return@withContext found?.let { runCatching { Json.decodeFromString<Deployment>(found) }.getOrNull() }
+                try {
+                    val found = redisClient
+                        .ftSearch("deploymentIndex", "@id:\"$id\"")
+                        .documents[0]
+                        .properties
+                        .iterator()
+                        .next()
+                        .value
+
+                    log("Deployment found: $found", LogType.DEBUG)
+                    return@withContext runCatching { Json.decodeFromString(serializer(), found as String) }.getOrNull()
+                } catch (err: IndexOutOfBoundsException) {
+                    return@withContext null
+                }
+            }
+        }
+
+        suspend fun findByHost(host: String): Deployment? {
+            log("Finding deployment by host $host", LogType.DEBUG)
+            return withContext(context) {
+                try {
+                    val found = redisClient
+                        .ftSearch("deploymentIndex", "@host:\"$host\"")
+                        .documents[0]
+                        .properties
+                        .iterator()
+                        .next()
+                        .value
+
+                    log("Deployment found: $found", LogType.DEBUG)
+                    return@withContext runCatching { Json.decodeFromString(serializer(), found as String) }.getOrNull()
+                } catch (err: IndexOutOfBoundsException) {
+                    return@withContext null
+                }
             }
         }
 
@@ -45,15 +80,21 @@ data class Deployment(
             log("Finding all deployments..", LogType.DEBUG)
             val deploymentList = withContext(context) {
                 log("Finding list of deployment keys from redis..", LogType.TRACE)
-                val keys = redisClient.keys("deployment:*")?.toTypedArray()?.filterNotNull() ?: listOf()
-                log("Keys found: ${keys.fold("") { acc: String, crr: String -> "$acc; $crr" }}", LogType.TRACE)
-                if (keys.isEmpty()) return@withContext listOf()
+                val found = redisClient
+                    .ftSearch("deploymentIndex", "*")
+                    ?.documents?.mapNotNull {
+                        crr: Document -> runCatching {
+                            Json.decodeFromString<Deployment>(
+                                crr.properties
+                                    .iterator()
+                                    .next()
+                                    .value as String
+                            )
+                        }.getOrNull()
+                    }
 
-                return@withContext redisClient
-                    .mget(*(keys.toTypedArray()))
-                    .filterNotNull()
-                    .map { jsonStr: String -> runCatching { Json.decodeFromString<Deployment>(jsonStr) } }
-                    .mapNotNull { result: Result<Deployment> -> result.getOrNull() }
+                return@withContext found ?: listOf()
+
             }
 
             log("Deployments found: ${deploymentList.fold("") { acc: String, crr: Deployment -> "$acc; $crr" }}", LogType.TRACE)
@@ -62,25 +103,25 @@ data class Deployment(
         }
 
         suspend fun new(
-            deploymentKey: String,
             dockerFile: File,
-            subdomain: String?,
-            mode: DeploymentMode
+            host: String,
+            mode: DeploymentMode,
+            directory: String
         ): Either<String, Deployment> {
             return withContext(context) {
-                log("Creating deployment with deployment key $deploymentKey, dockerFile: $dockerFile, subdomain: ${subdomain ?: "null"}, mode $mode", LogType.INFO)
+                log("Creating deployment with host $host, dockerFile: $dockerFile, host: $host, mode $mode", LogType.INFO)
 
-                val domain = (subdomain ?: ".") + "pinkcloud.studio"
+                val id = UUID.randomUUID().toString()
 
                 log("Sending add DNS record request to cloudflare..", LogType.DEBUG)
-                val cloudflareResult = CloudflareManager.addDnsRecord(deploymentKey, VOYAGER_CONFIG.IP, mode, domain)
+                val cloudflareResult = CloudflareManager.addDnsRecord(host, VOYAGER_CONFIG.ip, mode)
                 var cloudflareId = ""
 
 
                 cloudflareResult
                     .onLeft { left: Array<CloudflareError> ->
                         log("Cloudflare returned errors, trying to get the DNS record from redis..", LogType.WARN)
-                        val found = find(deploymentKey)
+                        val found = findByHost(host)
                         if (found == null) {
                             log("DNS record was not found, aborting..", LogType.ERROR)
                             return@withContext Either.Left(left
@@ -100,8 +141,12 @@ data class Deployment(
 
                 log("Fetched cloudflare DNS record id: $cloudflareId", LogType.DEBUG)
 
+                val internalPort = DockerManager.findInternalDockerPort(dockerFile)
+
+                val labels = TraefikManager.genTraefikLabels(host.replace(".", ""), host, internalPort)
+
                 log("Sending request to build docker image from docker file $dockerFile", LogType.DEBUG)
-                val dockerImageResult = DockerManager.buildDockerImage(setOf(deploymentKey), dockerFile)
+                val dockerImageResult = DockerManager.buildDockerImage(setOf(id), dockerFile, labels)
                 var dockerImage = ""
 
                 dockerImageResult
@@ -117,35 +162,35 @@ data class Deployment(
 
                 val port = PortFinder.findFreePort()
 
-                log("Sending docker create and start container request with name $deploymentKey-$mode..", LogType.DEBUG)
+                log("Sending docker create and start container request with image $dockerImage..", LogType.DEBUG)
                 val containerIdResult = DockerManager.createAndStartContainer(
-                    "$deploymentKey-$mode",
-                    port, DockerManager.findInternalDockerPort(dockerFile), dockerImage)
+                    "$host-$mode",
+                    port, internalPort, dockerImage)
 
                 var containerId = ""
 
                 containerIdResult
                     .onFailure { exception: Throwable ->
-                        log("Docker container creation and startup for deployment key $deploymentKey failed, removing DNS record from Cloudflare..", LogType.ERROR)
+                        log("Docker container creation and startup for deployment $host-$mode failed, removing DNS record from Cloudflare..", LogType.ERROR)
                         CloudflareManager.removeDnsRecord(cloudflareId)
                         // TODO: remove failed deployment directory
                         return@withContext Either.Left(exception.message ?: "")
                     }
                     .onSuccess { id: String -> containerId = id }
 
-                log("Docker container creation and startup for deployment key $deploymentKey was successful, container id is $containerId", LogType.DEBUG)
+                log("Docker container creation and startup for deployment $host-$mode was successful, container id is $containerId", LogType.DEBUG)
 
                 val deployment =
                     Deployment(
-                        deploymentKey,
-                        port,
+                        id,
                         containerId,
+                        port,
                         cloudflareId,
                         mode,
-                        domain
+                        host,
+                        DeploymentState.DEPLOYED,
+                        directory
                     )
-
-                CaddyManager.updateCaddyFile()
 
                 DiscordManager.sendDeploymentMessage(deployment)
 
@@ -155,11 +200,8 @@ data class Deployment(
             }
         }
 
-        suspend fun exists(deploymentKey: String): Boolean {
-            return withContext(context) {
-                log("Checking if deployment for $deploymentKey exists on redis..", LogType.TRACE)
-                redisClient.get("deployment:$deploymentKey") != null
-            }
+        suspend fun exists(id: String): Boolean {
+            return findById(id) != null
         }
     }
 
@@ -167,19 +209,19 @@ data class Deployment(
         val deployment = this
         withContext(context) {
             log("Saving deployment $deployment to redis..", LogType.DEBUG)
-            redisClient.set("deployment:$deploymentKey", Json.encodeToString(serializer(), deployment))
+            redisClient.jsonSet("deployment:\"$id\"", Json.encodeToString(serializer(), deployment))
         }
     }
 
     suspend fun deleteFromRedis(): Result<Unit> {
         return withContext(context) {
             try {
-                log("Deleting deployment with key $deploymentKey from redis..", LogType.DEBUG)
-                redisClient.del("deployment:$deploymentKey")
+                log("Deleting deployment with id $id from redis..", LogType.DEBUG)
+                redisClient.jsonDel("deployment:\"$id\"")
 
                 return@withContext Result.success(Unit)
             } catch (err: Exception) {
-                log("deployment deletion from redis for key $deploymentKey failed: ${err.localizedMessage}", LogType.ERROR)
+                log("deployment deletion from redis for id $id failed: ${err.localizedMessage}", LogType.ERROR)
                 return@withContext Result.failure(err)
             }
         }
@@ -194,11 +236,11 @@ data class Deployment(
                 log("Deployment is running", LogType.ERROR)
                 return@withContext Result.failure(Exception("Tried to delete deployment that is not in stopped state: ${deployment}"))
             }
-            DockerManager.deleteContainer(dockerContainer)
+            DockerManager.deleteContainer(containerId)
 
             // remove any existing files.
-            File("${VOYAGER_CONFIG.deploymentsDir}/${deploymentKey}-$mode").also {
-                log("Checking if directory for deployment with key $deploymentKey exists before deleting", LogType.DEBUG)
+            File(directory).also {
+                log("Checking if directory for deployment with id $id exists before deleting", LogType.DEBUG)
                 if (it.exists()) {
                     log("It exists, deleting..", LogType.DEBUG)
                     it.deleteRecursively()
@@ -206,9 +248,6 @@ data class Deployment(
             }
 
             deleteFromRedis()
-
-            // remove from caddy after it is removed from internals deployments list. [done]
-            CaddyManager.updateCaddyFile()
 
             // remove from cloudflare dns.[done]
             CloudflareManager.removeDnsRecord(dnsRecordId)
@@ -226,10 +265,10 @@ data class Deployment(
             // stop docker container
             if (state != DeploymentState.DEPLOYED) {
                 log("Deployment is not running", LogType.ERROR)
-                return@withContext Result.failure(Exception("Tried to stop deployment that is not in deployed state: ${deployment}"))
+                return@withContext Result.failure(Exception("Tried to stop deployment that is not in deployed state: $deployment"))
             }
             state = DeploymentState.STOPPING
-            DockerManager.stopContainer(dockerContainer)
+            DockerManager.stopContainer(containerId)
             state = DeploymentState.STOPPED
             save()
 
@@ -239,14 +278,14 @@ data class Deployment(
 
     suspend fun start(): Result<Unit> {
         return withContext(context) {
-            log("Starting deployment with key $deploymentKey", LogType.INFO)
+            log("Starting deployment with id $id", LogType.INFO)
             if (state != DeploymentState.STOPPED) {
-                log("Deployment with key $deploymentKey is not in stopped state", LogType.ERROR)
+                log("Deployment with id $id is not in stopped state", LogType.ERROR)
                 return@withContext Result.failure(Exception("Tried to start deployment that is not in stopped state"))
             }
 
-            log("Sending restart command to docker for container id $dockerContainer..", LogType.DEBUG)
-            return@withContext DockerManager.restartContainer(dockerContainer).fold(
+            log("Sending restart command to docker for container id $containerId..", LogType.DEBUG)
+            return@withContext DockerManager.restartContainer(containerId).fold(
                 {_ ->
                     log("Container restart was successful")
                     state = DeploymentState.DEPLOYED
@@ -254,7 +293,7 @@ data class Deployment(
                     Result.success(Unit)
                 },
                 {err: Throwable ->
-                    log("Container $dockerContainer restart failed with errors: ${err.localizedMessage}", LogType.ERROR)
+                    log("Container $containerId restart failed with errors: ${err.localizedMessage}", LogType.ERROR)
                     Result.failure(err)
                 }
             )
@@ -262,31 +301,31 @@ data class Deployment(
     }
 
     suspend fun stopAndDelete(): Result<Unit> {
-        log("Stopping and deleting deployment with key $deploymentKey", LogType.INFO)
+        log("Stopping and deleting deployment with id $id", LogType.INFO)
         return stop().fold(
             {_ -> delete()},
             {err -> Result.failure(err)}
         )
     }
 
-    suspend fun getLogs(): Result<String> {
+    suspend fun getLogs(): Result<Array<String>> {
         return withContext(context) {
-            log("Getting logs for deployment $deploymentKey", LogType.INFO)
-            DockerManager.getLogs(dockerContainer)
+            log("Getting logs for deployment with id $id", LogType.INFO)
+            DockerManager.getLogs(containerId)
         }
     }
 
     suspend fun isRunning(): Result<Boolean> {
         return withContext(context) {
-            log("Checking if deployment with key $deploymentKey is running..", LogType.DEBUG)
+            log("Checking if deployment with id $id is running..", LogType.DEBUG)
             if (state != DeploymentState.DEPLOYED) return@withContext Result.success(false)
-            return@withContext DockerManager.isContainerRunning(dockerContainer)
+            return@withContext DockerManager.isContainerRunning(containerId)
         }
     }
 
     suspend fun restart(): Result<Unit> {
         return withContext(context) {
-            log("Restarting deployment with key $deploymentKey", LogType.INFO)
+            log("Restarting deployment with id $id", LogType.INFO)
             return@withContext stop().fold(
                 {_ -> start()},
                 {err: Throwable -> Result.failure(err)}
@@ -294,17 +333,4 @@ data class Deployment(
         }
     }
 
-    fun getCaddyFileContent(): String {
-        log("Getting caddy file content for deployment $this", LogType.DEBUG)
-        return """
-
-        $domain {
-            reverse_proxy localhost:${port}
-
-            tls {
-                    dns cloudflare "${VOYAGER_CONFIG.cloudflareApiToken.replace("Bearer ", "")}"
-            }
-        }
-    """.trimIndent()
-    }
 }

@@ -9,22 +9,33 @@ import studio.pinkcloud.voyager.deployment.controller.common.deploy
 import studio.pinkcloud.voyager.deployment.controller.common.getLogs
 import studio.pinkcloud.voyager.deployment.controller.common.stopDeployment
 import studio.pinkcloud.voyager.deployment.model.DeploymentMode
+import studio.pinkcloud.voyager.deployment.view.DeployResponse
+import studio.pinkcloud.voyager.deployment.view.GetLogsResponse
+import studio.pinkcloud.voyager.deployment.view.StopResponse
 import studio.pinkcloud.voyager.routing.annotations.LoggedIn
-import studio.pinkcloud.voyager.utils.VoyagerResponse
 import studio.pinkcloud.voyager.utils.logging.LogType
 import studio.pinkcloud.voyager.utils.logging.log
 
-fun Application.configurePreviewDeployment() {
+fun Application.configureDeploymentApi() {
     
     routing() {
         @LoggedIn
-        post("/api/deployments/preview") {
+        post("/deployment/deploy") {
             log("Request received at route /api/deployments/preview", LogType.INFO)
             try {
                 // this is just temp till supabase is implemented and getting project info from there can be done
-                val deploymentKey = call.request.header("X-Deployment-Key") ?: call.request.queryParameters["deploymentKey"]
                 val repoURL = call.request.header("X-Repo-URL") ?: call.request.queryParameters["repoUrl"]
-                val response = deploy(deploymentKey, repoURL, DeploymentMode.PREVIEW, null)
+                val subdomain = call.request.header("X-Subdomain") ?: call.request.queryParameters["subdomain"]
+                val modeStr = call.request.header("X-Mode") ?: call.request.queryParameters["mode"]
+
+                val mode = when (modeStr) {
+                    "preview" -> DeploymentMode.PREVIEW
+                    "production" -> DeploymentMode.PRODUCTION
+                    else -> DeploymentMode.PREVIEW
+                }
+
+                val response = deploy(repoURL, mode, subdomain)
+
                 call.respond(
                     HttpStatusCode.fromValue(response.code),
                     response
@@ -33,9 +44,11 @@ fun Application.configurePreviewDeployment() {
                 log("Error processing request at route /api/deployments/preview: ${e.localizedMessage}", LogType.ERROR)
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    VoyagerResponse(
+                    DeployResponse(
                         HttpStatusCode.InternalServerError.value,
-                        "Error processing request"
+                        "Internal Server Error",
+                        arrayOf(e.localizedMessage),
+                        null
                     )
                 )
                 return@post
@@ -43,50 +56,53 @@ fun Application.configurePreviewDeployment() {
         }
         
         @LoggedIn
-        get("/api/deployments/preview/{deploymentKey}/logs") {
-            val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
+        post("/deployment/{id}/logs") {
+            val id = call.parameters["id"] ?: call.request.queryParameters["id"]
 
             try {
-                log("Request received at route /api/deployments/preview/${deploymentKey ?: "null"}/logs", LogType.INFO)
+                log("Request received at route /deployment/$id/logs", LogType.INFO)
 
-                val response = getLogs(deploymentKey)
+                val response = getLogs(id)
 
                 call.respond(
                     HttpStatusCode.fromValue(response.code),
                     response
                 )
             } catch (err: Exception) {
-                log("Error processing request at route /api/deployments/preview/${deploymentKey ?: "null"}/logs: ${err.localizedMessage}", LogType.ERROR)
+                log("Error processing request at route /deployment/$id/logs", LogType.ERROR)
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    VoyagerResponse(
+                    GetLogsResponse(
                         HttpStatusCode.InternalServerError.value,
-                        "Error processing request"
+                        "Internal Server Error",
+                        arrayOf(err.localizedMessage),
+                        null
                     ))
 
             }
         }
 
         @LoggedIn
-        post("/api/deployments/preview/{deploymentKey}/stop") {
-            val deploymentKey = call.parameters["deploymentKey"] ?: call.request.queryParameters["deploymentKey"]
+        post("/deployment/{id}/stop") {
+            val id = call.parameters["id"] ?: call.request.queryParameters["id"]
 
             try {
-                log("Request received at route /api/deployments/preview/${deploymentKey ?: "null"}/stop", LogType.INFO)
+                log("Request received at route /deployment/$id/stop", LogType.INFO)
 
-                val response = stopDeployment(deploymentKey)
+                val response = stopDeployment(id)
 
                 call.respond(
                     HttpStatusCode.fromValue(response.code),
                     response
                 )
             } catch (err: Exception) {
-                log("Error processing request at route /api/deployments/preview/${deploymentKey ?: "null"}/stop: ${err.localizedMessage}", LogType.ERROR)
+                log("Error processing request at route /deployment/$id/stop", LogType.ERROR)
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    VoyagerResponse(
+                    StopResponse(
                         HttpStatusCode.InternalServerError.value,
-                        "Error processing request"
+                        "Internal Server Error",
+                        arrayOf(err.localizedMessage)
                     ))
             }
         }

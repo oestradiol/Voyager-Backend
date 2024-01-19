@@ -2,45 +2,56 @@ package studio.pinkcloud.voyager.deployment.controller.common
 
 import io.ktor.http.*
 import studio.pinkcloud.voyager.deployment.model.Deployment
-import studio.pinkcloud.voyager.utils.VoyagerResponse
+import studio.pinkcloud.voyager.deployment.view.GetLogsResponse
 import studio.pinkcloud.voyager.utils.logging.LogType
 import studio.pinkcloud.voyager.utils.logging.log
 
-suspend fun getLogs(deploymentKey: String?): VoyagerResponse {
-    log("Getting logs for $deploymentKey", LogType.INFO)
+suspend fun getLogs(id: String?): GetLogsResponse {
+    log("Getting logs for $id", LogType.INFO)
 
-    if (deploymentKey == null) {
-        log("Deployment ket is null", LogType.WARN)
-        return VoyagerResponse(
+    if (id == null) {
+        log("id is null", LogType.WARN)
+        return GetLogsResponse(
             HttpStatusCode.BadRequest.value,
-            "Deployment key not provided"
+            "Failed",
+            arrayOf("Deployment id not provided"),
+            null
         )
     }
 
-    log("Finding deployment for deployment key $deploymentKey", LogType.DEBUG)
-    val deployment = Deployment.find(deploymentKey)
+    log("Finding deployment for id $id", LogType.DEBUG)
+    val deployment = Deployment.findById(id)
 
     if (deployment == null) {
-        log("Deployment was not found for deployment key $deploymentKey", LogType.WARN)
-        return VoyagerResponse(
+        log("Deployment was not found for id $id", LogType.WARN)
+        return GetLogsResponse(
             HttpStatusCode.NotFound.value,
-            "Deployment with given key was not found"
+            "Failed",
+            arrayOf("Deployment with given id was not found"),
+            null
         )
     }
 
-    log("Getting logs for deployment key $deploymentKey", LogType.DEBUG)
+    log("Getting logs for id $id", LogType.DEBUG)
     val logsResult = deployment.getLogs()
 
 
     return logsResult.fold(
-        {value: String ->
-            log("Log retrieval for $deploymentKey was successful", LogType.INFO)
-            return VoyagerResponse(HttpStatusCode.OK.value, "Logs retrieved", value)},
+        {value: Array<String> ->
+            log("Log retrieval for $id was successful", LogType.INFO)
+            return GetLogsResponse(
+                HttpStatusCode.OK.value,
+                "Logs retrieved",
+                arrayOf(),
+                value
+            ) },
         {err: Throwable ->
-            log("Log retrieval for $deploymentKey failed", LogType.WARN)
-            VoyagerResponse(
+            log("Log retrieval for $id failed", LogType.WARN)
+            GetLogsResponse(
                 HttpStatusCode.InternalServerError.value,
-                "Could not retrieve logs: ${err.message}"
+                "Internal Server Error",
+                arrayOf(err.localizedMessage),
+                null
             )}
     )
 

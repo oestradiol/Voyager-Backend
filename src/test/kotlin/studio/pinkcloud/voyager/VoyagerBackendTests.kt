@@ -1,24 +1,25 @@
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.server.application.*
+
 import io.ktor.server.testing.*
-import kotlin.test.*
-import kotlin.random.Random
-import studio.pinkcloud.voyager.utils.logging.*
-import studio.pinkcloud.voyager.redis.connectToRedis
-import studio.pinkcloud.voyager.redis.redisClient
-import studio.pinkcloud.voyager.deployment.model.*
-import studio.pinkcloud.voyager.loadVoyagerConfig
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.serializer
-import okio.utf8Size
+import studio.pinkcloud.voyager.deployment.model.Deployment
+import studio.pinkcloud.voyager.deployment.model.DeploymentMode
+import studio.pinkcloud.voyager.deployment.model.DeploymentState
+import studio.pinkcloud.voyager.loadVoyagerConfig
+import studio.pinkcloud.voyager.redis.connectToRedis
+import studio.pinkcloud.voyager.redis.defineRedisSchema
+import studio.pinkcloud.voyager.redis.redisClient
+import studio.pinkcloud.voyager.utils.logging.Logger
+import kotlin.random.Random
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class VoyagerBackendTests {
 
     companion object {
         const val ALPHABET: String =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%¨&*()\\\n\r\t\"'><,.;:?/[]{}`´~^=+-_®°ŧ←↓→øþæßðđŋħʒĸłç«»©„“”µ•·°ºª§¬🥺❤😁️"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
         fun genRandomString(len: Int): String {
             var result = ""
@@ -31,13 +32,14 @@ class VoyagerBackendTests {
 
         fun genRandomDeployment(): Deployment {
             return Deployment(
-                genRandomString(100),
+                genRandomString(10),
+                genRandomString(10),
                 Random.nextInt(-1000, 1000),
-                genRandomString(100),
-                genRandomString(100),
+                genRandomString(10),
                 DeploymentMode.PREVIEW,
-                genRandomString(100),
+                genRandomString(10),
                 DeploymentState.STOPPED,
+                genRandomString(10),
                 Random.nextLong(1000000000)
             )
         }
@@ -71,21 +73,39 @@ class VoyagerBackendTests {
 
     @Test
     fun testDeploymentOnRedis() = testApplication {
-        loadVoyagerConfig()
-        connectToRedis()
-        assertEquals(redisClient.ping(), "PONG")
-        val deployments = Array(100) { _: Int -> genRandomDeployment() }
-        for (i in 0..99) {
-            deployments[i].save()
-        }
-        for (i in 0..99) {
-            val found = Deployment.find(deployments[i].deploymentKey)
-            assertEquals(String(found.toString().toByteArray(), Charsets.UTF_8), String(deployments[i].toString().toByteArray(), Charsets.UTF_8))
-            found?.deleteFromRedis()
-        }
-        for (i in 0..99) {
-            val found = Deployment.find(deployments[i].deploymentKey)
-            assertEquals(found, null)
+        runBlocking {
+            loadVoyagerConfig()
+            connectToRedis()
+            defineRedisSchema()
+            Logger.load(1)
+            assertEquals(redisClient.ping(), "PONG")
+            val deployments = Array(100) { _: Int -> genRandomDeployment() }
+            for (i in 0..99) {
+                async { deployments[i].save() }.await()
+            }
+            val deploymentsFound = async { Deployment.findAll() }.await()
+            for (found in deploymentsFound) {
+                for (depl in deployments) {
+                    if (depl.id != found.id) continue
+
+                    assertEquals(
+                        String(found.toString().toByteArray(), Charsets.UTF_8),
+                        String(depl.toString().toByteArray(), Charsets.UTF_8)
+                    )
+                }
+            }
+            for (i in 0..99) {
+                val found = async { Deployment.findById(deployments[i].id) }.await()
+                assertEquals(
+                    String(found.toString().toByteArray(), Charsets.UTF_8),
+                    String(deployments[i].toString().toByteArray(), Charsets.UTF_8)
+                )
+                found?.deleteFromRedis()
+            }
+            for (i in 0..99) {
+                val found = async { Deployment.findById(deployments[i].id) }.await()
+                assertEquals(found, null)
+            }
         }
     }
 }

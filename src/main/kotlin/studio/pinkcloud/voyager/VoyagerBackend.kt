@@ -12,8 +12,7 @@ import io.ktor.server.response.*
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import studio.pinkcloud.voyager.config.VoyagerConfig
-import studio.pinkcloud.voyager.deployment.controller.configurePreviewDeployment
-import studio.pinkcloud.voyager.deployment.controller.configureProductionDeployment
+import studio.pinkcloud.voyager.deployment.controller.configureDeploymentApi
 import studio.pinkcloud.voyager.redis.connectToRedis
 import studio.pinkcloud.voyager.redis.defineRedisSchema
 import studio.pinkcloud.voyager.utils.logging.LogType
@@ -122,8 +121,7 @@ fun Application.init() {
     connectToRedis()
     defineRedisSchema()
 
-    configurePreviewDeployment()
-    configureProductionDeployment()
+    configureDeploymentApi()
 
     log("Done in ${System.currentTimeMillis() - programStartTime}ms. Voyager is up!", LogType.INFO)
 }
@@ -149,7 +147,7 @@ fun loadVoyagerConfig() {
             configFile.readText(Charsets.UTF_8)
         )
     for (prop in VoyagerConfig::class.memberProperties) {
-        if (prop.get(VOYAGER_CONFIG)?.equals("") ?: false) throw Exception("${prop.name} config not set")
+        if (prop.get(VOYAGER_CONFIG)?.equals("") == true) throw Exception("${prop.name} config not set")
     }
 }
 

@@ -66,7 +66,7 @@ fun redisSendBlockingCommand(command: String): Any {
 
 }
 
-fun defineRedisSchema() {
+fun defineRedisSchema(force: Boolean = VOYAGER_CONFIG.forceRedisSync) {
     log("Defining redis schema..", LogType.INFO)
 
     val redisSchema = VoyagerResponse::class.java.getResource("/redis-schema.txt")?.readText()
@@ -96,7 +96,7 @@ fun defineRedisSchema() {
 
                 log("Index already exists.", LogType.WARN)
 
-                if (VOYAGER_CONFIG.forceRedisSync) {
+                if (force) {
                     log("forceRedisSync is set to true, dropping old index", LogType.WARN)
                     redisSendBlockingCommand("FT.DROP " + redisGetCommandArgsStr(command).substringBefore(' '))
                     redisSendBlockingCommand(command)

@@ -20,8 +20,12 @@ import java.util.*
 object CloudflareManager {
     private val httpClient = HttpClient()
 
-    suspend fun addDnsRecord(deploymentKey: String, ip: String, mode: DeploymentMode, domain: String): Either<Array<CloudflareError>, String> {
-        log("Adding DNS record to cloudflare for deployment key: $deploymentKey, ip: $ip, mode: $mode, domain: $domain", LogType.INFO)
+    suspend fun addDnsRecord(host: String, ip: String, mode: DeploymentMode): Either<Array<CloudflareError>, String> {
+        if (System.getenv("development") == null) {
+            return Either.Right("devDnsRecord")
+        }
+
+        log("Adding DNS record to cloudflare for host: $host, ip: $ip, mode: $mode", LogType.INFO)
 
         val response = httpClient.post("https://api.cloudflare.com/client/v4/zones/${VOYAGER_CONFIG.cloudflareZone}/dns_records") {
             headers["Content-Type"] = "application/json"
@@ -34,11 +38,11 @@ object CloudflareManager {
                 """
                     {
                     "content": "$ip",
-                    "name": "${domain.split(".")[0].ifEmpty { "@" }}",
+                    "name": "$host",
                     "proxied": true,
                     "type": "A",
                     "ttl": 1,
-                    "comment": "Voyager $mode for $deploymentKey | Deployed at $now"
+                    "comment": "Voyager $mode for $host | Deployed at $now"
                     }
                     """.trimIndent()
             )
@@ -76,6 +80,10 @@ object CloudflareManager {
     }
 
     suspend fun removeDnsRecord(dnsRecord: String): Either<Array<CloudflareError>, Unit> {
+        if (System.getenv("development") == null) {
+            return Either.Right(Unit)
+        }
+
         log("Removing DNS record from cloudflare: $dnsRecord", LogType.INFO)
 
         val response = httpClient.delete("https://api.cloudflare.com/client/v4/zones/${VOYAGER_CONFIG.cloudflareZone}/dns_records/${dnsRecord}") {

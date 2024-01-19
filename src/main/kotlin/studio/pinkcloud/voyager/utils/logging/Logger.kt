@@ -62,12 +62,12 @@ object Logger {
     val logQueue: Queue<LogEntry> = ConcurrentLinkedQueue()
     private lateinit var loggerThread: Thread
 
-    fun load() {
+    fun load(delay: Long = 100) {
         loggerThread = object : Thread("LoggerThread") {
             override fun run() {
                 try {
                     while (true) {
-                        Thread.sleep(100)
+                        Thread.sleep(delay)
 
                         while (logQueue.isNotEmpty()) {
                             logInternal(logQueue.element())

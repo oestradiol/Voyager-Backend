@@ -89,6 +89,11 @@ tasks.register("runDev") {
     finalizedBy("run")
 }
 
+tasks.test.configure {
+    application.applicationDefaultJvmArgs = listOf("-Dio.ktor.development=true")
+    environment(mapOf("development" to 1))
+}
+
 tasks.register("buildWithSentry") {
     /* I dont know 9if this is working rn :kiss:
     doFirst {

@@ -28,11 +28,11 @@ object DiscordManager {
         val mode = deployment.mode.toString()
         val message =
             WebhookEmbedBuilder().apply {
-                setTitle(WebhookEmbed.EmbedTitle("New $mode deployment", "https://${deployment.domain}"))
+                setTitle(WebhookEmbed.EmbedTitle("New $mode deployment", "https://${deployment.host}"))
                 setDescription("A new $mode deployment has been created.")
-                addField(WebhookEmbed.EmbedField(true, "Deployment Key", deployment.deploymentKey))
+                addField(WebhookEmbed.EmbedField(true, "ID", deployment.id))
                 addField(WebhookEmbed.EmbedField(true, "Port", deployment.port.toString()))
-                addField(WebhookEmbed.EmbedField(true, "Docker Container", deployment.dockerContainer))
+                addField(WebhookEmbed.EmbedField(true, "Docker Container", deployment.containerId))
             }.build()
 
         log("Deployment discord message to be sent: $message")

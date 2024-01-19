@@ -39,7 +39,7 @@ object DockerManager {
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    suspend fun buildDockerImage(tags: Set<String>, dockerfile: File): Result<String> = coroutineScope {
+    suspend fun buildDockerImage(tags: Set<String>, dockerfile: File, labels: Map<String, String>): Result<String> = coroutineScope {
         log("Building docker image with tags: $tags, Dockerfile: $dockerfile", LogType.INFO)
         val context = newSingleThreadContext("DockerBuildThread-${dockerfile.hashCode()}")
 
@@ -55,6 +55,7 @@ object DockerManager {
                     .buildImageCmd()
                     .withDockerfile(dockerfile)
                     .withTags(tags)
+                    .withLabels(labels)
                     .exec(object : ResultCallback.Adapter<BuildResponseItem>() {
                         override fun onNext(item: BuildResponseItem?) {
                             log("Current BuildResponseItem: ${item?.stream.toString()}", LogType.TRACE)
@@ -225,15 +226,15 @@ object DockerManager {
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    suspend fun getLogs(containerId: String): Result<String> = coroutineScope {
+    suspend fun getLogs(containerId: String): Result<Array<String>> = coroutineScope {
         log("Getting logs for container with id $containerId", LogType.INFO)
         val context = newSingleThreadContext("DockerLogThread-${containerId.hashCode()}")
 
-        val logsStr: String
+        val logs: Array<String>
 
         try {
 
-            logsStr = async(context) {
+            logs = async(context) {
                 log("Building log command for container id $containerId", LogType.DEBUG)
                 val logContainerCmd =
                     dockerClient
@@ -241,14 +242,14 @@ object DockerManager {
                         .withStdOut(true)
                         .withStdErr(true)
 
-                val logs = ArrayList<String>()
+                val logsIn = ArrayList<String>()
 
                 try {
                     log("Executing log command for container id $containerId", LogType.DEBUG)
                     logContainerCmd.exec(object : ResultCallback.Adapter<Frame>() {
                                             override fun onNext(obj: Frame) {
                                                 log("Current log frame object: $obj", LogType.TRACE)
-                                                logs.add(obj.toString())
+                                                logsIn.add(obj.toString())
                                             }
                                         }).awaitCompletion()
 
@@ -259,19 +260,7 @@ object DockerManager {
                     error.printStackTrace()
                 }
 
-                log("Creating stringified logs for container with id $containerId", LogType.DEBUG)
-
-                var logsStrIn = "Size of logs: ${logs.size}\n"
-                log(logsStrIn, LogType.TRACE)
-
-                for (line in logs) {
-                    log(line, LogType.TRACE)
-                    logsStrIn += line + "\n"
-                }
-
-                log("Logs for container with id $containerId retrieved.", LogType.DEBUG)
-
-                return@async logsStrIn
+                return@async logsIn.toTypedArray()
             }.await()
 
         } catch (err: Exception) {
@@ -282,6 +271,6 @@ object DockerManager {
             context.close()
         }
 
-        return@coroutineScope Result.success(logsStr)
+        return@coroutineScope Result.success(logs)
     }
 }

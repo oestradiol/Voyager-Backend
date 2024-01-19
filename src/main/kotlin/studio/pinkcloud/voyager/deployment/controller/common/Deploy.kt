@@ -4,54 +4,57 @@ import org.eclipse.jgit.api.Git
 import studio.pinkcloud.voyager.VOYAGER_CONFIG
 import studio.pinkcloud.voyager.deployment.model.Deployment
 import studio.pinkcloud.voyager.deployment.model.DeploymentMode
+import studio.pinkcloud.voyager.deployment.view.DeployResponse
 import studio.pinkcloud.voyager.github.VoyagerGithub
-import studio.pinkcloud.voyager.utils.VoyagerResponse
 import studio.pinkcloud.voyager.utils.logging.LogType
 import studio.pinkcloud.voyager.utils.logging.log
 import java.io.File
 
 suspend fun deploy(
-    deploymentKey: String?,
     repoUrl: String?,
     mode: DeploymentMode,
-    subdomain: String?
-): VoyagerResponse {
-    log("Attempting to create deployment with deployment key: ${deploymentKey ?: "null"}, repository url: ${repoUrl ?: "null"}, mode: ${mode ?: "null"}, subdomain: ${subdomain ?: "null"}")
+    subdomain: String?,
+): DeployResponse {
+    log("Attempting to create deployment with repository url: ${repoUrl ?: "null"}, mode: ${mode ?: "null"}, subdomain: ${subdomain ?: "null"}")
 
-
-    if (deploymentKey == null) {
-        log("Deployment key is null", LogType.WARN)
-        return VoyagerResponse(
-            HttpStatusCode.BadRequest.value,
-            "No deployment key provided for deployment attempt with repository url $repoUrl and subdomain $subdomain"
-        )
-    }
 
     if (repoUrl == null) {
         log("Repository URL is null", LogType.WARN)
-        return VoyagerResponse(
+        return DeployResponse(
             HttpStatusCode.BadRequest.value,
-            "No repository URL provided for deployment attempt $deploymentKey-$mode"
+            "Failed",
+            arrayOf("No repository URL provided"),
+            null
         )
     }
 
     if (!repoUrl.lowercase().startsWith("${VOYAGER_CONFIG.githubOrgName.lowercase()}/")) {
-        log("Repository is not owned by PinkCloudStudios", LogType.WARN)
-        return VoyagerResponse(
+        log("Repository is not owned by ${VOYAGER_CONFIG.githubOrgName}", LogType.WARN)
+        return DeployResponse(
             HttpStatusCode.BadRequest.value,
-            "Invalid repository URL $repoUrl for deployment attempt $deploymentKey, it is not owned by PinkCloudStudios"
+            "Failed",
+            arrayOf("Invalid repository URL $repoUrl, it is not owned by ${VOYAGER_CONFIG.githubOrgName}"),
+            null
         )
     }
 
-    if (Deployment.exists(deploymentKey)) {
-        log("Deployment already exists for given deployment key", LogType.WARN)
-        return VoyagerResponse(
+    val host = (subdomain ?: "") + if (mode == DeploymentMode.PREVIEW)
+    { "-preview.pinkcloud.studio"} else { ".pinkcloud.studio" }
+        .replace(Regex("^[.,-]+"), "")
+        .replace(Regex("\\s"), "")
+
+    if (Deployment.findByHost(host) != null) {
+        return DeployResponse(
             HttpStatusCode.Forbidden.value,
-            "Deployment already exists for deployment attempt $deploymentKey"
+            "Failed",
+            arrayOf("Deployment at host $host already exists."),
+            null
         )
     }
 
-    val projectDirectory: File = File("${VOYAGER_CONFIG.deploymentsDir}/$deploymentKey").also {
+    val dir = repoUrl.replace(VOYAGER_CONFIG.githubOrgName + "/", "")
+
+    val projectDirectory: File = File("${VOYAGER_CONFIG.deploymentsDir}/$dir").also {
         log("Checking for old deployment directory", LogType.DEBUG)
         if (it.exists()) {
             log("Deleting old deployment directory..", LogType.DEBUG)
@@ -70,9 +73,11 @@ suspend fun deploy(
             .close()
     } catch (e: Exception) {
         log("Error cloning deployment from github repository: ${e.localizedMessage}", LogType.ERROR)
-        return VoyagerResponse(
+        return DeployResponse(
             HttpStatusCode.FailedDependency.value,
-            "Failed to clone repository for deployment attempt $deploymentKey: ${e.message}"
+            "Failed",
+            arrayOf("Failed to clone repository $repoUrl: ${e.message}"),
+            null
         )
     }
 
@@ -80,44 +85,48 @@ suspend fun deploy(
 
     log("Checking for existence of Dockerfile in deployment directory", LogType.DEBUG)
     if (!dockerFile.exists()) {
-        log("Dockerfile not found for deployment attempt $deploymentKey", LogType.WARN)
-        return VoyagerResponse(
+        log("Dockerfile not found for $repoUrl", LogType.WARN)
+        return DeployResponse(
             HttpStatusCode.BadRequest.value,
-            "Dockerfile for given repository was not found"
+            "Failed",
+            arrayOf("Dockerfile for given repository was not found"),
+            null
         )
     }
-    log("Dockerfile found for $deploymentKey.", LogType.DEBUG)
+    log("Dockerfile found for $repoUrl", LogType.DEBUG)
 
-    log("Formatting subdomain for $deploymentKey..", LogType.DEBUG)
-    val subdomainNew = if (mode == DeploymentMode.PREVIEW) {
-        "$deploymentKey-preview"
-    } else {
-        subdomain
-    }
+    log("Formatting host for $repoUrl..", LogType.DEBUG)
 
-    log("Formatted subdomain for $deploymentKey is $subdomainNew", LogType.DEBUG)
 
-    log("Calling Deployment.new function with args $deploymentKey, $dockerFile, $subdomainNew, $mode", LogType.DEBUG)
+
+    log("Formatted host for $repoUrl is $host", LogType.DEBUG)
+
+    log("Calling Deployment.new function with args $repoUrl, $dockerFile, $host, $mode", LogType.DEBUG)
     val deploymentResult = Deployment.new(
-        deploymentKey,
         dockerFile,
-        subdomainNew,
-        mode
+        host,
+        mode,
+        projectDirectory.path
     )
 
-    return deploymentResult.fold<VoyagerResponse>(
+    return deploymentResult.fold<DeployResponse>(
         {left: String ->
-            log("Deployment attempt $deploymentKey failed with errors: $left", LogType.WARN)
-            return VoyagerResponse(
+            log("Deployment attempt for $repoUrl-$mode failed with errors: $left", LogType.WARN)
+            return DeployResponse(
                 HttpStatusCode.FailedDependency.value,
-                "Deployment failed: $left"
+                "Failed",
+                arrayOf("Deployment failed: $left"),
+                null
             )},
         {right: Deployment ->
-            log("Deployment attempt $deploymentKey was successful", LogType.INFO)
-            return VoyagerResponse(
+            log("Deployment attempt for $repoUrl-$mode was successful", LogType.INFO)
+
+            return DeployResponse(
                 HttpStatusCode.OK.value,
-                "Deployed",
-                right.dockerContainer
-            )}
+                "Success",
+                arrayOf(),
+                right.id
+            )
+        }
     )
 }
