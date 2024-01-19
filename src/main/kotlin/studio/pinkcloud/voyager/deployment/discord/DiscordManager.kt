@@ -23,29 +23,38 @@ object DiscordManager {
         }.build()
     }
 
-    fun sendDeploymentMessage(deployment: Deployment) {
-        log("Sending deployment discord message for deployment $deployment", LogType.INFO)
-        val mode = deployment.mode.toString()
-        val message =
-            WebhookEmbedBuilder().apply {
-                setTitle(WebhookEmbed.EmbedTitle("New $mode deployment", "https://${deployment.host}"))
-                setDescription("A new $mode deployment has been created.")
-                addField(WebhookEmbed.EmbedField(true, "ID", deployment.id))
-                addField(WebhookEmbed.EmbedField(true, "Port", deployment.port.toString()))
-                addField(WebhookEmbed.EmbedField(true, "Docker Container", deployment.containerId))
-            }.build()
+    fun sendDeploymentMessage(deployment: Deployment): Result<Unit> {
+        if (System.getenv("development") != null) return Result.success(Unit)
 
-        log("Deployment discord message to be sent: $message")
+        try {
+            log("Sending deployment discord message for deployment $deployment", LogType.INFO)
+            val mode = deployment.mode.toString()
+            val message =
+                WebhookEmbedBuilder().apply {
+                    setTitle(WebhookEmbed.EmbedTitle("New $mode deployment", "https://${deployment.host}"))
+                    setDescription("A new $mode deployment has been created.")
+                    addField(WebhookEmbed.EmbedField(true, "ID", deployment.id))
+                    addField(WebhookEmbed.EmbedField(true, "Port", deployment.port.toString()))
+                    addField(WebhookEmbed.EmbedField(true, "Docker Container", deployment.containerId))
+                }.build()
 
-        val webhookMessage =
-            WebhookMessageBuilder()
-                .addEmbeds(message)
-                .setUsername("Voyager $mode deployment")
-                .build()
+            log("Deployment discord message to be sent: $message")
 
-        webhookClient.send(webhookMessage)
-            .whenCompleteAsync { _: ReadonlyMessage?, err: Throwable? ->
-                err?.let { log("Error sending discord webhook message: ${err.message}", LogType.ERROR) }
-            }
+            val webhookMessage =
+                WebhookMessageBuilder()
+                    .addEmbeds(message)
+                    .setUsername("Voyager $mode deployment")
+                    .build()
+
+            webhookClient.send(webhookMessage)
+                .whenCompleteAsync { _: ReadonlyMessage?, err: Throwable? ->
+                    err?.let { log("Error sending discord webhook message: ${err.message}", LogType.ERROR) }
+                }
+        } catch (err: Exception) {
+            log("Error sending webhook discord message: ${err.localizedMessage}", LogType.ERROR)
+            return Result.failure(err)
+        }
+
+        return Result.success(Unit)
     }
 }

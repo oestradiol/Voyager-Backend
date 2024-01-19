@@ -21,7 +21,7 @@ fun Application.configureDeploymentApi() {
     routing() {
         @LoggedIn
         post("/deployment/deploy") {
-            log("Request received at route /api/deployments/preview", LogType.INFO)
+            log("Request received at route /deployments/deploy", LogType.INFO)
             try {
                 // this is just temp till supabase is implemented and getting project info from there can be done
                 val repoURL = call.request.header("X-Repo-URL") ?: call.request.queryParameters["repoUrl"]
@@ -41,7 +41,7 @@ fun Application.configureDeploymentApi() {
                     response
                 )
             } catch (e: Exception) {
-                log("Error processing request at route /api/deployments/preview: ${e.localizedMessage}", LogType.ERROR)
+                log("Error processing request at route /deployments/deploy: ${e.localizedMessage}", LogType.ERROR)
                 call.respond(
                     HttpStatusCode.InternalServerError,
                     DeployResponse(

@@ -12,6 +12,7 @@ object LoggerSettings {
     var loggerStyle = LoggerStyle.TEXT_ONLY_BOLD
     var logFileNameFormat = "yyyy-MM-dd'T'HH:mm:ss:SSSXXX"
     var minDisplaySeverity = LogType.INFO.severity
+    var loggerThreadDelay: Long = 100
 }
 
 enum class LoggerStyle(val cast: (type: CustomLogType, msg: String, date: String, threadName: String) -> String) {
@@ -61,13 +62,18 @@ class LogEntry(
 object Logger {
     val logQueue: Queue<LogEntry> = ConcurrentLinkedQueue()
     private lateinit var loggerThread: Thread
+    private var isLoaded = false
 
     fun load(delay: Long = 100) {
+        LoggerSettings.loggerThreadDelay = delay
+
+        if (isLoaded) return
+
         loggerThread = object : Thread("LoggerThread") {
             override fun run() {
                 try {
                     while (true) {
-                        Thread.sleep(delay)
+                        Thread.sleep(LoggerSettings.loggerThreadDelay)
 
                         while (logQueue.isNotEmpty()) {
                             logInternal(logQueue.element())
@@ -89,6 +95,8 @@ object Logger {
                 }
             }
         }
+
+        isLoaded = true
 
         LoggerFileWriter.load()
 

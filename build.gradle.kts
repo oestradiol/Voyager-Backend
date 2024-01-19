@@ -48,6 +48,7 @@ dependencies {
     implementation("com.charleskorn.kaml:kaml:0.56.0")
 
     testImplementation("io.ktor:ktor-server-tests-jvm")
+    testImplementation("io.ktor:ktor-server-test-host:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
 
     // Sentry
@@ -91,7 +92,7 @@ tasks.register("runDev") {
 
 tasks.test.configure {
     application.applicationDefaultJvmArgs = listOf("-Dio.ktor.development=true")
-    environment(mapOf("development" to 1))
+    environment(mapOf("development" to 1, "test" to 1))
 }
 
 tasks.register("buildWithSentry") {

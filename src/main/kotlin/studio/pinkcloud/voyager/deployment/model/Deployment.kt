@@ -2,6 +2,7 @@ package studio.pinkcloud.voyager.deployment.model
 
 import arrow.core.Either
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -111,7 +112,10 @@ data class Deployment(
             return withContext(context) {
                 log("Creating deployment with host $host, dockerFile: $dockerFile, host: $host, mode $mode", LogType.INFO)
 
-                val id = UUID.randomUUID().toString()
+                val id = UUID
+                    .randomUUID()
+                    .toString()
+                    .replace("-", "")
 
                 log("Sending add DNS record request to cloudflare..", LogType.DEBUG)
                 val cloudflareResult = CloudflareManager.addDnsRecord(host, VOYAGER_CONFIG.ip, mode)
@@ -191,6 +195,8 @@ data class Deployment(
                         DeploymentState.DEPLOYED,
                         directory
                     )
+
+                async { deployment.save() }.await()
 
                 DiscordManager.sendDeploymentMessage(deployment)
 

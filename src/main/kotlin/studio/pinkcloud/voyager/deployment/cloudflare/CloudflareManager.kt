@@ -21,7 +21,7 @@ object CloudflareManager {
     private val httpClient = HttpClient()
 
     suspend fun addDnsRecord(host: String, ip: String, mode: DeploymentMode): Either<Array<CloudflareError>, String> {
-        if (System.getenv("development") == null) {
+        if (System.getenv("development") != null) {
             return Either.Right("devDnsRecord")
         }
 
@@ -80,7 +80,7 @@ object CloudflareManager {
     }
 
     suspend fun removeDnsRecord(dnsRecord: String): Either<Array<CloudflareError>, Unit> {
-        if (System.getenv("development") == null) {
+        if (System.getenv("development") != null) {
             return Either.Right(Unit)
         }
 

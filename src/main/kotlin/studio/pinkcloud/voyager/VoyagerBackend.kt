@@ -128,7 +128,13 @@ fun Application.init() {
 
 fun loadVoyagerConfig() {
     log("Getting voyager config from file..", LogType.INFO)
-    val configFile = File("config.yml").also {
+    val fileName = if (System.getenv("test") == null) {
+            "config.yml"
+        } else {
+            "config-test.yml"
+        }
+
+    val configFile = File(fileName).also {
         if (!it.exists()) {
             log("Config file not found! Generating a template..", LogType.ERROR)
             it.createNewFile()

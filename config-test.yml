@@ -1,0 +1,14 @@
+cloudflareApiToken: "na"
+githubPat: "na"
+apiKey: "123batatinha123"
+deploymentWebhook: "na"
+githubOrgName: "atomoxetine"
+deploymentsDir: "./test-deployments"
+cloudflareZone: "na"
+supabaseUrl: "na"
+supabaseKey: "na"
+ip: "na"
+redisUrl: "localhost"
+redisPort: 6379
+forceRedisSync: false
+minLogDisplay: "INFO"
