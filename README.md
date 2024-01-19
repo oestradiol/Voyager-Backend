@@ -15,8 +15,10 @@ Example:
 
 <pre>
 curl --request POST \
-    --url https://voyager-api.pinkcloud.studio/deployment/deploy?repoUrl=PinkCloudStudios/MyDeployment&subdomain=my-deployment&mode=preview \
+    --url https://voyager-api.pinkcloud.studio/deployment/deploy?repoUrl=PinkCloudStudios%2FMyDeployment&subdomain=my-deployment&mode=preview \
     --header 'X-Api-Key: 123123123abcabcabc'
+
+note: %2F is the url encoded for /
 </pre>
 
 Response content type is application/json and is of format:
@@ -103,7 +105,7 @@ Response body:
 }
 </pre>
 
-## /deployment/{id}/stop
+## /deployment/{id}/stop (POST)
 Stops and removes the deployment
 
 Path Variables:
