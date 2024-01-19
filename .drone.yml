@@ -6,7 +6,8 @@ name: Build & Test Pipeline
 steps:
 - name: Start Redis Test Container
   image: redis/redis-stack-server:latest
-
+  detach: true
+  
 - name: Build & Test Voyager Backend
   image: gradle:jdk17
   commands:
