@@ -7,9 +7,11 @@ steps:
 - name: Start Redis Test Container
   image: redis/redis-stack-server:latest
   detach: true
+  network_mode: bridge
   
 - name: Build & Test Voyager Backend
   image: gradle:jdk17
+  network_mode: bridge
   commands:
   - gradle build
 ...
