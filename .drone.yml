@@ -7,7 +7,7 @@ steps:
 - name: Start Redis Test Container
   image: redis
   commands:
-    - docker run -d --name voyager-backend-testign redis
+    - docker run -d --name voyager-backend-testing redis
 
 - name: Build & Test Voyager Backend
   image: gradle:jdk17
