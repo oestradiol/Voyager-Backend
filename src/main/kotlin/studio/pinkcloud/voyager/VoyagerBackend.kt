@@ -7,6 +7,7 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import kotlinx.serialization.encodeToString
@@ -94,6 +95,8 @@ fun Application.init() {
     }
 
     log("Registering call interceptors..", LogType.INFO)
+    install(HttpsRedirect)
+
     intercept(ApplicationCallPipeline.Call) {
         
         // check if route is /status
@@ -152,6 +155,7 @@ fun loadVoyagerConfig() {
             VoyagerConfig.serializer(),
             configFile.readText(Charsets.UTF_8)
         )
+
     for (prop in VoyagerConfig::class.memberProperties) {
         if (prop.get(VOYAGER_CONFIG)?.equals("") == true) throw Exception("${prop.name} config not set")
     }
@@ -163,5 +167,7 @@ val VOYAGER_JSON = Json {
     encodeDefaults = true
     prettyPrint = true
 }
+
+const val RESOURCES_DIR = "src/main/resources"
 
 lateinit var VOYAGER_CONFIG: VoyagerConfig

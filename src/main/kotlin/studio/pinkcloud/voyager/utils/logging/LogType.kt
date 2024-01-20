@@ -1,9 +1,9 @@
 package studio.pinkcloud.voyager.utils.logging
 
-import com.github.ajalt.mordant.rendering.TextColors.*
-import com.github.ajalt.mordant.rendering.TextColors
-import com.github.ajalt.mordant.rendering.TextStyle
 import com.github.ajalt.colormath.model.RGB
+import com.github.ajalt.mordant.rendering.TextColors
+import com.github.ajalt.mordant.rendering.TextColors.*
+import com.github.ajalt.mordant.rendering.TextStyle
 
 object LogType {
     val TRACE = CustomLogType("TRACE", brightCyan, 0)
