@@ -149,10 +149,10 @@ class VoyagerBackendTests {
             assertNotNull(deployment)
 
             val port = deployment.port
-            val pingRes = HttpClient().get("http://localhost:$port/ping")
+            val pingRes = async { HttpClient().get("http://localhost:$port/ping") }.await()
 
             assertEquals(pingRes.status, HttpStatusCode.OK)
-            assertEquals(pingRes.bodyAsText(), "pong")
+            assertEquals(async { pingRes.bodyAsText() }.await(), "pong")
 
             val stopRes = client.post("/deployment/$id/stop") {
                 contentType(ContentType.Application.Json)

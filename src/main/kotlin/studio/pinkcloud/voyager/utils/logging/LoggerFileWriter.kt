@@ -7,7 +7,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.ConcurrentLinkedQueue
 
 class LoggerFileWriter {
     companion object {
@@ -17,9 +16,6 @@ class LoggerFileWriter {
         private lateinit var fileWriterFull: FileWriter
         private lateinit var fileWriterLatest: FileWriter
         private val logFileName: String = SimpleDateFormat(LoggerSettings.logFileNameFormat).format(Calendar.getInstance().time)
-
-        // Store the logs that come before the FileWriter is loaded
-        private var unloadedLogQueue = ConcurrentLinkedQueue<LogEntry>()
 
         fun load() {
             if(isLoaded) {
@@ -53,9 +49,6 @@ class LoggerFileWriter {
             fileWriterLatest = FileWriter(logFileLatest, Charsets.UTF_8, true)
 
             isLoaded = true
-
-            //Write all logs that came before the FileWriter is loaded
-            unloadedLogQueue.forEach { writeToFile(it.message, it.logType, it.date, it.threadName) }
 
             log("LoggerFileWriter loaded succesfully.", LogType.INFO)
         }

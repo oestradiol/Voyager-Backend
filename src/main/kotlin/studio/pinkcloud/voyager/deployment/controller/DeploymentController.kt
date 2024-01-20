@@ -36,6 +36,8 @@ fun Application.configureDeploymentApi() {
 
                 val response = deploy(repoURL, mode, subdomain)
 
+                log("Sending response $response", LogType.DEBUG)
+
                 call.respond(
                     HttpStatusCode.fromValue(response.code),
                     response
@@ -64,6 +66,8 @@ fun Application.configureDeploymentApi() {
 
                 val response = getLogs(id)
 
+                log("Sending response $response", LogType.DEBUG)
+
                 call.respond(
                     HttpStatusCode.fromValue(response.code),
                     response
@@ -90,6 +94,8 @@ fun Application.configureDeploymentApi() {
                 log("Request received at route /deployment/$id/stop", LogType.INFO)
 
                 val response = stopDeployment(id)
+
+                log("Sending response $response", LogType.DEBUG)
 
                 call.respond(
                     HttpStatusCode.fromValue(response.code),
