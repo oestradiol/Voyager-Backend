@@ -25,7 +25,7 @@ impl AppDbContext {
 }
 
 lazy_static!(
-  pub static ref REPOSITORIES_RUNTIME: Runtime = tokio::runtime::Runtime::new().unwrap();
+  pub static ref REPOSITORIES_RUNTIME: Runtime = Runtime::new().unwrap();
   pub static ref APP_DB_CONTEXT: AppDbContext = executor::block_on(
       REPOSITORIES_RUNTIME.spawn(AppDbContext::init())
     ).expect("Failed to initialize database context");
