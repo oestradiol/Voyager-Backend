@@ -14,7 +14,7 @@
 //                     .toString()
 //
 //
-//                 log("Sending add DNS record request to cloudflare..", LogType.DEBUG)
+//                 log("Sending add DNS record request to Cloudflare..", LogType.DEBUG)
 //                 val cloudflareResult = async { CloudflareManager.INSTANCE.addDnsRecord(host, VOYAGER_CONFIG.ip, mode) }.await()
 //                 log("Exited addDnsRecord method", LogType.TRACE)
 //                 var cloudflareId = ""
@@ -41,7 +41,7 @@
 //                     }
 //                     .onRight { right: String -> cloudflareId = right }
 //
-//                 log("Fetched cloudflare DNS record id: $cloudflareId", LogType.DEBUG)
+//                 log("Fetched Cloudflare DNS record id: $cloudflareId", LogType.DEBUG)
 //
 //                 val internalPort = DockerManager.findInternalDockerPort(dockerFile)
 //

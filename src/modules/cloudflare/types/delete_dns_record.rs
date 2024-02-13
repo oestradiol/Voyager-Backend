@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use crate::modules::cloudflare::cloudflare_responses::{CloudflareError, CloudflareMessage};
+use crate::modules::cloudflare::types::cloudflare_responses::{CloudflareError, CloudflareMessage};
 
 #[derive(Debug, Deserialize)]
 pub struct DeleteDnsRecordSuccess {
