@@ -141,9 +141,9 @@
 //   }).await;
 
 //   let id_clone = id.clone();
-//   let future = 
+//   let future =
 //     async move {
-//       let result = APP_DB_CONTEXT.deployments
+//       let result = DB_CONTEXT.deployments
 //         .find_one(doc! { "_id": &id }, None).await;
 
 //       let result = result

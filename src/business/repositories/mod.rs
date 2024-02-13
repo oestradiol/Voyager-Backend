@@ -7,11 +7,11 @@ use tokio::runtime::Runtime;
 
 use crate::{configs::environment::{MONGO_DB_NAME, MONGO_CONN_STR}, types::model::deployment::Deployment};
 
-pub struct AppDbContext {
+pub struct DbContext {
   pub deployments: mongodb::Collection<Deployment>,
 }
 
-impl AppDbContext {
+impl DbContext {
   pub async fn init() -> Self {
     let client_options = ClientOptions::parse(&*MONGO_CONN_STR).await.expect("Failed to parse connection string for MongoDB");
     let client = Client::with_options(client_options).expect("Failed to connect to MongoDB");
@@ -26,7 +26,7 @@ impl AppDbContext {
 
 lazy_static!(
   pub static ref REPOSITORIES_RUNTIME: Runtime = Runtime::new().unwrap();
-  pub static ref APP_DB_CONTEXT: AppDbContext = executor::block_on(
-      REPOSITORIES_RUNTIME.spawn(AppDbContext::init())
+  pub static ref DB_CONTEXT: DbContext = executor::block_on(
+      REPOSITORIES_RUNTIME.spawn(DbContext::init())
     ).expect("Failed to initialize database context");
 );

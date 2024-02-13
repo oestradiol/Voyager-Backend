@@ -1,9 +1,9 @@
 use mongodb::{bson::doc, Cursor};
 use tracing::{event, Level};
 use crate::{
-  business::repositories::{APP_DB_CONTEXT, REPOSITORIES_RUNTIME},
-  types::model::deployment::Deployment, Error,
-  utils::runtime_helpers::RuntimeSpawnHandled
+    business::repositories::{DB_CONTEXT, REPOSITORIES_RUNTIME},
+    types::model::deployment::Deployment, Error,
+    utils::runtime_helpers::RuntimeSpawnHandled
 };
 
 pub async fn retrieve_all_by_repo_url_and_branch(repo_url: String, branch: Option<String>) -> Option<Cursor<Deployment>> {
@@ -11,9 +11,9 @@ pub async fn retrieve_all_by_repo_url_and_branch(repo_url: String, branch: Optio
   let repo_and_branch = format!("{}{}", repo_url, repo_and_branch);
   event!(Level::DEBUG, "Retrieving deployments from {repo_and_branch}");
 
-  let future = 
+  let future =
     async move {
-      let result = APP_DB_CONTEXT.deployments
+      let result = DB_CONTEXT.deployments
         .find(doc! {"repo_url": repo_url, "branch": branch}, None).await;
 
       result.map_err(Error::from) // MongoDB Error

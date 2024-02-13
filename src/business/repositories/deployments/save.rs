@@ -1,7 +1,7 @@
 use mongodb::bson::Bson;
 use tracing::{event, Level};
 use crate::{
-  business::repositories::{APP_DB_CONTEXT, REPOSITORIES_RUNTIME},
+  business::repositories::{DB_CONTEXT, REPOSITORIES_RUNTIME},
   types::model::deployment::Deployment, Error,
   utils::runtime_helpers::RuntimeSpawnHandled
 };
@@ -9,9 +9,9 @@ use crate::{
 pub async fn save(deployment: Deployment) -> Option<Bson> {
   event!(Level::DEBUG, "Retrieving ALL deployments...");
 
-  let future = 
+  let future =
     async move {
-      let result = APP_DB_CONTEXT.deployments
+      let result = DB_CONTEXT.deployments
         .insert_one(deployment, None).await;
 
       result.map_err(Error::from) // MongoDB Error

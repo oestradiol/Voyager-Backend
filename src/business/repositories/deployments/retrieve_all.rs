@@ -1,17 +1,17 @@
 use mongodb::{bson::doc, Cursor};
 use tracing::{event, Level};
 use crate::{
-  business::repositories::{APP_DB_CONTEXT, REPOSITORIES_RUNTIME},
-  types::model::deployment::Deployment, Error,
-  utils::runtime_helpers::RuntimeSpawnHandled
+    business::repositories::{DB_CONTEXT, REPOSITORIES_RUNTIME},
+    types::model::deployment::Deployment, Error,
+    utils::runtime_helpers::RuntimeSpawnHandled
 };
 
 pub async fn retrieve_all() -> Option<Cursor<Deployment>> {
   event!(Level::DEBUG, "Retrieving ALL deployments...");
 
-  let future = 
+  let future =
     async move {
-      let result = APP_DB_CONTEXT.deployments
+      let result = DB_CONTEXT.deployments
         .find(doc! {}, None).await;
 
       result.map_err(Error::from) // MongoDB Error

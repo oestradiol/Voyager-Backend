@@ -1,16 +1,16 @@
 use mongodb::bson::doc;
 use tracing::{event, Level};
 use crate::{
-  business::repositories::{APP_DB_CONTEXT, REPOSITORIES_RUNTIME},
+  business::repositories::{DB_CONTEXT, REPOSITORIES_RUNTIME},
   Error, utils::runtime_helpers::RuntimeSpawnHandled
 };
 
 pub async fn delete(id: String) -> bool {
   event!(Level::DEBUG, "Retrieving ALL deployments...");
 
-  let future = 
+  let future =
     async move {
-      let result = APP_DB_CONTEXT.deployments
+      let result = DB_CONTEXT.deployments
         .delete_one(doc! {"_id": id}, None).await;
 
       result.map_err(Error::from) // MongoDB Error

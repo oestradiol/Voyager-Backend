@@ -3,7 +3,7 @@ use futures::StreamExt;
 use std::collections::HashMap;
 use crate::{utils::runtime_helpers::RuntimeSpawnHandled, Error};
 
-use super::{client::DOCKER, DOCKER_RUNTIME};
+use super::{DOCKER, DOCKER_RUNTIME};
 use tracing::{event, Level};
 
 /// Builds docker image, then returns the image id
@@ -13,7 +13,7 @@ pub async fn build_image(
   extra_hosts: Option<String>,
 ) -> Option<String> {
   let build_image_options = BuildImageOptions {
-    dockerfile: dockerfile,
+    dockerfile,
     extrahosts: extra_hosts,
     q: true,
     memory: Some(700 * 1024 * 1024),  // 700MiB
@@ -32,13 +32,12 @@ pub async fn build_image(
 
 async fn _build_image(options: BuildImageOptions<String>) -> Option<String> {
     let future = async move {
-        
         let build_stream = DOCKER.build_image(options, None, None);
 
         let img_id = build_stream
-          .fold(String::new(), |acc, i| async { 
-            let test = i
-              .map_err(Error::from) // Converts a possible Bollard Error into our type of Error 
+          .fold(String::new(), |acc, i| async {
+            let img_id = i
+              .map_err(Error::from) // Converts a possible Bollard Error into our type of Error
               .map(|r| r.aux) // Extracts the aux field from the response, it is an Option<ImageId>
               .map(|i| i.map(|i| i.id)) // Extracts the id field from the ImageId, it is also an Option<String>
               .map(|i| i.and_then(|i| i)) // Flattens the Option<Option<String>> into an Option<String>
@@ -53,8 +52,8 @@ async fn _build_image(options: BuildImageOptions<String>) -> Option<String> {
                 },
                 |d| d,
               ); // Logs the error then returns the previous value of acc or simply returns the Image Id, phew!
-              
-            test
+
+            img_id
           }).await;
 
         if !img_id.is_empty() {

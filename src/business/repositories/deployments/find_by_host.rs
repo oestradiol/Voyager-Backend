@@ -1,7 +1,7 @@
 use mongodb::bson::doc;
 use tracing::{event, Level};
 use crate::{
-  business::repositories::{APP_DB_CONTEXT, REPOSITORIES_RUNTIME},
+  business::repositories::{DB_CONTEXT, REPOSITORIES_RUNTIME},
   types::model::deployment::Deployment, Error,
   utils::runtime_helpers::RuntimeSpawnHandled
 };
@@ -10,9 +10,9 @@ pub async fn find_by_host(host: String) -> Option<Deployment> {
   event!(Level::DEBUG, "Finding deployment by host {}", &host);
 
   let host_clone = host.clone();
-  let future = 
+  let future =
     async move {
-      let result = APP_DB_CONTEXT.deployments
+      let result = DB_CONTEXT.deployments
         .find_one(doc! { "host": &host }, None).await;
 
       let result = result
