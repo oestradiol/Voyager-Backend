@@ -1,8 +1,3 @@
-//         @OptIn(ExperimentalCoroutinesApi::class, DelicateCoroutinesApi::class)
-//         val context = newSingleThreadContext("DeploymentThread")
-
-
-
 //         suspend fun new(
 //             dockerFile: File,
 //             host: String,
@@ -116,34 +111,61 @@
 //         }
 //     }
 
+// use tracing::{event, Level};
+
+// use crate::{types::{model::deployment::Deployment, view::delete_deployment::DeleteDeployment}, Error};
+
+
+// pub async fn delete(deployment: Deployment) -> Result<DeleteDeployment, Error> {
+//   event!(Level::INFO, "Deleting deployment: {}", &deployment.id);
+
+
+
+//   let result = with_context(context, async {
+//     if state != DeploymentState::STOPPED {
+//         log("Deployment is running", LogType::ERROR);
+//         return Err(Error::new("Tried to delete deployment that is not in stopped state: $deployment"));
+//     }
+//     DockerManager.delete_container(container_id).await?;
+//     File::new(directory).await?.also(|it| {
+//         log("Checking if directory for deployment with id $id exists before deleting", LogType::DEBUG);
+//         if it.exists() {
+//             log("It exists, deleting..", LogType::DEBUG);
+//             it.delete_recursively().await?;
+//         }
+//     });
+//     delete_from_database().await?;
+//     CloudflareManager::remove_dns_record(dns_record_id).await?;
+//     Ok(())
+//          // TODO: notify user via email
+//   }).await;
+
+//   let id_clone = id.clone();
+//   let future = 
+//     async move {
+//       let result = APP_DB_CONTEXT.deployments
+//         .find_one(doc! { "_id": &id }, None).await;
+
+//       let result = result
+//         .map_err(Error::from) // MongoDB Error
+//         .map(|d| d.ok_or(Error::from("Deployment not found"))) // 'None' Error
+//         .and_then(|inner| inner); // Flatten
+
+//       result
+//     };
+
+//   let result = REPOSITORIES_RUNTIME.spawn_handled("repositories::deployments::find_by_id", future).await;
+
+//   result.map(|r| {
+//     r.map_or_else(|e| {
+//       event!(Level::ERROR, "Failed to find deployment with id {}: {}", id_clone, e);
+//       None
+//     }, |d| Some(d))
+//   }).and_then(|d| d)
+//     result.map(|_| DeleteDeployment::new())
+// }
+
 //     suspend fun delete(): Result<Unit> {
-//         val deployment = this
-//         return withContext(context) {
-//             // stop and remove docker container.
-//             log("Deleting deployment $deployment", LogType.INFO)
-//             if (state != DeploymentState.STOPPED) {
-//                 log("Deployment is running", LogType.ERROR)
-//                 return@withContext Result.failure(Exception("Tried to delete deployment that is not in stopped state: $deployment"))
-//             }
-//             DockerManager.deleteContainer(containerId)
-//
-//             // remove any existing files.
-//             File(directory).also {
-//                 log("Checking if directory for deployment with id $id exists before deleting", LogType.DEBUG)
-//                 if (it.exists()) {
-//                     log("It exists, deleting..", LogType.DEBUG)
-//                     it.deleteRecursively()
-//                 }
-//             }
-//
-//             deleteFromDatabase()
-//
-//             // remove from cloudflare dns.[done]
-//             CloudflareManager.INSTANCE.removeDnsRecord(dnsRecordId)
-//
-//             return@withContext Result.success(Unit)
-//
-//             // TODO: notify user via email
 //         }
 //     }
 
