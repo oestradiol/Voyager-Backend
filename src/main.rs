@@ -12,9 +12,9 @@ use crate::{configs::environment::{HOSTNAME, PORT, STDOUT_LOG_SEVERITY, LOG_DIRE
 mod business;
 mod modules;
 mod types;
-mod utils;
 mod controllers;
 mod configs;
+mod utils;
 
 #[cfg(unix)]
 #[global_allocator]
@@ -60,14 +60,72 @@ async fn main() {
     port,
   ));
 
-  event!(Level::INFO, "Starting server...");
+  event!(Level::INFO, "Starting server at {}...", sock_addr.to_string());
 
   let app = Router::new()
     .route("/status", get(status));
-  let listener = tokio::net::TcpListener::bind(sock_addr).await.unwrap();
-  axum::serve(listener, app).await.unwrap();
+  let listener = tokio::net::TcpListener::bind(sock_addr).await
+    .map_err(|e| format!("Failed to bind to socket! Error: {e}")).unwrap();
+  axum::serve(listener, app).await
+    .map_err(|e| format!("Failed to start server! Error: {e}")).unwrap();
 }
 
 async fn status() -> &'static str {
   "Voyager is Up!"
 }
+
+//// TODO:
+// fun Application.init() {
+//     val globalExceptionHandler =
+//         Thread.UncaughtExceptionHandler { thread, err ->
+//             try {
+//                 log("Uncaught exception in thread ${thread.name}:", LogType.FATAL)
+//                 log(err)
+//
+//                 Logger.cleanup()
+//             } catch (err2: Exception) {
+//                 err.printStackTrace()
+//                 err2.printStackTrace()
+//             }
+//         }
+//
+//     Thread.setDefaultUncaughtExceptionHandler(globalExceptionHandler)
+//
+//     Runtime.getRuntime().addShutdownHook(
+//         object : Thread() {
+//             override fun run() {
+//                 try {
+//                     log("Shutdown hook called, cleaning up..", LogType.WARN)
+//
+//                     Logger.cleanup()
+//                 } catch (err: Exception) {
+//                     err.printStackTrace()
+//                 }
+//             }
+//         }
+//     )
+//
+//
+//     log("Registering call interceptors..", LogType.INFO)
+//     // install(HttpsRedirect)
+//
+//     intercept(ApplicationCallPipeline.Call) {
+//         val apiKey = call.request.header("X-API-Key")
+//
+//         if (apiKey == null || apiKey != VOYAGER_CONFIG.apiKey) {
+//
+//             // Preventing log spam
+//             if (call.request.origin.remoteAddress != "127.0.0.1") {
+//                 log("User tried to connect with invalid API Key, IP address is:  ${call.request.origin.remoteAddress}", LogType.WARN)
+//             }
+//
+//             call.respond(
+//                 HttpStatusCode.Unauthorized,
+//                 "Invalid API Key"
+//             )
+//             return@intercept finish()
+//         }
+//     }
+//
+//     configureDeploymentApi()
+// }

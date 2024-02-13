@@ -3,5 +3,5 @@ use bollard::Docker;
 
 lazy_static! {
   #[cfg(unix)]
-  pub static ref DOCKER: Docker = Docker::connect_with_socket_defaults().unwrap();
+  pub static ref DOCKER: Docker = Docker::connect_with_socket_defaults().expect("Failed to connect to Docker");
 }

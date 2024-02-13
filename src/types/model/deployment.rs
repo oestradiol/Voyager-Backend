@@ -18,11 +18,13 @@ impl fmt::Display for DeploymentMode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Deployment {
+  #[serde(rename = "_id")]
   pub id: String,
   pub container_id: String,
   pub internal_port: u16,
   pub mode: DeploymentMode,
   pub host: String,
+  pub repo_url: String,
   pub branch: String,
   pub dns_record_id: String,
 }
