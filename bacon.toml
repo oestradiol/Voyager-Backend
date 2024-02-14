@@ -19,12 +19,8 @@ need_stdout = false
 command = [
     "cargo", "clippy",
     "--all-targets",
-    "--color", "always",
-    "--",
-    "-W", "clippy::pedantic",
-    "-W", "clippy::nursery",
-    "-W", "clippy::unwrap_used",
-    "-W", "clippy::expect_used"
+    " --all-features",
+    "--color", "always"
 ]
 need_stdout = false
 

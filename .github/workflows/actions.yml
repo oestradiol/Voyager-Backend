@@ -1,0 +1,18 @@
+on: push
+name: Clippy
+
+env: 
+  RUSTFLAGS: "-Dwarnings -Aunused -Wclippy::complexity -Wclippy::pedantic -Wclippy::nursery -Wclippy::suspicious -Wclippy::perf"
+
+jobs:
+  clippy_check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out Git repository
+      uses: actions/checkout@v3
+
+    - name: Install Clippy
+      run: rustup component add clippy
+
+    - name: Run Clippy
+      run: cargo clippy --all-targets --all-features

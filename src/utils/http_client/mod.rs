@@ -3,19 +3,19 @@ pub mod deserializable;
 pub mod ensure_success;
 mod generate_methods;
 
-use std::sync::Arc;
-use reqwest::{StatusCode};
-use serde_json::{Value};
-use reqwest::{Client, Method};
-use reqwest::header::{ACCEPT, CONTENT_TYPE, USER_AGENT, HeaderMap};
-use serde::Serialize;
-use tokio::sync::{RwLock};
-use tracing::{event, Level};
-use url::Url;
-use crate::{Error, generate_methods};
 use crate::utils::http_client::client_wrapper::ClientWrapper;
 use crate::utils::http_client::deserializable::Deserializable;
+use crate::{generate_methods, Error};
 use paste::paste;
+use reqwest::header::{HeaderMap, ACCEPT, CONTENT_TYPE, USER_AGENT};
+use reqwest::StatusCode;
+use reqwest::{Client, Method};
+use serde::Serialize;
+use serde_json::Value;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+use tracing::{event, Level};
+use url::Url;
 
 pub type Response<T> = (Option<Deserializable<T>>, StatusCode);
 
@@ -25,8 +25,11 @@ pub struct HTTPClient {
 impl HTTPClient {
   fn get_default_headers() -> HeaderMap {
     let mut headers = HeaderMap::new();
+    #[allow(clippy::unwrap_used)] // Should never fail
     headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
+    #[allow(clippy::unwrap_used)] // Should never fail
     headers.insert(ACCEPT, "application/json".parse().unwrap());
+    #[allow(clippy::unwrap_used)] // Should never fail
     headers.insert(USER_AGENT, "reqwest".parse().unwrap());
     headers
   }
@@ -39,34 +42,37 @@ impl HTTPClient {
       Some(headers) => {
         default_headers.extend(headers);
         default_headers
-      },
-      None => default_headers
+      }
+      None => default_headers,
     };
 
     Ok(Self {
-      client: Arc::new(
-        RwLock::new(
-          ClientWrapper {
-            client: Client::new(),
-            uri,
-            headers,
-          }
-        )
-      )
+      client: Arc::new(RwLock::new(ClientWrapper {
+        client: Client::new(),
+        uri,
+        headers,
+      })),
     })
   }
 
   async fn get_client(&self, reset_headers: bool) -> Arc<RwLock<ClientWrapper>> {
     if reset_headers {
-      self.client.write().await.set_new_headers(Self::get_default_headers());
+      self
+        .client
+        .write()
+        .await
+        .set_new_headers(Self::get_default_headers());
     }
 
     self.client.clone()
   }
 
-  async fn act_internal(&mut self, method: Method, route: &str, body: Option<&(impl Serialize + Send + Sync)>)
-                        -> Result<reqwest::Response, Error> {
-
+  async fn act_internal(
+    &mut self,
+    method: Method,
+    route: &str,
+    body: Option<&(impl Serialize + Send + Sync)>,
+  ) -> Result<reqwest::Response, Error> {
     let action = |client: Arc<RwLock<ClientWrapper>>, method: Method| async move {
       client.write().await.request(method, route, body).await
     };
@@ -85,9 +91,12 @@ impl HTTPClient {
     Ok(response)
   }
 
-  async fn act<T: for<'de> serde::Deserialize<'de>>(&mut self, method: Method, route: &str, body: Option<&(impl Serialize + Send + Sync)>)
-                                                    -> Result<Response<T>, Error> {
-
+  async fn act<T: for<'de> serde::Deserialize<'de>>(
+    &mut self,
+    method: Method,
+    route: &str,
+    body: Option<&(impl Serialize + Send + Sync)>,
+  ) -> Result<Response<T>, Error> {
     let http_response = self.act_internal(method, route, body).await?;
     let status = http_response.status();
 
@@ -111,9 +120,13 @@ impl HTTPClient {
         let result = match serde_json::from_value(json.clone()) {
           Ok(deserialized) => (Some(Deserializable::Data(deserialized)), status),
           Err(e) => {
-            event!(Level::ERROR, "Failed to deserialize response into specified type: {:?}", e);
+            event!(
+              Level::ERROR,
+              "Failed to deserialize response into specified type: {:?}",
+              e
+            );
             (Some(Deserializable::Value(json)), status)
-          },
+          }
         };
 
         Ok(result)

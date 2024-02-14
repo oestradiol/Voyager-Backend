@@ -5,15 +5,16 @@ pub mod get_internal_port;
 pub mod get_logs;
 pub mod is_container_running;
 pub mod restart_container;
-pub mod stop_container_and_delete;
 pub mod stop_container;
+pub mod stop_container_and_delete;
 
+use crate::utils::expect_error::ExpectError;
 use crate::Error;
 
+use bollard::Docker;
 use futures::{executor, FutureExt, TryFutureExt};
 use lazy_static::lazy_static;
 use tokio::runtime::Runtime;
-use bollard::Docker;
 
 lazy_static!(
   #[cfg(unix)]
@@ -24,9 +25,10 @@ lazy_static!(
     )
     .map(|r| r.map_err(Error::from)) // Maps the Docker Error type to our Type
     .and_then(|f| f) // Flattens
-    .expect("Failed to connect to Docker!");
+    .expect_error(|e| format!("Failed to connect to Docker! Error: {e}"));
 );
 
-lazy_static!(
-  pub static ref DOCKER_RUNTIME: Runtime = Runtime::new().unwrap();
-);
+lazy_static! {
+  pub static ref DOCKER_RUNTIME: Runtime =
+    Runtime::new().expect_error(|e| format!("Failed to initialize Docker Runtime: {e}"));
+}

@@ -2,10 +2,14 @@ pub mod deployments;
 
 use futures::executor;
 use lazy_static::lazy_static;
-use mongodb::{Client, options::ClientOptions};
+use mongodb::{options::ClientOptions, Client};
 use tokio::runtime::Runtime;
 
-use crate::{configs::environment::{MONGO_DB_NAME, MONGO_CONN_STR}, types::model::deployment::Deployment};
+use crate::{
+  configs::environment::{MONGO_CONN_STR, MONGO_DB_NAME},
+  types::model::deployment::Deployment,
+  utils::expect_error::ExpectError,
+};
 
 pub struct DbContext {
   pub deployments: mongodb::Collection<Deployment>,
@@ -13,20 +17,22 @@ pub struct DbContext {
 
 impl DbContext {
   pub async fn init() -> Self {
-    let client_options = ClientOptions::parse(&*MONGO_CONN_STR).await.expect("Failed to parse connection string for MongoDB");
-    let client = Client::with_options(client_options).expect("Failed to connect to MongoDB");
+    let client_options = ClientOptions::parse(&*MONGO_CONN_STR)
+      .await
+      .expect_error(|e| format!("Failed to parse MongoDB Connection String: {e}"));
+    let client = Client::with_options(client_options)
+      .expect_error(|e| format!("Failed to connect to MongoDB: {e}"));
     let db = client.database(&MONGO_DB_NAME);
     let deployments = db.collection("Deployments");
 
-    Self {
-      deployments,
-    }
+    Self { deployments }
   }
 }
 
-lazy_static!(
-  pub static ref REPOSITORIES_RUNTIME: Runtime = Runtime::new().unwrap();
-  pub static ref DB_CONTEXT: DbContext = executor::block_on(
-      REPOSITORIES_RUNTIME.spawn(DbContext::init())
-    ).expect("Failed to initialize database context");
-);
+lazy_static! {
+  pub static ref REPOSITORIES_RUNTIME: Runtime =
+    Runtime::new().expect_error(|e| format!("Failed to initialize Repositories Runtime: {e}"));
+  pub static ref DB_CONTEXT: DbContext =
+    executor::block_on(REPOSITORIES_RUNTIME.spawn(DbContext::init()))
+      .expect_error(|e| format!("Failed to initialize Database Context: {e}"));
+}
