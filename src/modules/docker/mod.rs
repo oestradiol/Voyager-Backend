@@ -1,7 +1,7 @@
 pub mod build_image;
 pub mod create_and_start_container;
 pub mod delete_container;
-pub mod find_internal_port;
+pub mod get_internal_port;
 pub mod get_logs;
 pub mod is_container_running;
 pub mod restart_container;
