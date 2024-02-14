@@ -10,7 +10,7 @@ pub mod stop_container;
 
 use crate::Error;
 
-use futures::{executor, FutureExt, TryFutureExt};
+use futures::{executor, TryFutureExt};
 use lazy_static::lazy_static;
 use tokio::runtime::Runtime;
 use bollard::Docker;

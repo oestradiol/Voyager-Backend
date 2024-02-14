@@ -5,11 +5,9 @@ mod remove_dns_record;
 use std::sync::Arc;
 use lazy_static::lazy_static;
 use reqwest::header::{CONTENT_TYPE, AUTHORIZATION, HeaderMap};
-use serde::Serialize;
 use tokio::sync::RwLock;
 
 use crate::configs::environment::{CLOUDFLARE_API_TOKEN};
-use crate::utils::http_client::ensure_success::EnsureSuccess;
 use crate::utils::http_client::http_client::HTTPClient;
 
 lazy_static! {
