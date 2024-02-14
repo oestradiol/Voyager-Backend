@@ -15,12 +15,10 @@ pub async fn find_by_id(id: String) -> Option<Deployment> {
       let result = DB_CONTEXT.deployments
         .find_one(doc! { "_id": &id }, None).await;
 
-      let result = result
-        .map_err(Error::from) // MongoDB Error
-        .map(|d| d.ok_or(Error::from("Deployment not found"))) // 'None' Error
-        .and_then(|inner| inner); // Flatten
-
       result
+        .map_err(Error::from) // MongoDB Error
+        .map(|d| d.ok_or_else(|| Error::from("Deployment not found"))) // 'None' Error
+        .and_then(|inner| inner) // Flatten
     };
 
   let result = REPOSITORIES_RUNTIME.spawn_handled("repositories::deployments::find_by_id", future).await;
@@ -29,6 +27,6 @@ pub async fn find_by_id(id: String) -> Option<Deployment> {
     r.map_or_else(|e| {
       event!(Level::ERROR, "Failed to find deployment with id {}: {}", id_clone, e);
       None
-    }, |d| Some(d))
+    }, Some)
   }).and_then(|d| d)
 }

@@ -7,7 +7,7 @@ macro_rules! generate_methods {
                 pub async fn $method<T: for<'de> serde::Deserialize<'de>>(
                     &mut self,
                     route: &str,
-                    body: Option<&impl Serialize>,
+                    body: Option<&(impl Serialize + Send + Sync)>,
                 ) -> Result<(Response<T>), Error> {
                     self.act::<T>(Method::[<$method:upper>], route, body).await
                 }

@@ -16,7 +16,7 @@ impl ClientWrapper {
     self.headers = old_headers;
   }
 
-  pub(crate) async fn request<T: Serialize + Sized>(&self, method: Method, route: &str, body: Option<&T>) -> Result<Response, Error> {
+  pub(crate) async fn request<T: Serialize + Sized + Send + Sync>(&self, method: Method, route: &str, body: Option<&T>) -> Result<Response, Error> {
     let uri = self.uri.join(route).map_err(Error::from)?;
 
     let client = self.client

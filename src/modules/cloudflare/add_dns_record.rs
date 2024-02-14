@@ -3,7 +3,7 @@ use tracing::{event, Level};
 
 use crate::configs::environment::{CLOUDFLARE_ZONE, DEVELOPMENT};
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
-use crate::modules::cloudflare::types::add_dns_record::{AddDnsRecordFailure, AddDnsRecordSuccess};
+use crate::modules::cloudflare::types::add_dns_record::{Failure, Success};
 use crate::modules::cloudflare::types::cloudflare_responses::CloudflareError;
 use crate::modules::cloudflare::types::deployment_mode::DeploymentMode;
 use crate::modules::cloudflare::types::dns_record::DnsRecord;
@@ -30,7 +30,7 @@ async fn add_dns_record(
     proxied: true,
     record_type: "A".to_string(),
     ttl: 1,
-    comment: format!("Voyager {:?} for {}", mode, host),
+    comment: format!("Voyager {mode:?} for {host}"),
   };
 
   let route = format!("zones/{}/dns_records", *CLOUDFLARE_ZONE);
@@ -47,25 +47,21 @@ async fn add_dns_record(
 
   event!(Level::DEBUG, "Request sent to Cloudflare");
 
-  let json = serde_json::from_value::<AddDnsRecordSuccess>(response.clone());
-  match json {
-    Ok(success) => {
-      let id = success.result.id;
-      event!(Level::DEBUG, "Cloudflare request was successful with id: {}", id);
-      Ok(id)
-    }
-    Err(_) => {
-      let failure = serde_json::from_value::<AddDnsRecordFailure>(response);
-      let failure = match failure {
-        Ok(failure) => failure,
-        Err(err) => {
-          event!(Level::ERROR, "Failed to deserialize failed response for Cloudflare. Status was: {}. Error: {}", status, err);
-          return Err(vec![]);
-        }
-      };
-
-      event!(Level::DEBUG, "Request failed with status {} and errors: {:?}", status, failure.errors);
-      Err(failure.errors)
-    }
+  let json = serde_json::from_value::<Success>(response.clone());
+  if let Ok(success) = json {
+    let id = success.result.id;
+    event!(Level::DEBUG, "Cloudflare request was successful with id: {}", id);
+    Ok(id)
+  } else {
+    let failure = serde_json::from_value::<Failure>(response);
+    let failure = match failure {
+      Ok(failure) => failure,
+      Err(err) => {
+        event!(Level::ERROR, "Failed to deserialize failed response for Cloudflare. Status was: {}. Error: {}", status, err);
+        return Err(vec![]);
+      }
+    };
+    event!(Level::DEBUG, "Request failed with status {} and errors: {:?}", status, failure.errors);
+    Err(failure.errors)
   }
 }

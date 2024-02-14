@@ -23,6 +23,6 @@ pub async fn retrieve_all() -> Option<Cursor<Deployment>> {
     r.map_or_else(|e| {
       event!(Level::ERROR, "Failed to retrieve deployments: {}", e);
       None
-    }, |c| Some(c))
+    }, Some)
   }).and_then(|c| c)
 }

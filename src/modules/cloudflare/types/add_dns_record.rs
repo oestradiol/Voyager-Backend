@@ -2,14 +2,14 @@ use serde::Deserialize;
 use crate::modules::cloudflare::types::cloudflare_responses::{CloudflareError, CloudflareMessage};
 
 #[derive(Debug, Deserialize)]
-pub struct AddDnsRecordSuccess {
+pub struct Success {
   pub errors: Vec<CloudflareError>,
   pub messages: Vec<CloudflareMessage>,
-  pub result: AddDnsRecordData,
+  pub result: Data,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct AddDnsRecordData {
+pub struct Data {
   pub content: String,
   pub name: String,
   pub proxied: bool,
@@ -33,7 +33,7 @@ pub struct Meta {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct AddDnsRecordFailure {
+pub struct Failure {
   pub messages: Vec<CloudflareMessage>,
   pub errors: Vec<CloudflareError>,
 }

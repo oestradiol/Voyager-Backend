@@ -12,14 +12,12 @@ pub async fn delete_container(container_name: String) {
     link: false,
   });
 
-
-  DOCKER_RUNTIME.spawn_handled("modules::docker::delete_container", async move {
+  if let Some(res) = DOCKER_RUNTIME.spawn_handled("modules::docker::delete_container", async move {
     DOCKER.remove_container(&container_name, options).await
-  }).await
-    .map(|res| {
-      match res {
-        Ok(_) => (),
-        Err(err) => event!(Level::ERROR, "Failed to delete Docker container! Error: {}", err)
-      }
-    });
+  }).await {
+    match res {
+      Ok(()) => (),
+      Err(err) => event!(Level::ERROR, "Failed to delete Docker container! Error: {}", err)
+    }
+  }
 }

@@ -2,15 +2,15 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-pub enum DeploymentMode {
-  PREVIEW,
-  PRODUCTION,
+pub enum Mode {
+  Preview,
+  Production,
 }
-impl fmt::Display for DeploymentMode {
+impl fmt::Display for Mode {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      DeploymentMode::PREVIEW => write!(f, "Preview"),
-      DeploymentMode::PRODUCTION => write!(f, "Production"),
+      Self::Preview => write!(f, "Preview"),
+      Self::Production => write!(f, "Production"),
     }
   }
 }
@@ -22,7 +22,7 @@ pub struct Deployment {
   pub id: String,
   pub container_id: String,
   pub internal_port: u16,
-  pub mode: DeploymentMode,
+  pub mode: Mode,
   pub host: String,
   pub repo_url: String,
   pub branch: String,

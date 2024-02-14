@@ -7,8 +7,8 @@ pub enum Deserializable<T: for<'de> serde::Deserialize<'de>> {
 impl<T: for<'de> serde::Deserialize<'de>> Deserializable<T> {
   pub(crate) fn data(self) -> Option<T> {
     match self {
-      Deserializable::Data(data) => Some(data),
-      Deserializable::Value(_) => None,
+      Self::Data(data) => Some(data),
+      Self::Value(_) => None,
     }
   }
 }

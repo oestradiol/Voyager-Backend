@@ -15,7 +15,7 @@ impl DbContext {
   pub async fn init() -> Self {
     let client_options = ClientOptions::parse(&*MONGO_CONN_STR).await.expect("Failed to parse connection string for MongoDB");
     let client = Client::with_options(client_options).expect("Failed to connect to MongoDB");
-    let db = client.database(&*MONGO_DB_NAME);
+    let db = client.database(&MONGO_DB_NAME);
     let deployments = db.collection("Deployments");
 
     Self {

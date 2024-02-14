@@ -21,11 +21,11 @@ async fn send_deployment_message(deployment: &Deployment) -> Result<(), Error> {
 
   let embed = CreateEmbed::new()
     .title(format!("[New {} deployment](https://{})", mode, deployment.host))
-    .description(format!("A new {} deployment has been created.", mode))
+    .description(format!("A new {mode} deployment has been created."))
     .field("ID", deployment.id.clone(), true)
     .field("Docker Container", deployment.container_id.clone(), true);
   let builder = ExecuteWebhook::new().username("Voyager API").embed(embed);
-  
+
   let http = Http::new("");
   let webhook_client = Webhook::from_url(&http, &DISCORD_WEBHOOK).await;
   match webhook_client {
@@ -36,8 +36,7 @@ async fn send_deployment_message(deployment: &Deployment) -> Result<(), Error> {
       //               }
       match webhook_client.execute(&http, false, builder).await {
         Ok(msg) => {
-          let message = msg.map(|msg| format!(" Returned message is: {}", msg.content))
-            .unwrap_or("".to_string());
+          let message = msg.map_or(String::new(), |msg| format!(" Returned message is: {}", msg.content));
           event!(Level::INFO, "Discord webhook sent successfuly!{}", message);
         }
         Err(e) => {
@@ -53,17 +52,3 @@ async fn send_deployment_message(deployment: &Deployment) -> Result<(), Error> {
 
   Ok(())
 }
-
-//   private val webhookClient by lazy {
-//       WebhookClientBuilder(VOYAGER_CONFIG.deploymentWebhook).apply {
-//           setThreadFactory { job ->
-//               Thread(job, "Discord Webhook Thread").apply {
-//                   isDaemon = true
-//               }
-//           }
-
-//           setWait(false) // trying setting this to false
-//       }.build()
-//   }
-
-// }

@@ -18,8 +18,7 @@ pub async fn create_and_start_container(
   event!(Level::INFO, "Creating a new container {name} at port {port}. Docker Image: {docker_image}");
 
   let options = Some(CreateContainerOptions {
-    name: name,
-    platform: Some("linux/amd64".to_string()),
+    name, platform: Some("linux/amd64".to_string()),
   });
 
   let host_config = HostConfig {

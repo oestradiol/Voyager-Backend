@@ -6,8 +6,8 @@ trait ConfigureRoutes {
 impl ConfigureRoutes for Router {
   fn configure_routes(self) -> Self {
     self
-      .nest("/api/v1", Router::new()
-        .nest("/deployments", Router::new()
+      .nest("/api/v1", Self::new()
+        .nest("/deployments", Self::new()
             // .route("/", get(business::services::deployments::list))
             // .route("/", post(business::services::deployments::create))
             // .route("/:deploymentId", post(business::services::deployments::get))

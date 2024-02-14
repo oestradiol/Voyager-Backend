@@ -4,7 +4,7 @@ use tracing::{event, Level};
 use crate::configs::environment::{CLOUDFLARE_ZONE, DEVELOPMENT};
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
 use crate::modules::cloudflare::types::cloudflare_responses::CloudflareError;
-use crate::modules::cloudflare::types::delete_dns_record::{DeleteDnsRecordFailure, DeleteDnsRecordSuccess};
+use crate::modules::cloudflare::types::delete_dns_record::{Failure, Success};
 use crate::utils::http_client::ensure_success::EnsureSuccess;
 
 async fn remove_dns_record(dns_record: &str) -> Result<(), Vec<CloudflareError>> {
@@ -34,25 +34,22 @@ async fn remove_dns_record(dns_record: &str) -> Result<(), Vec<CloudflareError>>
 
   event!(Level::DEBUG, "Request sent to Cloudflare");
 
-  let json = serde_json::from_value::<DeleteDnsRecordSuccess>(response.clone());
-  match json {
-    Ok(success) => {
-      let id = success.result.id;
-      event!(Level::DEBUG, "Cloudflare request was successful with id: {}", id);
-      Ok(())
-    }
-    Err(_) => {
-      let failure = serde_json::from_value::<DeleteDnsRecordFailure>(response);
-      let failure = match failure {
-        Ok(failure) => failure,
-        Err(err) => {
-          event!(Level::ERROR, "Failed to deserialize failed response for Cloudflare. Status was: {}. Error: {}", status, err);
-          return Err(vec![]);
-        }
-      };
+  let json = serde_json::from_value::<Success>(response.clone());
+  if let Ok(success) = json {
+    let id = success.result.id;
+    event!(Level::DEBUG, "Cloudflare request was successful with id: {}", id);
+    Ok(())
+  } else {
+    let failure = serde_json::from_value::<Failure>(response);
+    let failure = match failure {
+      Ok(failure) => failure,
+      Err(err) => {
+        event!(Level::ERROR, "Failed to deserialize failed response for Cloudflare. Status was: {}. Error: {}", status, err);
+        return Err(vec![]);
+      }
+    };
 
-      event!(Level::DEBUG, "Request failed with status {} and errors: {:?}", status, failure.errors);
-      Err(failure.errors)
-    }
+    event!(Level::DEBUG, "Request failed with status {} and errors: {:?}", status, failure.errors);
+    Err(failure.errors)
   }
 }

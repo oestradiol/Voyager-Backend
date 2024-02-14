@@ -31,38 +31,34 @@ pub async fn build_image(
 }
 
 async fn _build_image(options: BuildImageOptions<String>) -> Option<String> {
-    let future = async move {
-        let build_stream = DOCKER.build_image(options, None, None);
+  let future = async move {
+    let build_stream = DOCKER.build_image(options, None, None);
 
-        let img_id = build_stream
-          .fold(String::new(), |acc, i| async {
-            let img_id = i
-              .map_err(Error::from) // Converts a possible Bollard Error into our type of Error
-              .map(|r| r.aux) // Extracts the aux field from the response, it is an Option<ImageId>
-              .map(|i| i.map(|i| i.id)) // Extracts the id field from the ImageId, it is also an Option<String>
-              .map(|i| i.and_then(|i| i)) // Flattens the Option<Option<String>> into an Option<String>
-              .and_then(|i| {
-                i.map(|i| i)
-                  .ok_or(Error::from("Error trying to build docker image. Stream was empty."))
-              }) // Converts the Option<String> into a Result<String, Error>
-              .map_or_else(
-                |e| {
-                  event!(Level::ERROR, "Error trying to build docker image: {:?}", e);
-                  acc
-                },
-                |d| d,
-              ); // Logs the error then returns the previous value of acc or simply returns the Image Id, phew!
+    let img_id = build_stream
+      .fold(String::new(), |acc, i| async {
+        i.map_err(Error::from) // Converts a possible Bollard Error into our type of Error
+          .map(|r| r.aux) // Extracts the aux field from the response, it is an Option<ImageId>
+          .map(|i| i.map(|i| i.id)) // Extracts the id field from the ImageId, it is also an Option<String>
+          .map(|i| i.and_then(|i| i)) // Flattens the Option<Option<String>> into an Option<String>
+          .and_then(|i| {
+            i.ok_or_else(|| Error::from("Error trying to build docker image. Stream was empty."))
+          }) // Converts the Option<String> into a Result<String, Error>
+          .map_or_else(
+            |e| {
+              event!(Level::ERROR, "Error trying to build docker image: {:?}", e);
+              acc
+            },
+            |d| d,
+          ) // Logs the error then returns the previous value of acc or simply returns the Image Id, phew!
+      }).await;
 
-            img_id
-          }).await;
+    if !img_id.is_empty() {
+      event!(Level::DEBUG, "Docker image built successfully! Id: {}", img_id);
+      return Some(img_id);
+    }
 
-        if !img_id.is_empty() {
-          event!(Level::DEBUG, "Docker image built successfully! Id: {}", img_id);
-          Some(img_id)
-        } else {
-          None
-        }
-    };
+    None
+  };
 
   DOCKER_RUNTIME.spawn_handled("modules::docker::build_image", future).await
     .and_then(|r| r)

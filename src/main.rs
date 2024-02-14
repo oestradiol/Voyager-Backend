@@ -7,7 +7,7 @@ use dotenv::dotenv;
 use chrono::{DateTime, Utc};
 use std::time::SystemTime;
 
-use crate::{configs::environment::{HOSTNAME, PORT, STDOUT_LOG_SEVERITY, LOG_DIRECTORY}, types::view::{create_deployment::CreateDeployment, logs::Logs}};
+use crate::{configs::environment::{HOSTNAME, PORT, STDOUT_LOG_SEVERITY, LOG_DIRECTORY}};
 
 mod business;
 mod modules;

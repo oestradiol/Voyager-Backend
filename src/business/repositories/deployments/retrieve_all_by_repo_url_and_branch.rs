@@ -7,8 +7,8 @@ use crate::{
 };
 
 pub async fn retrieve_all_by_repo_url_and_branch(repo_url: String, branch: Option<String>) -> Option<Cursor<Deployment>> {
-  let repo_and_branch = branch.clone().map_or("".to_string(), |b| format!("@{b}"));
-  let repo_and_branch = format!("{}{}", repo_url, repo_and_branch);
+  let repo_and_branch = branch.clone().map_or(String::new(), |b| format!("@{b}"));
+  let repo_and_branch = format!("{repo_url}{repo_and_branch}");
   event!(Level::DEBUG, "Retrieving deployments from {repo_and_branch}");
 
   let future =
@@ -25,6 +25,6 @@ pub async fn retrieve_all_by_repo_url_and_branch(repo_url: String, branch: Optio
     r.map_or_else(|e| {
       event!(Level::ERROR, "Failed to retrieve deployments for {repo_and_branch}: {}", e);
       None
-    }, |c| Some(c))
+    }, Some)
   }).and_then(|c| c)
 }

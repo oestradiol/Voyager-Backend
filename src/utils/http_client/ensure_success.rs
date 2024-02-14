@@ -2,7 +2,7 @@ use reqwest::StatusCode;
 use tracing::{event, Level};
 use crate::Error;
 use crate::utils::http_client::deserializable::Deserializable;
-use crate::utils::http_client::http_client::Response;
+use crate::utils::http_client::Response;
 
 pub trait EnsureSuccess<T: for<'de> serde::Deserialize<'de>> {
   fn ensure_success(self, is_nullable: bool) -> (bool, Option<Deserializable<T>>, Option<StatusCode>);
