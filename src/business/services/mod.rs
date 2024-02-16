@@ -1,4 +1,5 @@
 pub mod deployments;
+pub mod new_deployment;
 
 use crate::utils::expect_error::ExpectError;
 use lazy_static::lazy_static;

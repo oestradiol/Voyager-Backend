@@ -2,11 +2,11 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct CloudflareMessage {
-  code: i32,
-  message: String,
+  pub code: i32,
+  pub message: String,
 }
 #[derive(Debug, Deserialize)]
 pub struct CloudflareError {
-  code: i32,
-  message: String,
+  pub code: i32,
+  pub message: String,
 }

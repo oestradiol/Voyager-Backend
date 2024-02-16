@@ -4,15 +4,15 @@ use tracing::{event, Level};
 use crate::configs::environment::{CLOUDFLARE_ZONE, DEVELOPMENT};
 use crate::modules::cloudflare::types::add_dns_record::{Failure, Success};
 use crate::modules::cloudflare::types::cloudflare_responses::CloudflareError;
-use crate::modules::cloudflare::types::deployment_mode::DeploymentMode;
 use crate::modules::cloudflare::types::dns_record::DnsRecord;
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
+use crate::types::model::deployment::DeploymentMode;
 use crate::utils::http_client::ensure_success::EnsureSuccess;
 
-async fn add_dns_record(
+pub async fn add_dns_record(
   host: &str,
   ip: &str,
-  mode: DeploymentMode,
+  mode: &DeploymentMode,
 ) -> Result<String, Vec<CloudflareError>> {
   if *DEVELOPMENT {
     return Ok("devDnsRecord".to_string());

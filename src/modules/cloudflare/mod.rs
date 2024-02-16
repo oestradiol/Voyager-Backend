@@ -1,5 +1,5 @@
-mod add_dns_record;
-mod remove_dns_record;
+pub mod add_dns_record;
+pub mod remove_dns_record;
 pub mod types;
 
 use lazy_static::lazy_static;

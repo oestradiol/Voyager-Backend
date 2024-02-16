@@ -7,7 +7,7 @@ use crate::modules::cloudflare::types::delete_dns_record::{Failure, Success};
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
 use crate::utils::http_client::ensure_success::EnsureSuccess;
 
-async fn remove_dns_record(dns_record: &str) -> Result<(), Vec<CloudflareError>> {
+pub async fn remove_dns_record(dns_record: &str) -> Result<(), Vec<CloudflareError>> {
   if *DEVELOPMENT {
     return Ok(());
   }

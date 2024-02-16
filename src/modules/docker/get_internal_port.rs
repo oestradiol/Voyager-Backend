@@ -1,7 +1,7 @@
 use regex::Regex;
 use tracing::{event, Level};
 
-fn find_internal_port(docker_file_content: &str) -> Option<u16> {
+pub fn find_internal_port(docker_file_content: &str) -> Option<u16> {
   event!(
     Level::DEBUG,
     "Retrieving internal docker port for docker file {}",
