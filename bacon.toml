@@ -19,7 +19,7 @@ need_stdout = false
 command = [
     "cargo", "clippy",
     "--all-targets",
-    " --all-features",
+    "--all-features",
     "--color", "always"
 ]
 need_stdout = false

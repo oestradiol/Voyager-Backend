@@ -13,13 +13,16 @@ impl RuntimeSpawnHandled for Runtime {
     F: std::future::Future<Output = T> + Send + 'static,
     T: Send + 'static,
   {
-    self.spawn(future).await
-      .map_or_else(
-        |e| {
-          event!(Level::ERROR, "Failed to complete task '{}'! Error: {e}", task);
-          None
-        },
-        |f| Some(f)
+    self.spawn(future).await.map_or_else(
+      |e| {
+        event!(
+          Level::ERROR,
+          "Failed to complete task '{}'! Error: {e}",
+          task
+        );
+        None
+      },
+      |f| Some(f),
     )
   }
 }

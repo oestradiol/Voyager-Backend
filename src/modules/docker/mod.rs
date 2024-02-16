@@ -1,12 +1,12 @@
 pub mod build_image;
-pub mod create_and_start_container;
+pub mod create_container;
 pub mod delete_container;
 pub mod get_internal_port;
 pub mod get_logs;
 pub mod is_container_running;
 pub mod restart_container;
+pub mod start_container;
 pub mod stop_container;
-pub mod stop_container_and_delete;
 
 use crate::utils::expect_error::ExpectError;
 use crate::Error;

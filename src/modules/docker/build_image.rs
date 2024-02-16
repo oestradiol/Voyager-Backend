@@ -1,7 +1,7 @@
+use crate::{utils::runtime_helpers::RuntimeSpawnHandled, Error};
 use bollard::image::BuildImageOptions;
 use futures::StreamExt;
 use std::collections::HashMap;
-use crate::{utils::runtime_helpers::RuntimeSpawnHandled, Error};
 
 use super::{DOCKER, DOCKER_RUNTIME};
 use tracing::{event, Level};
@@ -25,9 +25,18 @@ pub async fn build_image(
     ..Default::default()
   };
 
-  event!(Level::INFO, "Building docker image with tags: {:?}, Dockerfile: {:?}", &build_image_options.labels, &build_image_options.dockerfile);
+  event!(
+    Level::INFO,
+    "Building docker image with tags: {:?}, Dockerfile: {:?}",
+    &build_image_options.labels,
+    &build_image_options.dockerfile
+  );
 
-  _build_image(build_image_options).await
+  let result = _build_image(build_image_options).await;
+
+  event!(Level::DEBUG, "Done building docker image.");
+
+  result
 }
 
 async fn _build_image(options: BuildImageOptions<String>) -> Option<String> {
@@ -50,16 +59,24 @@ async fn _build_image(options: BuildImageOptions<String>) -> Option<String> {
             },
             |d| d,
           ) // Logs the error then returns the previous value of acc or simply returns the Image Id, phew!
-      }).await;
+      })
+      .await;
 
     if !img_id.is_empty() {
-      event!(Level::DEBUG, "Docker image built successfully! Id: {}", img_id);
+      event!(
+        Level::DEBUG,
+        "Docker image built successfully! Id: {}",
+        img_id
+      );
       return Some(img_id);
     }
 
+    event!(Level::INFO, "Image Id is None!");
     None
   };
 
-  DOCKER_RUNTIME.spawn_handled("modules::docker::build_image", future).await
+  DOCKER_RUNTIME
+    .spawn_handled("modules::docker::build_image", future)
+    .await
     .and_then(|r| r)
 }

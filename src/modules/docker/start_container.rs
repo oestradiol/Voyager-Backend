@@ -6,16 +6,18 @@ use crate::{
   utils::runtime_helpers::RuntimeSpawnHandled,
 };
 
-async fn restart_container(container_name: String) -> bool {
+async fn start_container(container_name: String) -> bool {
   event!(
     Level::INFO,
-    "Restarting container with name: {}",
+    "Starting container with name: {}",
     container_name
   );
 
   let result = DOCKER_RUNTIME
-    .spawn_handled("modules::docker::restart_container", async move {
-      DOCKER.restart_container(&container_name, None).await
+    .spawn_handled("modules::docker::start_container", async move {
+      DOCKER
+        .start_container(&container_name, None::<StartContainerOptions<String>>)
+        .await
     })
     .await
     .map_or_else(
@@ -23,7 +25,7 @@ async fn restart_container(container_name: String) -> bool {
       |r| {
         r.map_or_else(
           |e| {
-            event!(Level::ERROR, "Failed to restart container: {e}");
+            event!(Level::ERROR, "Failed to start container: {e}");
             false
           },
           |()| true,
@@ -31,7 +33,7 @@ async fn restart_container(container_name: String) -> bool {
       },
     );
 
-  event!(Level::DEBUG, "Done restarting container.");
+  event!(Level::DEBUG, "Done starting container.");
 
   result
 }

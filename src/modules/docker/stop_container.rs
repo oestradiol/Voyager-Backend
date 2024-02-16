@@ -1,14 +1,36 @@
-//     suspend fun stopContainer(containerId: String): Result<Unit> {
-//         log("Stopping container with id $containerId", LogType.INFO)
-//         return withContext(mainContext) {
-//             try {
-//                 log("Sending stop command to container with id $containerId", LogType.DEBUG)
-//                 dockerClient.stopContainerCmd(containerId).exec()
-//
-//                 return@withContext Result.success(Unit)
-//             } catch (err: Exception) {
-//                 log("Stop command to container with id $containerId failed: ${err.localizedMessage}", LogType.ERROR)
-//                 return@withContext Result.failure(err)
-//             }
-//         }
-//     }
+use tracing::{event, Level};
+
+use crate::{
+  modules::docker::{DOCKER, DOCKER_RUNTIME},
+  utils::runtime_helpers::RuntimeSpawnHandled,
+};
+
+async fn stop_container(container_name: String) -> bool {
+  event!(
+    Level::INFO,
+    "Stopping container with name: {}",
+    container_name
+  );
+
+  let result = DOCKER_RUNTIME
+    .spawn_handled("modules::docker::stop_container", async move {
+      DOCKER.stop_container(&container_name, None).await
+    })
+    .await
+    .map_or_else(
+      || false,
+      |r| {
+        r.map_or_else(
+          |e| {
+            event!(Level::ERROR, "Failed to stop container: {e}");
+            false
+          },
+          |()| true,
+        )
+      },
+    );
+
+  event!(Level::DEBUG, "Done stopping container.");
+
+  result
+}

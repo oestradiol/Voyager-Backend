@@ -1,49 +1,48 @@
+use bollard::container::LogsOptions;
+use futures::StreamExt;
+use tracing::{event, Level};
 
-//     suspend fun getLogs(containerId: String): Result<List<String>> = coroutineScope {
-//         log("Getting logs for container with id $containerId", LogType.INFO)
-//         val context = newSingleThreadContext("DockerLogThread-${containerId.hashCode()}")
-//
-//         val logs: List<String>
-//
-//         try {
-//
-//             logs = async(context) {
-//                 log("Building log command for container id $containerId", LogType.DEBUG)
-//                 val logContainerCmd =
-//                     dockerClient
-//                         .logContainerCmd(containerId)
-//                         .withStdOut(true)
-//                         .withStdErr(true)
-//
-//                 val logsIn = ArrayList<String>()
-//
-//                 try {
-//                     log("Executing log command for container id $containerId", LogType.DEBUG)
-//                     logContainerCmd.exec(object : ResultCallback.Adapter<Frame>() {
-//                                             override fun onNext(obj: Frame) {
-//                                                 log("Current log frame object: $obj", LogType.TRACE)
-//                                                 logsIn.add(obj.toString())
-//                                             }
-//                                         }).awaitCompletion()
-//
-//                     log("Done executing log command for container id $containerId", LogType.DEBUG)
-//
-//                 } catch (error: InterruptedException) {
-//                     log("Failed retrieving logs for container with id $containerId: ${error.localizedMessage}", LogType.ERROR)
-//                     error.printStackTrace()
-//                 }
-//
-//                 return@async logsIn
-//             }.await()
-//
-//         } catch (err: Exception) {
-//             log("Error getting logs from container: ${err.localizedMessage}", LogType.ERROR)
-//             context.close()
-//             return@coroutineScope Result.failure(err)
-//         } finally {
-//             context.close()
-//         }
-//
-//         return@coroutineScope Result.success(logs)
-//     }
-// }
+use crate::{
+  modules::docker::{DOCKER, DOCKER_RUNTIME},
+  utils::runtime_helpers::RuntimeSpawnHandled,
+  Error,
+};
+
+async fn get_logs(container_name: &str) -> Option<String> {
+  event!(
+    Level::INFO,
+    "Getting logs for container with name {}",
+    container_name
+  );
+
+  let options = LogsOptions::<String> {
+    stdout: true,
+    stderr: true,
+    ..Default::default()
+  };
+
+  let logs = DOCKER_RUNTIME
+    .spawn_handled(
+      "modules::docker::get_logs",
+      DOCKER
+        .logs(container_name, Some(options))
+        .fold(String::new(), |acc, i| async {
+          i.map_err(Error::from) // Converts a possible Bollard Error into our type of Error
+            .map_or_else(
+              |e| {
+                event!(Level::ERROR, "Error trying to read logs: {:?}", e);
+                acc
+              },
+              |d| d.to_string(),
+            )
+        }),
+    )
+    .await;
+
+  event!(
+    Level::DEBUG,
+    "Done getting logs for container with name {container_name}"
+  );
+
+  logs
+}
