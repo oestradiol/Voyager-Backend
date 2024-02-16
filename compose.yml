@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+    voyager:
+        build: .
+        container_name: voyager
+        restart: unless-stopped
+        ports:
+            - "8765:8765"
+        volumes:
+            - "/etc/localtime:/etc/localtime:ro"
+            - "/var/run/docker.sock:/var/run/docker.sock:ro"
+            - "./logs/:/app/logs/"
+            - "./deployments/:/app/deployments/"
+            - "./config.yml:/app/config.yml"
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.voyager.entrypoints=web,websecure"
+            - "traefik.http.routers.voyager.rule=Host(`voyager-api.pinkcloud.studio`)"
+            - "traefik.http.routers.voyager.services=voyager-services"
+            - "traefik.http.services.voyager-services.loadbalancer.server.port=8765"
+            - "traefik.http.routers.voyager.tls=true"
+        depends_on:
+            - mongo
+        networks:
+            - traefik-proxy
+            - voyager-net
+
+    mongo:
+        image: mongo:7-jammy
+        restart: unless-stopped
+        container_name: voyager-mongo
+        volumes:
+            - "/etc/localtime:/etc/localtime:ro"
+            - "/var/opt/pinkcloud/voyager/mongo-data:/data/db"
+        env_file:
+            - path: ./.env
+              required: true
+        environment:
+            - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+            - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+        networks:
+            - voyager-net
+
+networks:
+    traefik-proxy:
+        name: "traefik-proxy"
+        external: true
+
+    voyager-net:
+        name: "voyager-net"
