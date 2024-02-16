@@ -1,8 +1,31 @@
 [package]
-name = "Voyager-Backend"
+name = "voyager-backend"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+axum = "^0.7"
+tokio = { version = "^1.36", features = ["full"] }
+serde = { version = "^1", features = ["derive"] }
+serde_json = "^1.0"
+serde_url_params = "^0.2"
+futures = "^0.3"
+mongodb = "^2.8"
+dotenv = "^0.15"
+reqwest = { version = "^0.11", features = ["blocking", "json"] }
+lazy_static = "^1.4"
+tracing = "^0.1"
+tracing-subscriber = "^0.3"
+tracing-appender = "0.2"
+color-eyre = "^0.6"
+chrono = "^0.4"
+bollard = "*"
+serenity = "^0.12"
+
+[target.'cfg(unix)'.dependencies]
+jemallocator = "0.5"
+
+[profile.dev.package.backtrace]
+opt-level = 3
