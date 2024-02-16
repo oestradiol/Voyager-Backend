@@ -1,16 +1,14 @@
+use bollard::container::InspectContainerOptions;
+use tracing::{event, Level};
 
-//     suspend fun isContainerRunning(containerId: String): Result<Boolean> {
-//         log("Checking if container with id $containerId is running", LogType.DEBUG)
-//         return withContext(mainContext) {
-//             try {
-//                 log("Inspecting container with id $containerId", LogType.TRACE)
-//                 return@withContext Result.success(
-//                     dockerClient.inspectContainerCmd(containerId).exec().state.running ?: false
-//                 )
-//
-//             } catch (err: Exception) {
-//                 log("Error checking if container with id $containerId is running: ${err.localizedMessage}", LogType.ERROR)
-//                 return@withContext Result.failure(err)
-//             }
-//         }
-//     }
+
+use super::DOCKER;
+
+async fn is_container_running(container_id: String) -> Result<bool, bollard::errors::Error> {
+  event!(Level::DEBUG, "Inspecting if container {} is running", container_id.as_str());
+
+  let result = DOCKER.inspect_container(&container_id, None).await;
+
+  result.map(|res| res.state.map(|state| state.running.unwrap_or(false)).unwrap_or(false))
+}
+
