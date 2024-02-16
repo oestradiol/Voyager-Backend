@@ -7,6 +7,7 @@ pub trait RuntimeSpawnHandled {
     F: std::future::Future<Output = T> + Send + 'static,
     T: Send + 'static;
 }
+
 impl RuntimeSpawnHandled for Runtime {
   async fn spawn_handled<F, T>(&self, task: &str, future: F) -> Option<T>
   where

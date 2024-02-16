@@ -1,46 +1,45 @@
-use crate::{business::repositories::deployments::find_by_host::find_by_host, modules::docker::get_internal_port::find_internal_port};
+use crate::{business::repositories::deployments::find_by_host, modules::docker::find_internal_port};
 use crate::configs::environment::HOST_IP;
-use crate::modules::cloudflare::add_dns_record::add_dns_record;
 use tracing::{event, Level};
 use uuid::Uuid;
 
 use crate::{
-  types::model::deployment::{Deployment, DeploymentMode},
+  types::model::deployment::{Deployment, Mode},
   Error,
 };
-
-pub async fn new_deployment(
-  dockerfile: &String,
-  host: &String,
-  mode: &DeploymentMode,
-  directory: &String,
-  repo_url: &String,
-  branch: &String,
-) -> Result<Deployment, Vec<Error>> {
-  event!(Level::INFO, "Creating deployment with host {host}, dockerfile {dockerfile}, mode {mode}, directory {directory}, repo_url {repo_url}, branch {branch}");
-
-  let id = Uuid::new_v4().to_string();
-
-  let cloudflare_result: Result<String, Vec<Error>> =
-    add_dns_record(host, &*HOST_IP, mode).await.map_err(|errs| {
-      errs
-        .iter()
-        .map(|err| Error::from(format!("CloudflareError {}: {}", err.code, err.message)))
-        .collect()
-    });
-
-  let cloudflare_id;
-
-  if cloudflare_result.is_ok() {
-    cloudflare_id = cloudflare_result.unwrap();
-  } else {
-    return Err(cloudflare_result.unwrap_err());
-  }
-
-  let internal_port = find_internal_port();
-
-  ()
-}
+//
+// pub async fn new_deployment(
+//   dockerfile: &String,
+//   host: &String,
+//   mode: &DeploymentMode,
+//   directory: &String,
+//   repo_url: &String,
+//   branch: &String,
+// ) -> Result<Deployment, Vec<Error>> {
+//   event!(Level::INFO, "Creating deployment with host {host}, dockerfile {dockerfile}, mode {mode}, directory {directory}, repo_url {repo_url}, branch {branch}");
+//
+//   let id = Uuid::new_v4().to_string();
+//
+//   let cloudflare_result: Result<String, Vec<Error>> =
+//     add_dns_record(host, &*HOST_IP, mode).await.map_err(|errs| {
+//       errs
+//         .iter()
+//         .map(|err| Error::from(format!("CloudflareError {}: {}", err.code, err.message)))
+//         .collect()
+//     });
+//
+//   let cloudflare_id;
+//
+//   if cloudflare_result.is_ok() {
+//     cloudflare_id = cloudflare_result.unwrap();
+//   } else {
+//     return Err(cloudflare_result.unwrap_err());
+//   }
+//
+//   let internal_port = find_internal_port();
+//
+//   ()
+// }
 
 //         suspend fun new(
 //             dockerFile: File,

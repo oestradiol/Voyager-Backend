@@ -1,12 +1,29 @@
-pub mod build_image;
-pub mod create_container;
-pub mod delete_container;
-pub mod get_internal_port;
-pub mod get_logs;
-pub mod is_container_running;
-pub mod restart_container;
-pub mod start_container;
-pub mod stop_container;
+mod build_image;
+pub use build_image::*;
+
+mod create_container;
+pub use create_container::*;
+
+mod delete_container;
+pub use delete_container::*;
+
+mod get_internal_port;
+pub use get_internal_port::*;
+
+mod get_logs;
+pub use get_logs::*;
+
+mod is_container_running;
+pub use is_container_running::*;
+
+mod restart_container;
+pub use restart_container::*;
+
+mod start_container;
+pub use start_container::*;
+
+mod stop_container;
+pub use stop_container::*;
 
 use crate::utils::expect_error::ExpectError;
 use crate::Error;

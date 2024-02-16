@@ -6,13 +6,13 @@ use crate::modules::cloudflare::types::add_dns_record::{Failure, Success};
 use crate::modules::cloudflare::types::cloudflare_responses::CloudflareError;
 use crate::modules::cloudflare::types::dns_record::DnsRecord;
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
-use crate::types::model::deployment::DeploymentMode;
+use crate::types::model::deployment::Mode;
 use crate::utils::http_client::ensure_success::EnsureSuccess;
 
 pub async fn add_dns_record(
   host: &str,
   ip: &str,
-  mode: &DeploymentMode,
+  mode: &Mode,
 ) -> Result<String, Vec<CloudflareError>> {
   if *DEVELOPMENT {
     return Ok("devDnsRecord".to_string());
