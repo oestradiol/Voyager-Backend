@@ -1,5 +1,11 @@
-use crate::{business::repositories::deployments::find_by_host, modules::docker::find_internal_port};
+use std::fs;
+use std::path::Path;
+
 use crate::configs::environment::HOST_IP;
+use crate::modules::{cloudflare, traefik};
+use crate::types::model::deployment;
+use crate::utils::get_free_port;
+use crate::{business::repositories::deployments, modules::docker};
 use tracing::{event, Level};
 use uuid::Uuid;
 
@@ -7,39 +13,96 @@ use crate::{
   types::model::deployment::{Deployment, Mode},
   Error,
 };
-//
-// pub async fn new_deployment(
-//   dockerfile: &String,
-//   host: &String,
-//   mode: &DeploymentMode,
-//   directory: &String,
-//   repo_url: &String,
-//   branch: &String,
-// ) -> Result<Deployment, Vec<Error>> {
-//   event!(Level::INFO, "Creating deployment with host {host}, dockerfile {dockerfile}, mode {mode}, directory {directory}, repo_url {repo_url}, branch {branch}");
-//
-//   let id = Uuid::new_v4().to_string();
-//
-//   let cloudflare_result: Result<String, Vec<Error>> =
-//     add_dns_record(host, &*HOST_IP, mode).await.map_err(|errs| {
-//       errs
-//         .iter()
-//         .map(|err| Error::from(format!("CloudflareError {}: {}", err.code, err.message)))
-//         .collect()
-//     });
-//
-//   let cloudflare_id;
-//
-//   if cloudflare_result.is_ok() {
-//     cloudflare_id = cloudflare_result.unwrap();
-//   } else {
-//     return Err(cloudflare_result.unwrap_err());
-//   }
-//
-//   let internal_port = find_internal_port();
-//
-//   ()
-// }
+
+// Result<Result<T, Err>, Exc>
+// Result<T, Result<Err, Exc>>
+
+pub async fn new_deployment(
+  dockerfile: &Path,
+  host: &String,
+  mode: &deployment::Mode,
+  directory: &String,
+  repo_url: &String,
+  branch: &String,
+) -> Result<Deployment, Vec<Error>> {
+  event!(Level::INFO, "Creating deployment with host {host}, Dockerfile {:?}, mode {mode}, directory {directory}, repo_url {repo_url}, branch {branch}", dockerfile);
+
+  let id = Uuid::new_v4().to_string();
+
+  let cloudflare_result: Result<String, Vec<Error>> =
+    cloudflare::add_dns_record(host, &*HOST_IP, mode)
+      .await
+      .map_err(|errs| {
+        errs
+          .iter()
+          .map(|err| Error::from(format!("CloudflareError {}: {}", err.code, err.message)))
+          .collect()
+      });
+  let cloudflare_id;
+
+  match cloudflare_result {
+    Ok(id) => cloudflare_id = id,
+    Err(errs) => return Err(errs),
+  }
+
+  let dockerfile_contents_result = fs::read_to_string(dockerfile);
+  let dockerfile_contents;
+
+  match dockerfile_contents_result {
+    Ok(contents) => dockerfile_contents = contents,
+    Err(err) => {
+      return Err(vec![err.into()])
+    },
+  }
+
+  let internal_port_result = docker::find_internal_port(dockerfile_contents.as_str());
+  let internal_port;
+
+  match internal_port_result {
+    Some(port) => internal_port = port,
+    None => {
+      return Err(vec![Error::from("Could not find container internal port")]);
+    }
+  }
+
+  let name = host.replace(".", "");
+
+  let traefik_labels = traefik::gen_traefik_labels(&name, &host, internal_port);
+
+  let docker_image_result = docker::build_image(dockerfile, &traefik_labels, None).await;
+  let docker_image;
+
+  match docker_image_result {
+    Ok(image) => docker_image = image,
+    Err(err) => {
+      return Err(vec![err]);
+    }
+  }
+
+  let free_port_result = get_free_port();
+  let free_port;
+
+  match free_port_result {
+    Ok(port) => free_port = port,
+    Err(err) => {
+      return Err(vec![err]);
+    }
+  }
+
+  let container_id_result =
+    docker::create_container(name.clone(), free_port, internal_port, docker_image).await;
+  let container_id;
+
+  match container_id_result {
+    Ok(id) => container_id = id,
+    Err(err) => {
+
+    }
+  }
+
+
+  ()
+}
 
 //         suspend fun new(
 //             dockerFile: File,

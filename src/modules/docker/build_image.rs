@@ -1,20 +1,26 @@
 use crate::{utils::runtime_helpers::RuntimeSpawnHandled, Error};
 use bollard::image::BuildImageOptions;
 use futures::StreamExt;
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 
 use super::{DOCKER, DOCKER_RUNTIME};
 use tracing::{event, Level};
 
 /// Builds docker image, then returns the image id
 pub async fn build_image(
-  dockerfile: String,
-  labels: Vec<(String, String)>,
+  dockerfile: &Path,
+  labels: &Vec<(String, String)>,
   extra_hosts: Option<String>,
-) -> Option<String> {
+) -> Result<String, Error> {
+  let dockerfile_str;
+  match dockerfile.to_str() {
+    Some(str) => dockerfile_str = str.to_string(),
+    None => return Err(Error::from("Dockerfile path is not a valid unicode string")),
+  }
+
   let build_image_options = BuildImageOptions {
-    dockerfile,
-    extrahosts: extra_hosts,
+    dockerfile: dockerfile_str.clone(),
+    extrahosts: extra_hosts.map(|s| s),
     q: true,
     memory: Some(700 * 1024 * 1024),  // 700MiB
     memswap: Some(500 * 1024 * 1024), // 500MiB
@@ -32,11 +38,16 @@ pub async fn build_image(
     &build_image_options.dockerfile
   );
 
-  let result = _build_image(build_image_options).await;
-
   event!(Level::DEBUG, "Done building docker image.");
 
-  result
+  let result = _build_image(build_image_options).await;
+
+  match result {
+    Some(image_id) => Ok(image_id),
+    None => Err(Error::from(format!(
+      "Failed to build docker image for dockerfile {dockerfile_str}"
+    ))),
+  }
 }
 
 async fn _build_image(options: BuildImageOptions<String>) -> Option<String> {

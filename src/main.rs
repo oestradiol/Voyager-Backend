@@ -33,6 +33,17 @@ static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
 
+/// Extended Result
+///
+/// This type is meant to be a result that differentiates between:
+/// - Typed errors (information)
+/// - Exceptions (untreated errors)
+///
+/// In this case, T is the optimal return value (Ok), E is the
+/// informational error (Err), and the exception type is predefined
+/// as a thread-safe implementation of std::error::Error.
+type ResultEx<T, E> = Result<Result<T, E>, Error>;
+
 #[tokio::main]
 async fn main() {
   let time: DateTime<Utc> = SystemTime::now().into();
