@@ -25,7 +25,7 @@ pub use start_container::*;
 mod stop_container;
 pub use stop_container::*;
 
-use crate::utils::expect_error::ExpectError;
+use crate::utils::ExpectError;
 use crate::Error;
 
 use bollard::Docker;

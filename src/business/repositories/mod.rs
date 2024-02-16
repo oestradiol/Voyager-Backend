@@ -8,7 +8,7 @@ use tokio::runtime::Runtime;
 use crate::{
   configs::environment::{MONGO_CONN_STR, MONGO_DB_NAME},
   types::model::deployment::Deployment,
-  utils::expect_error::ExpectError,
+  utils::ExpectError,
 };
 
 pub struct DbContext {

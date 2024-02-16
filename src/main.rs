@@ -18,7 +18,7 @@ use std::time::SystemTime;
 use tracing::{event, Level};
 
 use crate::configs::environment::{HOSTNAME, LOG_DIRECTORY, PORT, STDOUT_LOG_SEVERITY};
-use crate::utils::expect_error::ExpectError;
+use crate::utils::ExpectError;
 
 mod business;
 mod configs;

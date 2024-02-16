@@ -2,7 +2,7 @@ mod new_deployment;
 
 pub use new_deployment::*;
 
-use crate::utils::expect_error::ExpectError;
+use crate::utils::ExpectError;
 use lazy_static::lazy_static;
 use tokio::runtime::Runtime;
 

@@ -12,7 +12,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::configs::environment::CLOUDFLARE_API_TOKEN;
-use crate::utils::expect_error::ExpectError;
+use crate::utils::ExpectError;
 use crate::utils::http_client::HTTPClient;
 
 lazy_static! {
