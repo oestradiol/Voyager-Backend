@@ -6,7 +6,7 @@ use crate::{
   utils::runtime_helpers::RuntimeSpawnHandled,
 };
 
-async fn restart_container(container_name: String) -> bool {
+async fn restart_container(container_name: String) -> Option<()> {
   event!(
     Level::INFO,
     "Restarting container with name: {}",
@@ -19,14 +19,14 @@ async fn restart_container(container_name: String) -> bool {
     })
     .await
     .map_or_else(
-      || false,
+      || None,
       |r| {
         r.map_or_else(
           |e| {
             event!(Level::ERROR, "Failed to restart container: {e}");
-            false
+            None
           },
-          |()| true,
+          |()| Some(()),
         )
       },
     );

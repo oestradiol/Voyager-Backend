@@ -1,3 +1,45 @@
+//     suspend fun stop(): Result<Unit> {
+//         val deployment = this
+//         return withContext(context) {
+//             log("Stopping deployment $deployment", LogType.INFO)
+//             // stop docker container
+//             if (state != DeploymentState.DEPLOYED) {
+//                 log("Deployment is not running", LogType.ERROR)
+//                 return@withContext Result.failure(Exception("Tried to stop deployment that is not in deployed state: $deployment"))
+//             }
+//             state = DeploymentState.STOPPING
+//             DockerManager.stopContainer(containerId)
+//             state = DeploymentState.STOPPED
+//             save()
+//
+//             return@withContext Result.success(Unit)
+//         }
+//     }
+
+//     suspend fun start(): Result<Unit> {
+//         return withContext(context) {
+//             log("Starting deployment with id $id", LogType.INFO)
+//             if (state != DeploymentState.STOPPED) {
+//                 log("Deployment with id $id is not in stopped state", LogType.ERROR)
+//                 return@withContext Result.failure(Exception("Tried to start deployment that is not in stopped state"))
+//             }
+//
+//             log("Sending restart command to docker for container id $containerId..", LogType.DEBUG)
+//             return@withContext DockerManager.restartContainer(containerId).fold(
+//                 {_ ->
+//                     log("Container restart was successful")
+//                     state = DeploymentState.DEPLOYED
+//                     save()
+//                     Result.success(Unit)
+//                 },
+//                 {err: Throwable ->
+//                     log("Container $containerId restart failed with errors: ${err.localizedMessage}", LogType.ERROR)
+//                     Result.failure(err)
+//                 }
+//             )
+//         }
+//     }
+
 //         suspend fun new(
 //             dockerFile: File,
 //             host: String,

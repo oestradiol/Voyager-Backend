@@ -9,18 +9,18 @@ use tracing::{event, Level};
 /// Builds docker image, then returns the image id
 pub async fn build_image(
   dockerfile: &Path,
-  labels: &Vec<(String, String)>,
+  labels: &[(String, String)],
   extra_hosts: Option<String>,
-) -> Result<String, Error> {
-  let dockerfile_str;
-  match dockerfile.to_str() {
-    Some(str) => dockerfile_str = str.to_string(),
-    None => return Err(Error::from("Dockerfile path is not a valid unicode string")),
-  }
+) -> Option<String> {
+  let Some(dockerfile_str) = dockerfile.to_str() else {
+    event!(Level::ERROR, "Failed to convert dockerfile path to string.");
+    return None;
+  };
+  let dockerfile_str = dockerfile_str.to_string();
 
   let build_image_options = BuildImageOptions {
     dockerfile: dockerfile_str.clone(),
-    extrahosts: extra_hosts.map(|s| s),
+    extrahosts: extra_hosts,
     q: true,
     memory: Some(700 * 1024 * 1024),  // 700MiB
     memswap: Some(500 * 1024 * 1024), // 500MiB
@@ -40,14 +40,16 @@ pub async fn build_image(
 
   event!(Level::DEBUG, "Done building docker image.");
 
-  let result = _build_image(build_image_options).await;
-
-  match result {
-    Some(image_id) => Ok(image_id),
-    None => Err(Error::from(format!(
-      "Failed to build docker image for dockerfile {dockerfile_str}"
-    ))),
-  }
+  _build_image(build_image_options).await.map_or_else(
+    || {
+      event!(
+        Level::ERROR,
+        "Failed to build docker image for dockerfile {dockerfile_str}"
+      );
+      None
+    },
+    Some,
+  )
 }
 
 async fn _build_image(options: BuildImageOptions<String>) -> Option<String> {

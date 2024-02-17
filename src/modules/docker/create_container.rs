@@ -14,7 +14,7 @@ pub async fn create_container(
   name: String,
   port: u16,
   internal_port: u16,
-  docker_image: String,
+  docker_image: &str,
 ) -> Option<String> {
   event!(
     Level::INFO,
@@ -38,7 +38,7 @@ pub async fn create_container(
   };
 
   let config = Config {
-    image: Some(docker_image),
+    image: Some(docker_image.to_string()),
     host_config: Some(host_config),
     ..Default::default()
   };

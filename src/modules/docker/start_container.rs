@@ -6,7 +6,7 @@ use crate::{
   utils::runtime_helpers::RuntimeSpawnHandled,
 };
 
-async fn start_container(container_name: String) -> bool {
+async fn start_container(container_name: String) -> Option<()> {
   event!(
     Level::INFO,
     "Starting container with name: {}",
@@ -21,14 +21,14 @@ async fn start_container(container_name: String) -> bool {
     })
     .await
     .map_or_else(
-      || false,
+      || None,
       |r| {
         r.map_or_else(
           |e| {
             event!(Level::ERROR, "Failed to start container: {e}");
-            false
+            None
           },
-          |()| true,
+          |()| Some(()),
         )
       },
     );

@@ -7,9 +7,9 @@ use crate::modules::cloudflare::types::delete_dns_record::{Failure, Success};
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
 use crate::utils::http_client::ensure_success::EnsureSuccess;
 
-pub async fn remove_dns_record(dns_record: &str) -> Result<(), Vec<CloudflareError>> {
+pub async fn remove_dns_record(dns_record: &str) -> Option<()> {
   if *DEVELOPMENT {
-    return Ok(());
+    return Some(());
   }
 
   event!(
@@ -34,7 +34,7 @@ pub async fn remove_dns_record(dns_record: &str) -> Result<(), Vec<CloudflareErr
       Level::ERROR,
       "Failed to send request to Add DNS Record with Cloudflare."
     );
-    return Err(vec![]);
+    return None;
   }
   // These are already checked by the .ensure_success(false) + is_success checks above
   #[allow(clippy::unwrap_used)]
@@ -52,7 +52,7 @@ pub async fn remove_dns_record(dns_record: &str) -> Result<(), Vec<CloudflareErr
       "Cloudflare request was successful with id: {}",
       id
     );
-    Ok(())
+    Some(())
   } else {
     let failure = serde_json::from_value::<Failure>(response);
     let failure = match failure {
@@ -64,16 +64,22 @@ pub async fn remove_dns_record(dns_record: &str) -> Result<(), Vec<CloudflareErr
           status,
           err
         );
-        return Err(vec![]);
+        return None;
       }
     };
 
+    let err = failure
+      .errors
+      .iter()
+      .fold(String::from("Cloudflare Errors:"), |acc, e| {
+        format!("{acc}\n{e}")
+      });
     event!(
-      Level::DEBUG,
-      "Request failed with status {} and errors: {:?}",
-      status,
-      failure.errors
+      Level::ERROR,
+      "Request failed with status {status}. Failed to remove DNS record. {}",
+      err
     );
-    Err(failure.errors)
+
+    None
   }
 }

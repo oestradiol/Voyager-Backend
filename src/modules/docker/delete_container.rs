@@ -3,7 +3,7 @@ use crate::utils::runtime_helpers::RuntimeSpawnHandled;
 use bollard::container::RemoveContainerOptions;
 use tracing::{event, Level};
 
-pub async fn delete_container(container_name: String) {
+pub async fn delete_container(container_name: String) -> Option<()> {
   event!(Level::INFO, "Deleting container '{container_name}'");
 
   let options = Some(RemoveContainerOptions {
@@ -20,13 +20,17 @@ pub async fn delete_container(container_name: String) {
   {
     match res {
       Ok(()) => (),
-      Err(err) => event!(
-        Level::ERROR,
-        "Failed to delete Docker container! Error: {}",
-        err
-      ),
+      Err(err) => {
+        event!(
+          Level::ERROR,
+          "Failed to delete Docker container! Error: {}",
+          err
+        );
+        return None;
+      }
     }
   }
 
   event!(Level::INFO, "Done deleting container");
+  Some(())
 }

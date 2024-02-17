@@ -10,9 +10,13 @@ use crate::types::model::deployment::Mode;
 use crate::utils::http_client::ensure_success::EnsureSuccess;
 use crate::utils::{to_Err, to_Exc, to_Ok, Error, ResultEx};
 
-pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> ResultEx<String, Vec<Error>> {
+pub async fn add_dns_record(
+  host: &str,
+  ip: &str,
+  mode: &Mode,
+) -> Option<Result<String, Vec<Error>>> {
   if *DEVELOPMENT {
-    return to_Ok("devDnsRecord".to_string());
+    return Some(Ok("devDnsRecord".to_string()));
   }
 
   event!(
@@ -44,7 +48,7 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> ResultEx<Strin
       Level::ERROR,
       "Failed to send request to Add DNS Record with Cloudflare."
     );
-    return to_Err(vec![]);
+    return None;
   }
 
   // These are already checked by the .ensure_success(false) + is_success checks above
@@ -63,7 +67,7 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> ResultEx<Strin
       "Cloudflare request was successful with id: {}",
       id
     );
-    to_Ok(id)
+    Some(Ok(id))
   } else {
     let failure = serde_json::from_value::<Failure>(response);
     let failure = match failure {
@@ -75,7 +79,7 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> ResultEx<Strin
           status,
           err
         );
-        return to_Err(vec![]);
+        return None;
       }
     };
     event!(
@@ -84,12 +88,6 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> ResultEx<Strin
       status,
       failure.errors
     );
-    to_Err(
-      failure
-        .errors
-        .into_iter()
-        .map(|err| Error::from(err))
-        .collect(),
-    )
+    Some(Err(failure.errors.into_iter().map(Error::from).collect()))
   }
 }

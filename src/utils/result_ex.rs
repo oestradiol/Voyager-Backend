@@ -8,27 +8,30 @@ pub type Error = Box<dyn std::error::Error + Send + Sync>;
 ///
 /// In this case, T is the optimal return value (Ok), E is the
 /// informational error (Err), and the exception type is predefined
-/// as a thread-safe implementation of std::error::Error.
-pub type ResultEx<T, E: std::error::Error + Send + Sync> = Result<Result<T, E>, Error>;
+/// as a thread-safe implementation of `std::error::Error`.
+pub type ResultEx<T, E> = Result<Result<T, E>, Error>;
 
+#[allow(clippy::unnecessary_wraps)]
 #[allow(non_snake_case)]
 pub fn to_Ok<T, E: Send + Sync>(value: T) -> ResultEx<T, E> {
   let res = Result::Ok(value);
   Result::Ok(res)
 }
 
+#[allow(clippy::unnecessary_wraps)]
 #[allow(non_snake_case)]
 pub fn to_Err<T, E: Send + Sync>(err: E) -> ResultEx<T, E> {
   let res = Result::Err(err);
   Result::Ok(res)
 }
 
+#[allow(clippy::unnecessary_wraps)]
 #[allow(non_snake_case)]
 pub fn to_Exc<T, E: Send + Sync>(err: Error) -> ResultEx<T, E> {
   Result::Err(err)
 }
 
-pub trait ResultExExt<T, E: Send + Sync> {
+pub trait Extensions<T, E: Send + Sync> {
   fn is_ok(&self) -> bool;
   fn is_err(&self) -> bool;
   fn is_exc(&self) -> bool;
@@ -42,32 +45,23 @@ pub trait ResultExExt<T, E: Send + Sync> {
   fn and_then<U, F: FnOnce(T) -> ResultEx<U, E>>(self, f: F) -> ResultEx<U, E>;
 }
 
-impl<T, E: Send + Sync> ResultExExt<T, E> for ResultEx<T, E> {
+impl<T, E: Send + Sync> Extensions<T, E> for ResultEx<T, E> {
   fn is_ok(&self) -> bool {
-    match self {
-      Result::Ok(Result::Ok(_)) => true,
-      _ => false,
-    }
+    matches!(self, Result::Ok(Result::Ok(_)))
   }
 
   fn is_err(&self) -> bool {
-    match self {
-      Result::Ok(Result::Err(_)) => true,
-      _ => false,
-    }
+    matches!(self, Result::Ok(Result::Err(_)))
   }
 
   fn is_exc(&self) -> bool {
-    match self {
-      Result::Err(_) => true,
-      _ => false,
-    }
+    matches!(self, Result::Err(_))
   }
 
   fn unwrap(self) -> Result<T, E> {
     match self {
       Result::Ok(value) => value,
-      Result::Err(err) => panic!("Exception! {}", err),
+      Result::Err(err) => panic!("Exception! {err}"),
     }
   }
 
@@ -108,7 +102,7 @@ impl<T, E: Send + Sync> ResultExExt<T, E> for ResultEx<T, E> {
     }
   }
 
-  fn map_exc<F: FnOnce(Error) -> Error>(self, f: F) -> ResultEx<T, E> {
+  fn map_exc<F: FnOnce(Error) -> Error>(self, f: F) -> Self {
     match self {
       Result::Ok(Result::Ok(value)) => Result::Ok(Result::Ok(value)),
       Result::Ok(Result::Err(err)) => Result::Ok(Result::Err(err)),

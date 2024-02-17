@@ -5,7 +5,7 @@ use crate::{
   utils::runtime_helpers::RuntimeSpawnHandled,
 };
 
-async fn stop_container(container_name: String) -> bool {
+async fn stop_container(container_name: String) -> Option<()> {
   event!(
     Level::INFO,
     "Stopping container with name: {}",
@@ -18,14 +18,14 @@ async fn stop_container(container_name: String) -> bool {
     })
     .await
     .map_or_else(
-      || false,
+      || None,
       |r| {
         r.map_or_else(
           |e| {
             event!(Level::ERROR, "Failed to stop container: {e}");
-            false
+            None
           },
-          |()| true,
+          |()| Some(()),
         )
       },
     );

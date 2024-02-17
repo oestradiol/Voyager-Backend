@@ -1,18 +1,20 @@
 use crate::{
   business::repositories::{DB_CONTEXT, REPOSITORIES_RUNTIME},
-  utils::runtime_helpers::RuntimeSpawnHandled,
-  utils::Error,
+  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 use mongodb::bson::doc;
 use tracing::{event, Level};
 
-pub async fn delete(id: String) -> bool {
-  event!(Level::DEBUG, "Retrieving ALL deployments...");
+pub async fn delete(name: String) -> Option<()> {
+  event!(
+    Level::DEBUG,
+    "Deleting deployment of name {name} from database."
+  );
 
   let future = async move {
     let result = DB_CONTEXT
       .deployments
-      .delete_one(doc! {"_id": id}, None)
+      .delete_one(doc! {"name": name}, None)
       .await;
 
     result.map_err(Error::from) // MongoDB Error
@@ -32,5 +34,6 @@ pub async fn delete(id: String) -> bool {
         |d| d.deleted_count > 0,
       )
     })
-    .map_or(false, |f| f)
+    .map(|r| if r { Some(()) } else { None })
+    .and_then(|r| r)
 }

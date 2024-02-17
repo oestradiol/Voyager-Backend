@@ -7,6 +7,9 @@ pub use create_container::*;
 mod delete_container;
 pub use delete_container::*;
 
+mod delete_image;
+pub use delete_image::*;
+
 mod get_internal_port;
 pub use get_internal_port::*;
 
