@@ -1,4 +1,4 @@
-use crate::{utils::runtime_helpers::RuntimeSpawnHandled, Error};
+use crate::{utils::runtime_helpers::RuntimeSpawnHandled, utils::Error};
 use bollard::image::BuildImageOptions;
 use futures::StreamExt;
 use std::{collections::HashMap, path::Path};

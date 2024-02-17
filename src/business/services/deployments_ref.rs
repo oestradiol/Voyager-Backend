@@ -113,13 +113,10 @@
 
 // use tracing::{event, Level};
 
-// use crate::{types::{model::deployment::Deployment, view::delete_deployment::DeleteDeployment}, Error};
-
+// use crate::{types::{model::deployment::Deployment, view::delete_deployment::DeleteDeployment}, utils::Error};
 
 // pub async fn delete(deployment: Deployment) -> Result<DeleteDeployment, Error> {
 //   event!(Level::INFO, "Deleting deployment: {}", &deployment.id);
-
-
 
 //   let result = with_context(context, async {
 //     if state != DeploymentState::STOPPED {
@@ -211,8 +208,6 @@
 //         }
 //     }
 
-
-
 //     suspend fun stopAndDelete(): Result<Unit> {
 //         log("Stopping and deleting deployment with id $id", LogType.INFO)
 //         return stop().fold(
@@ -221,16 +216,12 @@
 //         )
 //     }
 
-
-
 //     suspend fun getLogs(): Result<List<String>> {
 //         return withContext(context) {
 //             log("Getting logs for deployment with id $id", LogType.INFO)
 //             DockerManager.getLogs(containerId)
 //         }
 //     }
-
-
 
 //     suspend fun isRunning(): Result<Boolean> {
 //         return withContext(context) {

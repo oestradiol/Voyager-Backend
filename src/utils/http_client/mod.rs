@@ -5,7 +5,7 @@ mod generate_methods;
 
 use crate::utils::http_client::client_wrapper::ClientWrapper;
 use crate::utils::http_client::deserializable::Deserializable;
-use crate::{generate_methods, Error};
+use crate::{generate_methods, utils::Error};
 use paste::paste;
 use reqwest::header::{HeaderMap, ACCEPT, CONTENT_TYPE, USER_AGENT};
 use reqwest::StatusCode;

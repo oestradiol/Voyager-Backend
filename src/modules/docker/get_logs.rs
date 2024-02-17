@@ -5,7 +5,7 @@ use tracing::{event, Level};
 use crate::{
   modules::docker::{DOCKER, DOCKER_RUNTIME},
   utils::runtime_helpers::RuntimeSpawnHandled,
-  Error,
+  utils::Error,
 };
 
 async fn get_logs(container_name: &str) -> Option<String> {

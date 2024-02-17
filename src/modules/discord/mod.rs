@@ -8,19 +8,25 @@ use tracing::Level;
 use crate::configs::environment::DEVELOPMENT;
 use crate::configs::environment::DISCORD_WEBHOOK;
 use crate::types::model::deployment::Deployment;
-use crate::Error;
+use crate::utils::Error;
 
 async fn send_deployment_message(deployment: &Deployment) -> Result<(), Error> {
   if *DEVELOPMENT {
     return Ok(());
   }
 
-  event!(Level::INFO, "Sending deployment discord message for deployment");
+  event!(
+    Level::INFO,
+    "Sending deployment discord message for deployment"
+  );
 
   let mode = deployment.mode.to_string();
 
   let embed = CreateEmbed::new()
-    .title(format!("[New {} deployment](https://{})", mode, deployment.host))
+    .title(format!(
+      "[New {} deployment](https://{})",
+      mode, deployment.host
+    ))
     .description(format!("A new {mode} deployment has been created."))
     .field("ID", deployment.id.clone(), true)
     .field("Docker Container", deployment.container_id.clone(), true);
@@ -36,19 +42,24 @@ async fn send_deployment_message(deployment: &Deployment) -> Result<(), Error> {
       //               }
       match webhook_client.execute(&http, false, builder).await {
         Ok(msg) => {
-          let message = msg.map_or(String::new(), |msg| format!(" Returned message is: {}", msg.content));
+          let message = msg.map_or(String::new(), |msg| {
+            format!(" Returned message is: {}", msg.content)
+          });
           event!(Level::INFO, "Discord webhook sent successfuly!{}", message);
         }
         Err(e) => {
           event!(Level::ERROR, "Error sending webhook discord message: {}", e);
         }
       }
-    },
+    }
     Err(e) => {
-      event!(Level::ERROR, "Discord webhook client was not created! {}", e);
+      event!(
+        Level::ERROR,
+        "Discord webhook client was not created! {}",
+        e
+      );
     }
   }
-
 
   Ok(())
 }

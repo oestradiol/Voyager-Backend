@@ -25,8 +25,8 @@ pub use start_container::*;
 mod stop_container;
 pub use stop_container::*;
 
+use crate::utils::Error;
 use crate::utils::ExpectError;
-use crate::Error;
 
 use bollard::Docker;
 use futures::{executor, FutureExt, TryFutureExt};

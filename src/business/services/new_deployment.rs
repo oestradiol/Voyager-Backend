@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::{
   types::model::deployment::{Deployment, Mode},
-  Error,
+  utils::Error,
 };
 
 // Result<Result<T, Err>, Exc>
@@ -50,9 +50,7 @@ pub async fn new_deployment(
 
   match dockerfile_contents_result {
     Ok(contents) => dockerfile_contents = contents,
-    Err(err) => {
-      return Err(vec![err.into()])
-    },
+    Err(err) => return Err(vec![err.into()]),
   }
 
   let internal_port_result = docker::find_internal_port(dockerfile_contents.as_str());
@@ -95,11 +93,8 @@ pub async fn new_deployment(
 
   match container_id_result {
     Ok(id) => container_id = id,
-    Err(err) => {
-
-    }
+    Err(err) => {}
   }
-
 
   ()
 }

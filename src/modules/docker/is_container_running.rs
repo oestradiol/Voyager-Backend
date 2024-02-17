@@ -4,7 +4,7 @@ use tracing::{event, Level};
 use crate::{
   modules::docker::{DOCKER, DOCKER_RUNTIME},
   utils::runtime_helpers::RuntimeSpawnHandled,
-  Error,
+  utils::Error,
 };
 
 async fn is_container_running(container_name: String) -> Option<bool> {

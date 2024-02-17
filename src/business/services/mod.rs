@@ -1,3 +1,4 @@
+pub mod deployments;
 mod new_deployment;
 
 pub use new_deployment::*;
