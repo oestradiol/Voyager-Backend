@@ -10,9 +10,18 @@ jobs:
     steps:
     - name: Check out Git repository
       uses: actions/checkout@v3
-
-    - name: Install Clippy
-      run: rustup component add clippy
+      
+    - name: Install Cargo Audit
+      run: cargo install cargo-audit
+  
+    - name: Build
+      run: cargo build --verbose
+  
+    # - name: Test
+    #   run: cargo test --verbose
 
     - name: Run Clippy
       run: cargo clippy --all-targets --all-features
+
+    - name: Audit
+      run: cargo audit
