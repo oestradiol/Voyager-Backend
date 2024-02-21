@@ -1,4 +1,4 @@
-pub type Error = Box<dyn std::error::Error + Send + Sync>;
+use super::Error;
 
 /// Extended Result
 ///

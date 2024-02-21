@@ -7,7 +7,7 @@ use crate::{
     docker::{delete_container, delete_image},
   },
   types::{model::deployment::Deployment, view::delete_deployment::DeleteDeployment},
-  utils::{runtime_helpers::RuntimeSpawnHandled, to_Ok, Error, ResultEx},
+  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 
 async fn delete(deployment: Deployment) -> Option<()> {

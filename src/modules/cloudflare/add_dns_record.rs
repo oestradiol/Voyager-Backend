@@ -8,7 +8,7 @@ use crate::modules::cloudflare::types::dns_record::DnsRecord;
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
 use crate::types::model::deployment::Mode;
 use crate::utils::http_client::ensure_success::EnsureSuccess;
-use crate::utils::{to_Err, to_Exc, to_Ok, Error, ResultEx};
+use crate::utils::Error;
 
 pub async fn add_dns_record(
   host: &str,

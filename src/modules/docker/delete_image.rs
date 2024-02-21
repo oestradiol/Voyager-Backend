@@ -1,6 +1,6 @@
 use crate::modules::docker::{DOCKER, DOCKER_RUNTIME};
 use crate::utils::runtime_helpers::RuntimeSpawnHandled;
-use crate::utils::{to_Err, to_Ok, Error, ResultEx};
+use crate::utils::Error;
 use bollard::container::RemoveContainerOptions;
 use bollard::image::RemoveImageOptions;
 use tracing::{event, Level};
