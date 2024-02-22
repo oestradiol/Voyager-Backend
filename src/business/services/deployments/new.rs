@@ -20,7 +20,7 @@ use crate::{
 // Result<Result<T, Err>, Exc>
 // Result<T, Result<Err, Exc>>
 
-pub async fn new_deployment(
+pub async fn new(
   dockerfile: &Path,
   host: &str,
   mode: &deployment::Mode,
