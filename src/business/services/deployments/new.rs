@@ -60,7 +60,7 @@ pub async fn new(
     container_id,
     dns_record_id,
     image_name,
-    name: name.clone(),
+    container_name: name.clone(),
     internal_port,
     mode: mode.to_owned(),
     host: host.to_string(),

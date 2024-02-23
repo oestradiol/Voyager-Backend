@@ -7,14 +7,15 @@ use crate::{
 use mongodb::bson::doc;
 use tracing::{event, Level};
 
-pub async fn find_by_name(name: String) -> Option<Deployment> {
-  event!(Level::DEBUG, "Finding deployment with name {}", &name);
 
-  let name_clone = name.clone();
+pub async fn find_by_id(id: String) -> Option<Deployment> {
+  event!(Level::DEBUG, "Finding deployment with id {}", &id);
+
+  let id_clone = id.clone();
   let future = async move {
     let result = DB_CONTEXT
       .deployments
-      .find_one(doc! { "name": name }, None)
+      .find_one(doc! { "_id": id }, None)
       .await;
 
     result
@@ -24,7 +25,7 @@ pub async fn find_by_name(name: String) -> Option<Deployment> {
   };
 
   let result = REPOSITORIES_RUNTIME
-    .spawn_handled("repositories::deployments::find_by_name", future)
+    .spawn_handled("repositories::deployments::find_by_id", future)
     .await;
 
   result
@@ -33,8 +34,8 @@ pub async fn find_by_name(name: String) -> Option<Deployment> {
         |e| {
           event!(
             Level::ERROR,
-            "Failed to find deployment with name {}: {}",
-            name_clone,
+            "Failed to find deployment with id {}: {}",
+            id_clone,
             e
           );
           None

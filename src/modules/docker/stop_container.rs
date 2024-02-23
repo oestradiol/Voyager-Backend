@@ -5,7 +5,7 @@ use crate::{
   utils::runtime_helpers::RuntimeSpawnHandled,
 };
 
-async fn stop_container(container_name: String) -> Option<()> {
+pub async fn stop_container(container_name: String) -> Option<()> {
   event!(
     Level::INFO,
     "Stopping container with name: {}",

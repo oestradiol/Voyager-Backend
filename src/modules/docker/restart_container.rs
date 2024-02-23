@@ -6,7 +6,7 @@ use crate::{
   utils::runtime_helpers::RuntimeSpawnHandled,
 };
 
-async fn restart_container(container_name: String) -> Option<()> {
+pub async fn restart_container(container_name: String) -> Option<()> {
   event!(
     Level::INFO,
     "Restarting container with name: {}",

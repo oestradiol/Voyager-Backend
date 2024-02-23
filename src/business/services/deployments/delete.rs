@@ -11,7 +11,7 @@ use crate::{
 };
 
 async fn delete(deployment: Deployment) -> Option<()> {
-  event!(Level::INFO, "Deleting deployment: {}", &deployment.name);
+  event!(Level::INFO, "Deleting deployment: {}", &deployment.container_name);
 
   let future = async move {
     // if state != DeploymentState::STOPPED {
@@ -19,7 +19,7 @@ async fn delete(deployment: Deployment) -> Option<()> {
     //     return Res(Err(Error::new("Tried to delete deployment that is not in stopped state: $deployment")));
     // }
 
-    let name = deployment.name;
+    let name = deployment.container_name;
 
     delete_image(name.clone()).await?;
     delete_container(name.clone()).await?;

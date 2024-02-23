@@ -8,7 +8,7 @@ use crate::{
   utils::Error,
 };
 
-async fn get_logs(container_name: &str) -> Option<String> {
+pub async fn get_logs(container_name: &str) -> Option<Vec<String>> {
   event!(
     Level::INFO,
     "Getting logs for container with name {}",
@@ -26,15 +26,15 @@ async fn get_logs(container_name: &str) -> Option<String> {
       "modules::docker::get_logs",
       DOCKER
         .logs(container_name, Some(options))
-        .fold(String::new(), |acc, i| async {
-          i.map_err(Error::from) // Converts a possible Bollard Error into our type of Error
-            .map_or_else(
-              |e| {
-                event!(Level::ERROR, "Error trying to read logs: {:?}", e);
-                acc
-              },
-              |d| d.to_string(),
-            )
+        .fold(Vec::new(), |mut acc, i| async {
+          let it = i.map_err(Error::from); // Converts a possible Bollard Error into our type of Error
+
+          match it {
+            Ok(d) => acc.push(d.to_string()),
+            Err(e) => event!(Level::ERROR, "Error trying to read logs: {:?}", e)
+          }
+
+          acc
         }),
     )
     .await;

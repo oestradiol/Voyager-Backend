@@ -21,7 +21,7 @@ impl fmt::Display for Mode {
 pub struct Deployment {
   pub container_id: String,
   pub dns_record_id: String,
-  pub name: String,
+  pub container_name: String,
   pub image_name: String,
   pub internal_port: u16,
   pub mode: Mode,

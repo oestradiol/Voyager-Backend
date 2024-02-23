@@ -6,7 +6,7 @@ use crate::{
   utils::runtime_helpers::RuntimeSpawnHandled,
 };
 
-async fn start_container(container_name: String) -> Option<()> {
+pub async fn start_container(container_name: String) -> Option<()> {
   event!(
     Level::INFO,
     "Starting container with name: {}",

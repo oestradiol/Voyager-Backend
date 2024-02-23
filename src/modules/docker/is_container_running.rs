@@ -7,7 +7,7 @@ use crate::{
   utils::Error,
 };
 
-async fn is_container_running(container_name: String) -> Option<bool> {
+pub async fn is_container_running(container_name: String) -> Option<bool> {
   event!(
     Level::DEBUG,
     "Checking if container with name {container_name} is running"
