@@ -1,19 +1,26 @@
-use axum::Router;
+mod deployments;
+
+use axum::{
+  routing::{delete, get, post},
+  Router,
+};
 
 trait ConfigureRoutes {
   fn configure_routes(self) -> Self;
 }
 impl ConfigureRoutes for Router {
   fn configure_routes(self) -> Self {
-    self
-      .nest("/api/v1", Self::new()
-        .nest("/deployments", Self::new()
-            // .route("/", get(business::services::deployments::list))
-            // .route("/", post(business::services::deployments::create))
-            // .route("/:deploymentId", post(business::services::deployments::get))
-            // .route("/:deploymentId", post(business::services::deployments::delete))
-            // .route("/:deploymentId/logs", post(business::services::deployments::get_logs))
-        )
-      )
+    self.nest(
+      "/api/v1",
+      Self::new().nest(
+        "/deployments",
+        Self::new()
+          .route("/", get(deployments::list))
+          .route("/", post(deployments::create))
+          .route("/:deploymentId", get(deployments::get))
+          .route("/:deploymentId", delete(deployments::delete))
+          .route("/:deploymentId/logs", get(deployments::get_logs)),
+      ),
+    )
   }
 }
