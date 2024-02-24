@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
 use crate::types::model::deployment::Deployment;
-
-use super::logs::Logs;
+use serde::{Deserialize, Serialize};
+use serde_json;
+use tracing::{event, Level};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetDeployment {
-  pub logs: Logs,
   pub deployment: Option<Deployment>,
 }
+
