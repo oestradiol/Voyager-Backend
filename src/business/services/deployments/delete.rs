@@ -4,7 +4,7 @@ use crate::{
   business::{repositories, services::SERVICES_RUNTIME},
   modules::{
     cloudflare::remove_dns_record,
-    docker::{delete_container, delete_image},
+    docker::{delete_container, delete_image, is_container_running},
   },
   types::{model::deployment::Deployment, view::delete_deployment::DeleteDeployment},
   utils::{runtime_helpers::RuntimeSpawnHandled, Error},
@@ -14,23 +14,15 @@ async fn delete(deployment: Deployment) -> Option<()> {
   event!(Level::INFO, "Deleting deployment: {}", &deployment.container_name);
 
   let future = async move {
-    // if state != DeploymentState::STOPPED {
-    //     event!(Level::ERROR "Deployment is running");
-    //     return Res(Err(Error::new("Tried to delete deployment that is not in stopped state: $deployment")));
-    // }
-
     let name = deployment.container_name;
+
+    if is_container_running(name.clone()).await? {
+        event!(Level::ERROR, "Tried to delete container that is running");
+        return None;
+    }
 
     delete_image(name.clone()).await?;
     delete_container(name.clone()).await?;
-
-    // File::new(directory).await?.also(|it| {
-    //     log("Checking if directory for deployment with id $id exists before deleting", LogType::DEBUG);
-    //     if it.exists() {
-    //         log("It exists, deleting..", LogType::DEBUG);
-    //         it.delete_recursively().await?;
-    //     }
-    // });
 
     repositories::deployments::delete(name).await?;
 
