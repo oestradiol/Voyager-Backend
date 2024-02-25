@@ -1,48 +1,46 @@
-use crate::utils::http_client::deserializable::Deserializable;
-use crate::utils::http_client::Response;
-use crate::utils::Error;
 use reqwest::StatusCode;
-use tracing::{event, Level};
 
-pub trait EnsureSuccess<T: for<'de> serde::Deserialize<'de>> {
+use super::{deserializable::Deserializable, http_error::HttpError, Response};
+use crate::utils::Error as OurErr;
+
+pub trait EnsureSuccess<T: std::fmt::Debug + for<'de> serde::Deserialize<'de>> {
   fn ensure_success(
     self,
     is_nullable: bool,
-  ) -> (bool, Option<Deserializable<T>>, Option<StatusCode>);
+  ) -> Result<(Option<Deserializable<T>>, StatusCode), HttpError<T>>;
 }
-impl<T: for<'de> serde::Deserialize<'de>> EnsureSuccess<T> for Result<Response<T>, Error> {
+impl<T: std::fmt::Debug + for<'de> serde::Deserialize<'de>> EnsureSuccess<T>
+  for Result<Response<T>, OurErr>
+{
   fn ensure_success(
     self,
     is_nullable: bool,
-  ) -> (bool, Option<Deserializable<T>>, Option<StatusCode>) {
-    match self {
-      Ok(response) => {
-        let (res, status_code) = response;
+  ) -> Result<(Option<Deserializable<T>>, StatusCode), HttpError<T>> {
+    let (res, status_code) = self.map_err(|e| {
+      HttpError::new(
+        "HTTP CLient failed to send request".to_string(),
+        None,
+        None,
+        Some(e),
+      )
+    })?;
 
-        if !status_code.is_success() {
-          event!(
-            Level::ERROR,
-            "Status Code: HTTP {status_code}. Response returned error"
-          );
-          (false, res, Some(status_code))
-        } else if !is_nullable && res.is_none() {
-          event!(
-            Level::ERROR,
-            "Status Code: HTTP {status_code}. Response body was empty on non-nullable entity"
-          );
-          (false, res, Some(status_code))
-        } else {
-          (true, res, Some(status_code))
-        }
-      }
-
-      Err(e) => {
-        event!(
-          Level::ERROR,
-          "HTTP Client failed to contact the API. Error: {e}"
-        );
-        (false, None, None)
-      }
+    if !status_code.is_success() {
+      Err(HttpError::new(
+        "Response returned error".to_string(),
+        Some(status_code),
+        res,
+        None,
+      ))
+    } else if !is_nullable && res.is_none() {
+      Err(HttpError::new(
+        "Response body was empty on non-nullable entity".to_string(),
+        Some(status_code),
+        res,
+        None,
+      ))
+    } else {
+      Ok((res, status_code))
     }
   }
 }

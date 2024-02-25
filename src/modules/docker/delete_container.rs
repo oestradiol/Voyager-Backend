@@ -15,7 +15,7 @@ pub async fn delete_container(container_name: String) -> Result<(), VoyagerError
     link: false,
   });
 
-  let result = DOCKER_RUNTIME
+  DOCKER_RUNTIME
     .spawn_handled("modules::docker::delete_container", async move {
       DOCKER.remove_container(&container_name, options).await
     })
@@ -28,10 +28,10 @@ pub async fn delete_container(container_name: String) -> Result<(), VoyagerError
 }
 
 impl VoyagerError {
-  pub fn delete_container(e: Error) -> Self {
+  fn delete_container(e: Error) -> Self {
     let message = format!("Failed to delete container! Error: {e}");
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: Some(e),

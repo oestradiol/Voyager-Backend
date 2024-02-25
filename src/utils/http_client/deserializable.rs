@@ -1,5 +1,6 @@
 use serde_json::Value;
 
+#[derive(Debug)]
 pub enum Deserializable<T: for<'de> serde::Deserialize<'de>> {
   Value(Value),
   Data(T),

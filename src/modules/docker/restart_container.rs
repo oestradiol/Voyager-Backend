@@ -15,12 +15,12 @@ pub async fn restart_container(container_name: String) -> Result<(), VoyagerErro
     container_name
   );
 
-  let result = DOCKER_RUNTIME
+  DOCKER_RUNTIME
     .spawn_handled("modules::docker::restart_container", async move {
       DOCKER.restart_container(&container_name, None).await
     })
     .await?
-    .map_err(|e| VoyagerError::stop_container(Box::new(e)))?;
+    .map_err(|e| VoyagerError::restart_container(Box::new(e)))?;
 
   event!(Level::DEBUG, "Done restarting container.");
 
@@ -28,10 +28,10 @@ pub async fn restart_container(container_name: String) -> Result<(), VoyagerErro
 }
 
 impl VoyagerError {
-  pub fn restart_container(e: Error) -> Self {
+  fn restart_container(e: Error) -> Self {
     let message = format!("Failed to restart container! Error: {e}");
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: Some(e),

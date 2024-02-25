@@ -2,6 +2,7 @@ mod client_wrapper;
 pub mod deserializable;
 pub mod ensure_success;
 mod generate_methods;
+mod http_error;
 
 use crate::utils::http_client::client_wrapper::ClientWrapper;
 use crate::utils::http_client::deserializable::Deserializable;

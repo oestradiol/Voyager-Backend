@@ -28,10 +28,10 @@ pub async fn delete_image(image_name: String) -> Result<(), VoyagerError> {
 }
 
 impl VoyagerError {
-  pub fn remove_image(e: Error) -> Self {
+  fn remove_image(e: Error) -> Self {
     let message = format!("Failed to remove image! Error: {e}");
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: Some(e),

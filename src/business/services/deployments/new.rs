@@ -6,8 +6,10 @@ use crate::configs::environment::HOST_IP;
 use crate::modules::discord::send_deployment_message;
 use crate::modules::{cloudflare, traefik};
 use crate::types::model::deployment;
+use crate::types::other::voyager_error::VoyagerError;
 use crate::utils::get_free_port;
 use crate::{business::repositories::deployments, modules::docker};
+use axum::http::StatusCode;
 use mongodb::bson::Bson;
 use tracing::{event, Level};
 use uuid::Uuid;
@@ -27,23 +29,13 @@ pub async fn new(
   directory: &str,
   repo_url: &str,
   branch: &str,
-) -> Option<Result<Bson, Vec<Error>>> {
+) -> Result<Bson, VoyagerError> {
   event!(Level::INFO, "Creating deployment with host {host}, Dockerfile {:?}, mode {mode}, directory {directory}, repo_url {repo_url}, branch {branch}", dockerfile);
 
-  let cloudflare_result = cloudflare::add_dns_record(host, &HOST_IP, mode).await?;
+  let dns_record_id = cloudflare::add_dns_record(host, &HOST_IP, mode).await?;
 
-  let dns_record_id = match cloudflare_result {
-    Ok(id) => id,
-    Err(errs) => return Some(Err(errs)),
-  };
-
-  let dockerfile_contents = match fs::read_to_string(dockerfile) {
-    Ok(contents) => contents,
-    Err(err) => {
-      event!(Level::ERROR, "Failed to read Dockerfile contents: {}", err);
-      return None;
-    }
-  };
+  let dockerfile_contents =
+    fs::read_to_string(dockerfile).map_err(|e| VoyagerError::dockerfile_read(Box::new(e)))?;
 
   let internal_port = docker::find_internal_port(dockerfile_contents.as_str())?;
   let free_port = get_free_port()?;
@@ -74,5 +66,17 @@ pub async fn new(
 
   // TODO: notify user via email
 
-  Some(Ok(db_id))
+  Ok(db_id)
+}
+
+impl VoyagerError {
+  fn dockerfile_read(e: Error) -> Self {
+    let message = format!("Failed to read Dockerfile contents: {e}");
+    event!(Level::ERROR, message);
+    Self {
+      message,
+      status_code: StatusCode::INTERNAL_SERVER_ERROR,
+      source: Some(e),
+    }
+  }
 }

@@ -1,3 +1,4 @@
+use axum::http::StatusCode;
 use tracing::{event, Level};
 
 use crate::{
@@ -24,8 +25,7 @@ async fn delete(deployment: Deployment) -> Result<(), VoyagerError> {
     let name = deployment.container_name;
 
     if is_container_running(name.clone()).await? {
-      event!(Level::ERROR, "Tried to delete container that is running");
-      return None;
+      return Err(VoyagerError::delete_running());
     }
 
     delete_image(name.clone()).await?;
@@ -37,11 +37,23 @@ async fn delete(deployment: Deployment) -> Result<(), VoyagerError> {
 
     // TODO: notify user via email
 
-    Some(())
+    Ok(())
   };
 
   SERVICES_RUNTIME
     .spawn_handled("services::deployments::delete", future)
     .await
     .and_then(|f| f)
+}
+
+impl VoyagerError {
+  fn delete_running() -> Self {
+    let message = "Tried to delete container that is running";
+    event!(Level::ERROR, message);
+    Self {
+      message: message.to_string(),
+      status_code: StatusCode::BAD_REQUEST,
+      source: None,
+    }
+  }
 }

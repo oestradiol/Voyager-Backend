@@ -25,7 +25,7 @@ pub async fn is_container_running(container_name: String) -> Result<bool, Voyage
     .state
     .map(|s| s.running)
     .and_then(|r| r)
-    .ok_or_else(|| VoyagerError::empty_state())?;
+    .ok_or_else(VoyagerError::empty_state)?;
 
   event!(Level::INFO, "Done checking if container is running");
 
@@ -33,21 +33,21 @@ pub async fn is_container_running(container_name: String) -> Result<bool, Voyage
 }
 
 impl VoyagerError {
-  pub fn inspect_container(e: Error) -> Self {
+  fn inspect_container(e: Error) -> Self {
     let message = format!("Failed to inspect container! Error: {e}");
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: Some(e),
     }
   }
 
-  pub fn empty_state() -> Self {
-    let message = "State was None! Failed to get if container is running.".to_string();
+  fn empty_state() -> Self {
+    let message = "State was None! Failed to get if container is running.";
     event!(Level::ERROR, message);
-    VoyagerError {
-      message,
+    Self {
+      message: message.to_string(),
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: None,
     }

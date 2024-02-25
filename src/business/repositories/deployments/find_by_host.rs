@@ -26,22 +26,22 @@ pub async fn find_by_host(host: String) -> Result<Deployment, VoyagerError> {
 }
 
 impl VoyagerError {
-  pub fn find_mongo_host(e: Error, host: &str) -> Self {
+  fn find_mongo_host(e: Error, host: &str) -> Self {
     let message = format!("Failed to find deployment by host '{host}'! Error:{e}");
 
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: Some(e),
     }
   }
 
-  pub fn find_null_host(host: &str) -> Self {
+  fn find_null_host(host: &str) -> Self {
     let message = format!("Failed to find deployment by host '{host}'!");
 
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::NOT_FOUND,
       source: None,

@@ -26,22 +26,22 @@ pub async fn find_by_name(name: String) -> Result<Deployment, VoyagerError> {
 }
 
 impl VoyagerError {
-  pub fn find_mongo_name(e: Error, name: &str) -> Self {
+  fn find_mongo_name(e: Error, name: &str) -> Self {
     let message = format!("Failed to find deployment named '{name}'! Error:{e}");
 
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: Some(e),
     }
   }
 
-  pub fn find_null_name(name: &str) -> Self {
+  fn find_null_name(name: &str) -> Self {
     let message = format!("Failed to find deployment named '{name}'!");
 
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::NOT_FOUND,
       source: None,

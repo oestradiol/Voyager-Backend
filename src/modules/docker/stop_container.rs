@@ -27,10 +27,10 @@ pub async fn stop_container(container_name: String) -> Result<(), VoyagerError> 
 }
 
 impl VoyagerError {
-  pub fn stop_container(e: Error) -> Self {
+  fn stop_container(e: Error) -> Self {
     let message = format!("Failed to stop container! Error: {e}");
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: Some(e),

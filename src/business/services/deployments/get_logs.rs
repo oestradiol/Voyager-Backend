@@ -1,11 +1,9 @@
 use crate::business::repositories;
 use crate::modules::docker;
+use crate::types::other::voyager_error::VoyagerError;
 
+pub async fn get_logs(id: String) -> Result<Vec<String>, VoyagerError> {
+  let deployment = repositories::deployments::find_by_id(id).await?;
 
-pub async fn get_logs(id: String) -> Option<Vec<String>> {
-  if let Some(deployment) = repositories::deployments::find_by_id(id).await {
-    return docker::get_logs(&deployment.container_name).await
-  }
-
-  None
+  docker::get_logs(&deployment.container_name).await
 }

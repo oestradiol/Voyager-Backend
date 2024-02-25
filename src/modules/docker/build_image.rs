@@ -18,7 +18,7 @@ pub async fn build_image(
 ) -> Result<String, VoyagerError> {
   let dockerfile_str = dockerfile
     .to_str()
-    .ok_or_else(|| VoyagerError::path_to_string())?
+    .ok_or_else(VoyagerError::path_to_string)?
     .to_string();
 
   let options = BuildImageOptions {
@@ -76,21 +76,21 @@ pub async fn build_image(
 }
 
 impl VoyagerError {
-  pub fn build_image() -> Self {
-    let message = format!("Failed to build image! Image Id was empty.");
+  fn build_image() -> Self {
+    let message = "Failed to build image! Image Id was empty.";
     event!(Level::ERROR, message);
-    VoyagerError {
-      message,
+    Self {
+      message: message.to_string(),
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: None,
     }
   }
 
-  pub fn path_to_string() -> Self {
-    let message = format!("Failed to convert Path to String!");
+  fn path_to_string() -> Self {
+    let message = "Failed to convert Path to String!";
     event!(Level::ERROR, message);
-    VoyagerError {
-      message,
+    Self {
+      message: message.to_string(),
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: None,
     }

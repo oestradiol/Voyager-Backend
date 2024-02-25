@@ -35,22 +35,22 @@ pub async fn delete(name: String) -> Result<(), VoyagerError> {
 }
 
 impl VoyagerError {
-  pub fn delete_mongo(e: Error, name: &str) -> Self {
+  fn delete_mongo(e: Error, name: &str) -> Self {
     let message = format!("Failed to delete deployment named '{name}'! Error:{e}");
 
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: Some(e),
     }
   }
 
-  pub fn delete(name: &str) -> Self {
+  fn delete(name: &str) -> Self {
     let message = format!("Failed to find deployment named '{name}'!");
 
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::NOT_FOUND,
       source: None,

@@ -27,9 +27,9 @@ impl RuntimeSpawnHandled for Runtime {
 
 impl VoyagerError {
   pub fn spawn(task: &str, e: Error) -> Self {
-    let message = format!("Failed to complete task '{}'! Error: {e}", task);
+    let message = format!("Failed to complete task '{task}'! Error: {e}");
     event!(Level::ERROR, message);
-    VoyagerError {
+    Self {
       message,
       status_code: StatusCode::INTERNAL_SERVER_ERROR,
       source: Some(e),
