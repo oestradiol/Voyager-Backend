@@ -6,19 +6,26 @@ use crate::{
     cloudflare::remove_dns_record,
     docker::{delete_container, delete_image, is_container_running},
   },
-  types::{model::deployment::Deployment, view::delete_deployment::DeleteDeployment},
+  types::{
+    model::deployment::Deployment, other::voyager_error::VoyagerError,
+    view::delete_deployment::DeleteDeployment,
+  },
   utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 
-async fn delete(deployment: Deployment) -> Option<()> {
-  event!(Level::INFO, "Deleting deployment: {}", &deployment.container_name);
+async fn delete(deployment: Deployment) -> Result<(), VoyagerError> {
+  event!(
+    Level::INFO,
+    "Deleting deployment: {}",
+    &deployment.container_name
+  );
 
   let future = async move {
     let name = deployment.container_name;
 
     if is_container_running(name.clone()).await? {
-        event!(Level::ERROR, "Tried to delete container that is running");
-        return None;
+      event!(Level::ERROR, "Tried to delete container that is running");
+      return None;
     }
 
     delete_image(name.clone()).await?;

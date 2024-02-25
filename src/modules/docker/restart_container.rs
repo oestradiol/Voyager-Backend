@@ -1,12 +1,14 @@
+use axum::http::StatusCode;
 use bollard::container::StartContainerOptions;
 use tracing::{event, Level};
 
 use crate::{
   modules::docker::{DOCKER, DOCKER_RUNTIME},
-  utils::runtime_helpers::RuntimeSpawnHandled,
+  types::other::voyager_error::VoyagerError,
+  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 
-pub async fn restart_container(container_name: String) -> Option<()> {
+pub async fn restart_container(container_name: String) -> Result<(), VoyagerError> {
   event!(
     Level::INFO,
     "Restarting container with name: {}",
@@ -17,21 +19,22 @@ pub async fn restart_container(container_name: String) -> Option<()> {
     .spawn_handled("modules::docker::restart_container", async move {
       DOCKER.restart_container(&container_name, None).await
     })
-    .await
-    .map_or_else(
-      || None,
-      |r| {
-        r.map_or_else(
-          |e| {
-            event!(Level::ERROR, "Failed to restart container: {e}");
-            None
-          },
-          |()| Some(()),
-        )
-      },
-    );
+    .await?
+    .map_err(|e| VoyagerError::stop_container(Box::new(e)))?;
 
   event!(Level::DEBUG, "Done restarting container.");
 
-  result
+  Ok(())
+}
+
+impl VoyagerError {
+  pub fn restart_container(e: Error) -> Self {
+    let message = format!("Failed to restart container! Error: {e}");
+    event!(Level::ERROR, message);
+    VoyagerError {
+      message,
+      status_code: StatusCode::INTERNAL_SERVER_ERROR,
+      source: Some(e),
+    }
+  }
 }

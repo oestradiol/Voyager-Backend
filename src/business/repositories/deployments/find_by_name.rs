@@ -1,46 +1,50 @@
 use crate::{
   business::repositories::{DB_CONTEXT, REPOSITORIES_RUNTIME},
-  types::model::deployment::Deployment,
-  utils::runtime_helpers::RuntimeSpawnHandled,
-  utils::Error,
+  types::{model::deployment::Deployment, other::voyager_error::VoyagerError},
+  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
+use axum::http::StatusCode;
 use mongodb::bson::doc;
 use tracing::{event, Level};
 
-pub async fn find_by_name(name: String) -> Option<Deployment> {
+pub async fn find_by_name(name: String) -> Result<Deployment, VoyagerError> {
   event!(Level::DEBUG, "Finding deployment with name {}", &name);
 
-  let name_clone = name.clone();
-  let future = async move {
-    let result = DB_CONTEXT
-      .deployments
-      .find_one(doc! { "name": name }, None)
-      .await;
-
-    result
-      .map_err(Error::from) // MongoDB Error
-      .map(|d| d.ok_or_else(|| Error::from("Deployment not found"))) // 'None' Error
-      .and_then(|inner| inner) // Flatten
-  };
-
   let result = REPOSITORIES_RUNTIME
-    .spawn_handled("repositories::deployments::find_by_name", future)
-    .await;
+    .spawn_handled(
+      "repositories::deployments::find_by_name",
+      DB_CONTEXT
+        .deployments
+        .find_one(doc! { "name": &name }, None),
+    )
+    .await?;
 
-  result
-    .map(|r| {
-      r.map_or_else(
-        |e| {
-          event!(
-            Level::ERROR,
-            "Failed to find deployment with name {}: {}",
-            name_clone,
-            e
-          );
-          None
-        },
-        Some,
-      )
-    })
-    .and_then(|d| d)
+  result.map_or_else(
+    |e| Err(VoyagerError::find_mongo_name(Box::new(e), &name)),
+    |r| r.ok_or_else(|| VoyagerError::find_null_name(&name)),
+  )
+}
+
+impl VoyagerError {
+  pub fn find_mongo_name(e: Error, name: &str) -> Self {
+    let message = format!("Failed to find deployment named '{name}'! Error:{e}");
+
+    event!(Level::ERROR, message);
+    VoyagerError {
+      message,
+      status_code: StatusCode::INTERNAL_SERVER_ERROR,
+      source: Some(e),
+    }
+  }
+
+  pub fn find_null_name(name: &str) -> Self {
+    let message = format!("Failed to find deployment named '{name}'!");
+
+    event!(Level::ERROR, message);
+    VoyagerError {
+      message,
+      status_code: StatusCode::NOT_FOUND,
+      source: None,
+    }
+  }
 }

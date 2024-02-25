@@ -1,36 +1,39 @@
+use axum::http::StatusCode;
 use tracing::{event, Level};
 
 use crate::{
   modules::docker::{DOCKER, DOCKER_RUNTIME},
-  utils::runtime_helpers::RuntimeSpawnHandled,
+  types::other::voyager_error::VoyagerError,
+  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 
-pub async fn stop_container(container_name: String) -> Option<()> {
+pub async fn stop_container(container_name: String) -> Result<(), VoyagerError> {
   event!(
     Level::INFO,
     "Stopping container with name: {}",
     container_name
   );
 
-  let result = DOCKER_RUNTIME
+  DOCKER_RUNTIME
     .spawn_handled("modules::docker::stop_container", async move {
       DOCKER.stop_container(&container_name, None).await
     })
-    .await
-    .map_or_else(
-      || None,
-      |r| {
-        r.map_or_else(
-          |e| {
-            event!(Level::ERROR, "Failed to stop container: {e}");
-            None
-          },
-          |()| Some(()),
-        )
-      },
-    );
+    .await?
+    .map_err(|e| VoyagerError::stop_container(Box::new(e)))?;
 
   event!(Level::DEBUG, "Done stopping container.");
 
-  result
+  Ok(())
+}
+
+impl VoyagerError {
+  pub fn stop_container(e: Error) -> Self {
+    let message = format!("Failed to stop container! Error: {e}");
+    event!(Level::ERROR, message);
+    VoyagerError {
+      message,
+      status_code: StatusCode::INTERNAL_SERVER_ERROR,
+      source: Some(e),
+    }
+  }
 }

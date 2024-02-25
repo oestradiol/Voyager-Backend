@@ -1,7 +1,10 @@
+use axum::http::StatusCode;
 use regex::Regex;
 use tracing::{event, Level};
 
-pub fn find_internal_port(docker_file_content: &str) -> Option<u16> {
+use crate::types::other::voyager_error::VoyagerError;
+
+pub fn find_internal_port(docker_file_content: &str) -> Result<u16, VoyagerError> {
   event!(
     Level::DEBUG,
     "Retrieving internal docker port for docker file {}",
@@ -13,13 +16,19 @@ pub fn find_internal_port(docker_file_content: &str) -> Option<u16> {
     .unwrap()
     .find(docker_file_content)
     .map_or_else(
-      || {
-        event!(
-          Level::ERROR,
-          "Failed to parse internal port from docker file!"
-        );
-        None
-      },
-      |v| Some(v.as_str().parse::<u16>().unwrap()),
+      || Err(VoyagerError::parse_port()),
+      |v| Ok(v.as_str().parse::<u16>().unwrap()),
     )
+}
+
+impl VoyagerError {
+  pub fn parse_port() -> Self {
+    let message = "Failed to parse internal port from Dockerfile".to_string();
+    event!(Level::ERROR, message);
+    VoyagerError {
+      message,
+      status_code: StatusCode::INTERNAL_SERVER_ERROR,
+      source: None,
+    }
+  }
 }

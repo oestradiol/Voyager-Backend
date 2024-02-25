@@ -1,19 +1,22 @@
 use crate::{
   business::repositories::{DB_CONTEXT, REPOSITORIES_RUNTIME},
-  types::model::deployment::Deployment,
-  utils::runtime_helpers::RuntimeSpawnHandled,
-  utils::Error,
+  types::{model::deployment::Deployment, other::voyager_error::VoyagerError},
+  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
-use futures::{executor::block_on, future::OptionFuture};
+use axum::http::StatusCode;
+use futures::{executor::block_on, future::OptionFuture, TryFutureExt};
 use mongodb::{bson::doc, Cursor};
 use tracing::{event, Level};
 
 pub async fn retrieve_all(
   repo_url: Option<String>,
   branch: Option<String>,
-) -> Option<Vec<Deployment>> {
+) -> Result<Vec<Deployment>, VoyagerError> {
   let repo_and_branch = branch.clone().map_or(String::new(), |b| format!("@{b}"));
-  let repo_and_branch = repo_url.clone().map_or(String::new(), |r| format!("{r}{repo_and_branch}"));
+  let repo_and_branch = repo_url
+    .clone()
+    .map_or(String::new(), |r| format!("{r}{repo_and_branch}"));
+
   event!(
     Level::DEBUG,
     "Retrieving deployments from {repo_and_branch}"
@@ -26,22 +29,21 @@ pub async fn retrieve_all(
       .find(doc! {"repo_url": repo_url, "branch": branch}, None)
       .await
       .map_or_else(
-        |e| {
-          event!(Level::ERROR, "Failed to retrieve deployments: {}", e);
-          None
-        },
-        |mut cursor| Some(async move {
-          let mut list = Vec::new();
-          while cursor.advance().await.unwrap_or(false) {
-            if let Ok(crr) = cursor.deserialize_current() {
-              list.push(crr);
+        |e| Err(VoyagerError::retrieve_all(Box::new(e))),
+        |mut cursor| {
+          Ok(async move {
+            let mut list = Vec::new();
+            while cursor.advance().await.unwrap_or(false) {
+              if let Ok(crr) = cursor.deserialize_current() {
+                list.push(crr);
+              }
             }
-          }
-          list
-        }),
-      );
+            list
+          })
+        },
+      )?;
 
-    OptionFuture::from(result).await
+    Ok(result.await)
   };
 
   let result = REPOSITORIES_RUNTIME
@@ -49,7 +51,21 @@ pub async fn retrieve_all(
       "repositories::deployments::retrieve_all_by_repo_url_and_branch",
       future,
     )
-    .await;
+    .await??;
 
-  result.and_then(|c| c)
+  event!(Level::DEBUG, "Done retrieving deployments.");
+
+  Ok(result)
+}
+
+impl VoyagerError {
+  pub fn retrieve_all(e: Error) -> Self {
+    let message = format!("Failed to retrieve deployments! Error: {e}");
+    event!(Level::ERROR, message);
+    VoyagerError {
+      message,
+      status_code: StatusCode::INTERNAL_SERVER_ERROR,
+      source: Some(e),
+    }
+  }
 }

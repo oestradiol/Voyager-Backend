@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 
-use crate::utils::runtime_helpers::RuntimeSpawnHandled;
+use crate::{
+  types::other::voyager_error::VoyagerError,
+  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
+};
+use axum::http::StatusCode;
 use bollard::{
   container::{Config, CreateContainerOptions},
   service::{HostConfig, PortBinding},
@@ -15,7 +19,7 @@ pub async fn create_container(
   port: u16,
   internal_port: u16,
   docker_image: &str,
-) -> Option<String> {
+) -> Result<String, VoyagerError> {
   event!(
     Level::INFO,
     "Creating a new container {name} at port {port}. Docker Image: {docker_image}"
@@ -48,21 +52,25 @@ pub async fn create_container(
       "modules::docker::create_container",
       DOCKER.create_container(options, config),
     )
-    .await
-    .map(|res| match res {
-      Ok(res) => Some(res.id),
-      Err(err) => {
-        event!(
-          Level::ERROR,
-          "Failed to create Docker container! Error: {}",
-          err
-        );
-        None
-      }
-    })
-    .and_then(|res| res);
+    .await?
+    .map_or_else(
+      |e| Err(VoyagerError::create_container(Box::new(e))),
+      |res| Ok(res.id),
+    )?;
 
   event!(Level::DEBUG, "Done creating new container.");
 
-  result
+  Ok(result)
+}
+
+impl VoyagerError {
+  pub fn create_container(e: Error) -> Self {
+    let message = format!("Failed to create container! Error: {e}");
+    event!(Level::ERROR, message);
+    VoyagerError {
+      message,
+      status_code: StatusCode::INTERNAL_SERVER_ERROR,
+      source: Some(e),
+    }
+  }
 }

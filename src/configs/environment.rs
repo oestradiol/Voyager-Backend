@@ -19,6 +19,8 @@ lazy_static! {
     .expect_error(|e| format!("Failed to get Discord Webhook: {e}"));
   pub static ref GITHUB_ORG_NAME: String =
     std::env::var("GITHUB_ORG_NAME").unwrap_or_else(|_| "PinkCloudStudios".to_string());
+  pub static ref GITHUB_PAT: String =
+    std::env::var("GITHUB_PAT").expect_error(|e| format!("Failed to get GitHub PAT: {e}"));
   pub static ref DEPLOYMENTS_DIR: String =
     std::env::var("DEPLOYMENTS_DIR").unwrap_or_else(|_| "/var/opt/voyager/deployments".to_string());
   pub static ref STDOUT_LOG_SEVERITY: String =

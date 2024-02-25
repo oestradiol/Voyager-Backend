@@ -4,11 +4,11 @@ use tracing::{event, Level};
 
 use crate::{
   modules::docker::{DOCKER, DOCKER_RUNTIME},
-  utils::runtime_helpers::RuntimeSpawnHandled,
-  utils::Error,
+  types::other::voyager_error::VoyagerError,
+  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 
-pub async fn get_logs(container_name: &str) -> Option<Vec<String>> {
+pub async fn get_logs(container_name: &str) -> Result<Vec<String>, VoyagerError> {
   event!(
     Level::INFO,
     "Getting logs for container with name {}",
@@ -27,22 +27,20 @@ pub async fn get_logs(container_name: &str) -> Option<Vec<String>> {
       DOCKER
         .logs(container_name, Some(options))
         .fold(Vec::new(), |mut acc, i| async {
-          let it = i.map_err(Error::from); // Converts a possible Bollard Error into our type of Error
-
-          match it {
+          match i {
             Ok(d) => acc.push(d.to_string()),
-            Err(e) => event!(Level::ERROR, "Error trying to read logs: {:?}", e)
+            Err(e) => event!(Level::ERROR, "Error trying to read logs: {:?}", e),
           }
 
           acc
         }),
     )
-    .await;
+    .await?;
 
   event!(
     Level::DEBUG,
     "Done getting logs for container with name {container_name}"
   );
 
-  logs
+  Ok(logs)
 }
