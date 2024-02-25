@@ -57,22 +57,18 @@ pub async fn send_deployment_message(
 
 impl VoyagerError {
   fn create_discord_client(e: Error) -> Self {
-    let message = format!("Failed to create Discord client: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to create Discord client".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 
   fn execute_discord_webhook(e: Error) -> Self {
-    let message = format!("Failed to send Discord webhook: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to send Discord webhook".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 }

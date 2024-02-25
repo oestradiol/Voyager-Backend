@@ -60,12 +60,10 @@ pub async fn retrieve_all(
 
 impl VoyagerError {
   fn retrieve_all(e: Error) -> Self {
-    let message = format!("Failed to retrieve deployments! Error: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to retrieve deployments".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 }

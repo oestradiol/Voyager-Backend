@@ -25,12 +25,10 @@ fn _get_free_port() -> Result<u16, Error> {
 
 impl VoyagerError {
   fn get_free_port(e: Error) -> Self {
-    let message = format!("Failed to get free port: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to get free port".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 }

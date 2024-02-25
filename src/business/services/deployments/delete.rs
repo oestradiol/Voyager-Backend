@@ -48,12 +48,10 @@ async fn delete(deployment: Deployment) -> Result<(), VoyagerError> {
 
 impl VoyagerError {
   fn delete_running() -> Self {
-    let message = "Tried to delete container that is running";
-    event!(Level::ERROR, message);
-    Self {
-      message: message.to_string(),
-      status_code: StatusCode::BAD_REQUEST,
-      source: None,
-    }
+    Self::new(
+      "Tried to delete container that is running".to_string(),
+      StatusCode::BAD_REQUEST,
+      None,
+    )
   }
 }

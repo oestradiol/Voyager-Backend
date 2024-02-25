@@ -25,24 +25,18 @@ pub async fn find_by_id(id: String) -> Result<Deployment, VoyagerError> {
 
 impl VoyagerError {
   fn find_mongo_id(e: Error, id: &str) -> Self {
-    let message = format!("Failed to find deployment by id '{id}'! Error:{e}");
-
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      format!("Failed to find deployment by id '{id}'"),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 
   fn find_null_id(id: &str) -> Self {
-    let message = format!("Failed to find deployment by id '{id}'!");
-
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::NOT_FOUND,
-      source: None,
-    }
+    Self::new(
+      format!("Deployment not found. Id: '{id}'"),
+      StatusCode::NOT_FOUND,
+      None,
+    )
   }
 }

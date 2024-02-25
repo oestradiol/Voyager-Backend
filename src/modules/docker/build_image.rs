@@ -77,22 +77,18 @@ pub async fn build_image(
 
 impl VoyagerError {
   fn build_image() -> Self {
-    let message = "Failed to build image! Image Id was empty.";
-    event!(Level::ERROR, message);
-    Self {
-      message: message.to_string(),
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: None,
-    }
+    Self::new(
+      "Failed to build image! Image Id was empty".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      None,
+    )
   }
 
   fn path_to_string() -> Self {
-    let message = "Failed to convert Path to String!";
-    event!(Level::ERROR, message);
-    Self {
-      message: message.to_string(),
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: None,
-    }
+    Self::new(
+      "Failed to convert Path to String".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      None,
+    )
   }
 }

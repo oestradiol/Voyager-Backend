@@ -29,12 +29,10 @@ pub async fn restart_container(container_name: String) -> Result<(), VoyagerErro
 
 impl VoyagerError {
   fn restart_container(e: Error) -> Self {
-    let message = format!("Failed to restart container! Error: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to restart container".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 }

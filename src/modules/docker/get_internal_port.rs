@@ -23,12 +23,10 @@ pub fn find_internal_port(docker_file_content: &str) -> Result<u16, VoyagerError
 
 impl VoyagerError {
   fn parse_port() -> Self {
-    let message = "Failed to parse internal port from Dockerfile".to_string();
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: None,
-    }
+    Self::new(
+      "Failed to parse internal port from Dockerfile".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      None,
+    )
   }
 }

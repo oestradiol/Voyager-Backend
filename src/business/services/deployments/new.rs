@@ -71,12 +71,10 @@ pub async fn new(
 
 impl VoyagerError {
   fn dockerfile_read(e: Error) -> Self {
-    let message = format!("Failed to read Dockerfile contents: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to read Dockerfile contents".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 }

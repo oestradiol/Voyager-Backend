@@ -62,24 +62,19 @@ pub async fn remove_dns_record(dns_record: &str) -> Result<(), VoyagerError> {
 
 impl VoyagerError {
   fn cloudflare_remove_req(e: Error) -> Self {
-    let message = format!("Failed to send Remove DNS request to Cloudflare. Error: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to send Remove DNS request to Cloudflare".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 
   fn cloudflare_remove_deserialize(e: Error, status_code: reqwest::StatusCode) -> Self {
-    let message =
-      format!("Failed to deserialize Remove DNS request response from Cloudflare. Status was: {status_code}. Error: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to deserialize Remove DNS request response from Cloudflare".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 
   fn cloudflare_remove_failure(failure: &Failure, status_code: reqwest::StatusCode) -> Self {
@@ -89,13 +84,11 @@ impl VoyagerError {
       .fold(String::from("Cloudflare Errors:"), |acc, e| {
         format!("{acc}\n{e}")
       });
-    let message = format!("Failed to Remove DNS record. Status Code: {status_code}. {err}");
 
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: None,
-    }
+    Self::new(
+      format!("Failed to Remove DNS record. {err}"),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      None,
+    )
   }
 }

@@ -65,12 +65,10 @@ pub async fn create_container(
 
 impl VoyagerError {
   fn create_container(e: Error) -> Self {
-    let message = format!("Failed to create container! Error: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to create container".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 }

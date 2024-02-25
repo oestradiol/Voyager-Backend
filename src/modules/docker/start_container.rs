@@ -31,12 +31,10 @@ pub async fn start_container(container_name: String) -> Result<(), VoyagerError>
 
 impl VoyagerError {
   fn start_container(e: Error) -> Self {
-    let message = format!("Failed to start container! Error: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to start container".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 }

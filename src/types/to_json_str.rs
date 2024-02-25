@@ -12,12 +12,10 @@ pub fn to_json_str(obj: &(impl Serialize + std::fmt::Debug)) -> Result<String, V
 
 impl VoyagerError {
   pub fn to_json_str(obj: &(impl Serialize + std::fmt::Debug), e: Error) -> Self {
-    let message = format!("Failed to convert {obj:?} to json string! Error: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      format!("Failed to convert {obj:?} to json string"),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 }

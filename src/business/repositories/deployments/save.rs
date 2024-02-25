@@ -29,12 +29,10 @@ pub async fn save(deployment: Deployment) -> Result<Bson, VoyagerError> {
 
 impl VoyagerError {
   fn save(e: Error) -> Self {
-    let message = format!("Failed to save deployment! Error: {e}");
-    event!(Level::ERROR, message);
-    Self {
-      message,
-      status_code: StatusCode::INTERNAL_SERVER_ERROR,
-      source: Some(e),
-    }
+    Self::new(
+      "Failed to save deployment".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
   }
 }
