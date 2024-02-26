@@ -40,17 +40,24 @@ async fn main() {
   dotenv().expect_error(|e| format!("Failed to load .env file: {e}"));
 
   // Logging
-  std::env::set_var("RUST_LOG", &*STDOUT_LOG_SEVERITY);
+  std::env::set_var("RUST_SPANTRACE", "1");
   std::env::set_var("RUST_BACKTRACE", "1");
   std::env::set_var("RUST_LIB_BACKTRACE", "full");
-  tracing_subscriber::fmt::init();
   color_eyre::install().unwrap_or_default();
+
+  let level = match STDOUT_LOG_SEVERITY.as_str() {
+    "TRACE" => Level::TRACE,
+    "DEBUG" => Level::DEBUG,
+    "WARN" => Level::WARN,
+    "ERROR" => Level::ERROR,
+    _ => Level::INFO,
+  };
   let file_appender0 = tracing_appender::rolling::never(&*LOG_DIRECTORY, format!("{time_str}.log"));
-  let file_appender1 = tracing_appender::rolling::never(&*LOG_DIRECTORY, "latest.log");
   let (non_blocking0, _guard) = tracing_appender::non_blocking(file_appender0);
-  let (non_blocking1, _guard) = tracing_appender::non_blocking(file_appender1);
-  tracing_subscriber::fmt().with_writer(non_blocking0).init();
-  tracing_subscriber::fmt().with_writer(non_blocking1).init();
+  tracing_subscriber::fmt()
+    .with_max_level(level)
+    .with_writer(non_blocking0)
+    .init();
 
   // Defining sockets
   let sock_host = HOSTNAME

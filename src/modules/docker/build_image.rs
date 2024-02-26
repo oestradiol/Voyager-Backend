@@ -18,7 +18,7 @@ pub async fn build_image(
 ) -> Result<String, VoyagerError> {
   let dockerfile_str = dockerfile
     .to_str()
-    .ok_or_else(VoyagerError::path_to_string)?
+    .ok_or_else(VoyagerError::img_path_to_string)?
     .to_string();
 
   let options = BuildImageOptions {
@@ -84,7 +84,7 @@ impl VoyagerError {
     )
   }
 
-  fn path_to_string() -> Self {
+  fn img_path_to_string() -> Self {
     Self::new(
       "Failed to convert Path to String".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,

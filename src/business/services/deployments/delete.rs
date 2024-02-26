@@ -28,12 +28,11 @@ async fn delete(deployment: Deployment) -> Result<(), VoyagerError> {
       return Err(VoyagerError::delete_running());
     }
 
-    delete_image(name.clone()).await?;
+    delete_image(deployment.image_name).await?;
     delete_container(name.clone()).await?;
+    remove_dns_record(&deployment.dns_record_id).await?;
 
     repositories::deployments::delete(name).await?;
-
-    remove_dns_record(&deployment.dns_record_id).await?;
 
     // TODO: notify user via email
 
@@ -42,8 +41,7 @@ async fn delete(deployment: Deployment) -> Result<(), VoyagerError> {
 
   SERVICES_RUNTIME
     .spawn_handled("services::deployments::delete", future)
-    .await
-    .and_then(|f| f)
+    .await?
 }
 
 impl VoyagerError {

@@ -77,7 +77,7 @@ impl VoyagerError {
 
   fn cloudflare_add_deserialize(e: Error, status_code: reqwest::StatusCode) -> Self {
     Self::new(
-      "Failed to deserialize Add DNS request response from Cloudflare".to_string(),
+      format!("Failed to deserialize Add DNS request response from Cloudflare. Response was HTTP {status_code}"),
       StatusCode::INTERNAL_SERVER_ERROR,
       Some(e),
     )
@@ -92,7 +92,7 @@ impl VoyagerError {
       });
 
     Self::new(
-      format!("Failed to Add DNS Record. {err}"),
+      format!("Failed to Add DNS Record. Response was HTTP {status_code}. {err}"),
       StatusCode::INTERNAL_SERVER_ERROR,
       None,
     )

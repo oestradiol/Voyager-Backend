@@ -8,7 +8,11 @@ use mongodb::bson::Bson;
 use tracing::{event, Level};
 
 pub async fn save(deployment: Deployment) -> Result<Bson, VoyagerError> {
-  event!(Level::DEBUG, "Saving deployment...");
+  event!(
+    Level::DEBUG,
+    "Saving deployment named '{}' to database",
+    &deployment.container_name
+  );
 
   let result = REPOSITORIES_RUNTIME
     .spawn_handled(

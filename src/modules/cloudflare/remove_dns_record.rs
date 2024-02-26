@@ -71,7 +71,7 @@ impl VoyagerError {
 
   fn cloudflare_remove_deserialize(e: Error, status_code: reqwest::StatusCode) -> Self {
     Self::new(
-      "Failed to deserialize Remove DNS request response from Cloudflare".to_string(),
+      format!("Failed to deserialize Remove DNS request response from Cloudflare. Response was {status_code}"),
       StatusCode::INTERNAL_SERVER_ERROR,
       Some(e),
     )
@@ -86,7 +86,7 @@ impl VoyagerError {
       });
 
     Self::new(
-      format!("Failed to Remove DNS record. {err}"),
+      format!("Failed to Remove DNS record. Response was {status_code}. {err}"),
       StatusCode::INTERNAL_SERVER_ERROR,
       None,
     )

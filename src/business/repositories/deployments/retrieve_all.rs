@@ -19,7 +19,7 @@ pub async fn retrieve_all(
 
   event!(
     Level::DEBUG,
-    "Retrieving deployments from {repo_and_branch}"
+    "Retrieving deployments from {repo_and_branch} from database"
   );
 
   let future = async move {
@@ -53,7 +53,7 @@ pub async fn retrieve_all(
     )
     .await??;
 
-  event!(Level::DEBUG, "Done retrieving deployments.");
+  event!(Level::DEBUG, "Done retrieving deployments");
 
   Ok(result)
 }

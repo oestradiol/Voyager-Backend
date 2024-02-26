@@ -28,8 +28,6 @@ pub async fn send_deployment_message(
     "Sending deployment discord message for deployment"
   );
 
-  let mode = mode.to_string();
-
   let embed = CreateEmbed::new()
     .title(format!("[New {mode} deployment | {name}](https://{host})",))
     .description(format!("A new {mode} deployment has been created."))

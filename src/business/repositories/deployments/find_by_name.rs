@@ -8,7 +8,11 @@ use mongodb::bson::doc;
 use tracing::{event, Level};
 
 pub async fn find_by_name(name: String) -> Result<Deployment, VoyagerError> {
-  event!(Level::DEBUG, "Finding deployment with name {}", &name);
+  event!(
+    Level::DEBUG,
+    "Finding deployment with name {} in database",
+    &name
+  );
 
   let result = REPOSITORIES_RUNTIME
     .spawn_handled(
@@ -19,10 +23,14 @@ pub async fn find_by_name(name: String) -> Result<Deployment, VoyagerError> {
     )
     .await?;
 
-  result.map_or_else(
+  let result = result.map_or_else(
     |e| Err(VoyagerError::find_mongo_name(Box::new(e), &name)),
     |r| r.ok_or_else(|| VoyagerError::find_null_name(&name)),
-  )
+  )?;
+
+  event!(Level::DEBUG, "Done finding deployment");
+
+  Ok(result)
 }
 
 impl VoyagerError {

@@ -8,7 +8,11 @@ use mongodb::bson::doc;
 use tracing::{event, Level};
 
 pub async fn find_by_host(host: String) -> Result<Deployment, VoyagerError> {
-  event!(Level::DEBUG, "Finding deployment by host {}", &host);
+  event!(
+    Level::DEBUG,
+    "Finding deployment by host {} in database",
+    &host
+  );
 
   let result = REPOSITORIES_RUNTIME
     .spawn_handled(
@@ -19,10 +23,14 @@ pub async fn find_by_host(host: String) -> Result<Deployment, VoyagerError> {
     )
     .await?;
 
-  result.map_or_else(
+  let result = result.map_or_else(
     |e| Err(VoyagerError::find_mongo_host(Box::new(e), &host)),
     |r| r.ok_or_else(|| VoyagerError::find_null_host(&host)),
-  )
+  )?;
+
+  event!(Level::DEBUG, "Done finding deployment");
+
+  Ok(result)
 }
 
 impl VoyagerError {
