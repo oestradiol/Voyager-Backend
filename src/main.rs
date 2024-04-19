@@ -13,6 +13,10 @@
 use axum::{routing::get, Router};
 use chrono::{DateTime, Utc};
 use dotenv::dotenv;
+use tracing::level_filters::LevelFilter;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
+use tracing_subscriber::Layer;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::time::SystemTime;
 use tracing::{event, Level};
@@ -40,24 +44,7 @@ async fn main() {
   dotenv().expect_error(|e| format!("Failed to load .env file: {e}"));
 
   // Logging
-  std::env::set_var("RUST_SPANTRACE", "1");
-  std::env::set_var("RUST_BACKTRACE", "1");
-  std::env::set_var("RUST_LIB_BACKTRACE", "full");
-  color_eyre::install().unwrap_or_default();
-
-  let level = match STDOUT_LOG_SEVERITY.as_str() {
-    "TRACE" => Level::TRACE,
-    "DEBUG" => Level::DEBUG,
-    "WARN" => Level::WARN,
-    "ERROR" => Level::ERROR,
-    _ => Level::INFO,
-  };
-  let file_appender0 = tracing_appender::rolling::never(&*LOG_DIRECTORY, format!("{time_str}.log"));
-  let (non_blocking0, _guard) = tracing_appender::non_blocking(file_appender0);
-  tracing_subscriber::fmt()
-    .with_max_level(level)
-    .with_writer(non_blocking0)
-    .init();
+  init_logging(&time_str);
 
   // Defining sockets
   let sock_host = HOSTNAME
@@ -85,6 +72,32 @@ async fn main() {
 
 async fn status() -> &'static str {
   "Voyager is Up!"
+}
+
+fn init_logging(time_str: &str) {
+  std::env::set_var("RUST_SPANTRACE", "1");
+  std::env::set_var("RUST_BACKTRACE", "1");
+  std::env::set_var("RUST_LIB_BACKTRACE", "full");
+  color_eyre::install().unwrap_or_default();
+
+  let level_filter = match STDOUT_LOG_SEVERITY.as_str() {
+    "TRACE" => LevelFilter::TRACE,
+    "DEBUG" => LevelFilter::DEBUG,
+    "WARN" => LevelFilter::WARN,
+    "ERROR" => LevelFilter::ERROR,
+    _ => LevelFilter::INFO,
+  };
+
+  let file_appender0 =
+    tracing_appender::rolling::minutely(&*LOG_DIRECTORY, format!("{time_str}.log"));
+  let (non_blocking0, _guard) = tracing_appender::non_blocking(file_appender0);
+
+  let stdout_log = tracing_subscriber::fmt::layer().pretty();
+  let debug_log = tracing_subscriber::fmt::layer().with_writer(non_blocking0);
+
+  tracing_subscriber::registry()
+    .with(stdout_log.and_then(debug_log).with_filter(level_filter))
+    .init();
 }
 
 //// TODO:

@@ -11,7 +11,7 @@ pub fn get_free_port() -> Result<u16, VoyagerError> {
   event!(Level::INFO, "Attempting to get free port");
   let port = _get_free_port().map_err(VoyagerError::get_free_port)?;
 
-  event!(Level::INFO, "Succcessfully got free port: {port}");
+  event!(Level::INFO, "Successfully got free port: {port}");
   Ok(port)
 }
 

@@ -26,6 +26,7 @@ pub struct Deployment {
   pub internal_port: u16,
   pub mode: Mode,
   pub host: String,
+  pub directory: String,
   pub repo_url: String,
   pub branch: String,
 }

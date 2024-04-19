@@ -1,38 +1,40 @@
+use std::str::FromStr;
+
 use crate::utils::ExpectError;
 use lazy_static::lazy_static;
 
 lazy_static! {
-  pub static ref HOSTNAME: String =
-    std::env::var("HOSTNAME").unwrap_or_else(|_| "127.0.0.1".to_string());
-  pub static ref PORT: String = std::env::var("PORT").unwrap_or_else(|_| "8765".to_string());
+  pub static ref HOSTNAME: String = var_opt("HOSTNAME").unwrap_or_else(|| "127.0.0.1".to_string());
+  pub static ref PORT: String = var_opt("PORT").unwrap_or_else(|| "8765".to_string());
   pub static ref HOST_IP: String =
-    std::env::var("HOST_IP").unwrap_or_else(|_| "host.docker.internal".to_string());
-  pub static ref CLOUDFLARE_API_TOKEN: String = std::env::var("CLOUDFLARE_API_TOKEN")
-    .expect_error(|e| format!("Failed to get Cloudflare API Token: {e}"));
-  pub static ref CLOUDFLARE_ZONE: String = std::env::var("CLOUDFLARE_ZONE")
-    .expect_error(|e| format!("Failed to get Cloudflare Zone: {e}"));
-  pub static ref CLOUDFLARE_TARGET: String = std::env::var("CLOUDFLARE_TARGET")
-    .expect_error(|e| format!("Failed to get Cloudflare Target: {e}"));
-  pub static ref API_KEY: String =
-    std::env::var("API_KEY").expect_error(|e| format!("Failed to get API Key: {e}"));
-  pub static ref DISCORD_WEBHOOK: String = std::env::var("DISCORD_WEBHOOK")
-    .expect_error(|e| format!("Failed to get Discord Webhook: {e}"));
+    var_opt("HOST_IP").unwrap_or_else(|| "host.docker.internal".to_string());
+  pub static ref CLOUDFLARE_API_TOKEN: String = var("CLOUDFLARE_API_TOKEN");
+  pub static ref CLOUDFLARE_ZONE: String = var("CLOUDFLARE_ZONE");
+  pub static ref CLOUDFLARE_TARGET: String = var("CLOUDFLARE_TARGET");
+  pub static ref API_KEY: String = var("API_KEY");
+  pub static ref DISCORD_WEBHOOK: String = var("DISCORD_WEBHOOK");
   pub static ref GITHUB_ORG_NAME: String =
-    std::env::var("GITHUB_ORG_NAME").unwrap_or_else(|_| "PinkCloudStudios".to_string());
-  pub static ref GITHUB_PAT: String =
-    std::env::var("GITHUB_PAT").expect_error(|e| format!("Failed to get GitHub PAT: {e}"));
+    var_opt("GITHUB_ORG_NAME").unwrap_or_else(|| "PinkCloudStudios".to_string());
+  pub static ref GITHUB_PAT: String = var("GITHUB_PAT");
   pub static ref DEPLOYMENTS_DIR: String =
-    std::env::var("DEPLOYMENTS_DIR").unwrap_or_else(|_| "/var/opt/voyager/deployments".to_string());
+    var_opt("DEPLOYMENTS_DIR").unwrap_or_else(|| "/var/opt/voyager/deployments".to_string());
   pub static ref STDOUT_LOG_SEVERITY: String =
-    std::env::var("STDOUT_LOG_SEVERITY").unwrap_or_else(|_| "INFO".to_string());
+    var_opt("STDOUT_LOG_SEVERITY").unwrap_or_else(|| "INFO".to_string());
   pub static ref LOG_DIRECTORY: String =
-    std::env::var("LOG_DIRECTORY").unwrap_or_else(|_| "/var/log/voyager".to_string());
-  pub static ref MONGO_CONN_STR: String = std::env::var("MONGO_CONN_STR")
-    .expect_error(|e| format!("Failed to get MongoDB Connection String: {e}"));
-  pub static ref MONGO_DB_NAME: String = std::env::var("MONGO_DB_NAME")
-    .expect_error(|e| format!("Failed to get Mongo Database Name: {e}"));
-  pub static ref DEVELOPMENT: bool = std::env::var("DEVELOPMENT").map_or_else(
-    |_| false,
-    |v| { matches!(v.to_lowercase().as_str(), "true") }
-  );
+    var_opt("LOG_DIRECTORY").unwrap_or_else(|| "/var/log/voyager".to_string());
+  pub static ref MONGO_CONN_STR: String = var("MONGO_CONN_STR");
+  pub static ref MONGO_DB_NAME: String = var("MONGO_DB_NAME");
+  pub static ref DEVELOPMENT: bool = var_opt("DEVELOPMENT").unwrap_or(false);
+}
+
+fn var<T: FromStr>(name: &'static str) -> T {
+  std::env::var(name)
+    .unwrap_or_else(|_| panic!("Couldn't find env variable {name}"))
+    .parse::<T>()
+    .ok()
+    .unwrap_or_else(|| panic!("Couldn't parse env variable {name}"))
+}
+
+fn var_opt<T: FromStr>(name: &'static str) -> Option<T> {
+  std::env::var(name).ok()?.parse::<T>().ok()
 }

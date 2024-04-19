@@ -1,8 +1,11 @@
+use std::{fs, path::PathBuf};
+
 use axum::http::StatusCode;
 use tracing::{event, Level};
 
 use crate::{
   business::{repositories, services::SERVICES_RUNTIME},
+  configs::environment::DEPLOYMENTS_DIR,
   modules::{
     cloudflare::remove_dns_record,
     docker::{delete_container, delete_image, is_container_running},
@@ -34,6 +37,10 @@ async fn delete(deployment: Deployment) -> Result<(), VoyagerError> {
 
     repositories::deployments::delete(name).await?;
 
+    tokio::fs::remove_dir_all(PathBuf::from(&*DEPLOYMENTS_DIR).join(&deployment.directory))
+      .await
+      .map_err(|e| VoyagerError::delete_dir(Box::new(e)))?;
+
     // TODO: notify user via email
 
     Ok(())
@@ -45,6 +52,14 @@ async fn delete(deployment: Deployment) -> Result<(), VoyagerError> {
 }
 
 impl VoyagerError {
+  fn delete_dir(e: Error) -> Self {
+    Self::new(
+      "Failed to delete deployment directory".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
+  }
+
   fn delete_running() -> Self {
     Self::new(
       "Tried to delete container that is running".to_string(),

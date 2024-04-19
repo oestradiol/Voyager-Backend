@@ -1,11 +1,11 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::business::repositories::deployments::save;
 use crate::business::services::SERVICES_RUNTIME;
-use crate::configs::environment::HOST_IP;
+use crate::configs::environment::{DEPLOYMENTS_DIR, HOST_IP};
 use crate::modules::discord::send_deployment_message;
-use crate::modules::{cloudflare, traefik};
+use crate::modules::{cloudflare, git, traefik};
 use crate::types::model::deployment;
 use crate::types::other::voyager_error::VoyagerError;
 use crate::utils::get_free_port;
@@ -22,23 +22,41 @@ use crate::{
 };
 
 pub async fn new(
-  dockerfile: PathBuf,
   host: String,
   mode: deployment::Mode,
-  directory: String,
   repo_url: String,
-  branch: String,
+  branch: Option<String>,
 ) -> Result<Bson, VoyagerError> {
-  event!(Level::INFO, "Creating deployment with host {host}, Dockerfile {:?}, mode {mode}, directory {directory}, repo_url {repo_url}, branch {branch}", &dockerfile);
+  let mut final_branch = "default".to_string();
+
+  let mut log = format!("Creating deployment with host {host}, mode {mode}, repo_url {repo_url}");
+  if let Some(branch) = branch.clone() {
+    final_branch.clone_from(&branch);
+    log = format!("{log}, branch {branch}");
+  } else {
+    log = format!("{log}, branch default");
+  }
+  event!(Level::INFO, log);
 
   let future = async move {
+    let directory = format!(
+      "{}_{final_branch}_{}",
+      repo_url.replace('/', "_"),
+      Uuid::new_v4()
+    );
+
+    let dir_as_path = PathBuf::from(&*DEPLOYMENTS_DIR).join(&directory);
+    git::clone(&repo_url, branch, &dir_as_path)?;
+
+    let dockerfile = dir_as_path.join("Dockerfile");
+
     let dockerfile_contents =
       fs::read_to_string(&dockerfile).map_err(|e| VoyagerError::dockerfile_read(Box::new(e)))?;
 
     let internal_port = docker::find_internal_port(dockerfile_contents.as_str())?;
     let free_port = get_free_port()?;
 
-    let name = host.replace('.', "");
+    let name = host.replace('.', "_");
     let traefik_labels = traefik::gen_traefik_labels(&name, &host, internal_port);
 
     let dns_record_id = cloudflare::add_dns_record(&host, &HOST_IP, &mode).await?;
@@ -56,8 +74,9 @@ pub async fn new(
       internal_port,
       mode,
       host: host.to_string(),
+      directory,
       repo_url: repo_url.to_string(),
-      branch: branch.to_string(),
+      branch: final_branch,
     };
 
     let db_id = save(deployment).await?;

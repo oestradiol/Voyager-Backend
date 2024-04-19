@@ -21,7 +21,7 @@ pub async fn list(
 
   SERVICES_RUNTIME
     .spawn_handled(
-      "services::deployments::get",
+      "services::deployments::list",
       repositories::deployments::retrieve_all(repo_url, branch),
     )
     .await?

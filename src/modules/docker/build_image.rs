@@ -52,13 +52,10 @@ pub async fn build_image(
             .and_then(|i| {
               i.ok_or_else(|| Error::from("Error trying to build docker image. Stream was empty."))
             }) // Converts the Option<String> into a Result<String, Error>
-            .map_or_else(
-              |e| {
-                event!(Level::ERROR, "Error trying to build docker image: {:?}", e);
-                acc
-              },
-              |d| d,
-            ) // Logs the error then returns the previous value of acc or simply returns the Image Id, phew!
+            .unwrap_or_else(|e| {
+              event!(Level::ERROR, "Error trying to build docker image: {:?}", e);
+              acc
+            }) // Logs the error then returns the previous value of acc or simply returns the Image Id, phew!
         })
         .await
     })
