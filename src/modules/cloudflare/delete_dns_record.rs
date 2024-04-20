@@ -12,7 +12,7 @@ use crate::utils::http_client::ensure_success::EnsureSuccess;
 use crate::utils::http_client::http_error::HttpError;
 use crate::utils::Error;
 
-pub async fn remove_dns_record(dns_record: &str) -> Result<(), VoyagerError> {
+pub async fn delete_dns_record(dns_record: &str) -> Result<(), VoyagerError> {
   if *DEVELOPMENT {
     return Ok(());
   }
@@ -44,7 +44,7 @@ pub async fn remove_dns_record(dns_record: &str) -> Result<(), VoyagerError> {
       response = res.unwrap().data().unwrap();
       status = status_code;
     },
-    Err(HttpError::<Value> { response: Some(Deserializable::Data(val)), status_code: Some(status_code), .. }) => {
+    Err(HttpError::<Value> { response: Some(Deserializable::Value(val)), status_code: Some(status_code), .. }) => {
       response = val;
       status = status_code;
     },
@@ -56,22 +56,30 @@ pub async fn remove_dns_record(dns_record: &str) -> Result<(), VoyagerError> {
   event!(Level::DEBUG, "Done sending request to Cloudflare");
 
   let json = serde_json::from_value::<Success>(response.clone());
-  if let Ok(success) = json {
-    let id = success.result.id;
-    event!(
-      Level::DEBUG,
-      "Cloudflare request was successful with id: {}",
-      id
-    );
-    Ok(())
-  } else {
-    let failure = serde_json::from_value::<Failure>(response)
-      .map_err(|e| VoyagerError::cloudflare_remove_deserialize(Box::new(e), status))?;
+  match json {
+    Ok(success) => {
+      if let Some(data) = success.result {
+        event!(
+          Level::DEBUG,
+          "Cloudflare request was successful with id: {}",
+          data.id
+        );
+      } else {
+        event!(
+          Level::DEBUG,
+          "Cloudflare request was successful, but no id was returned..?",
+        );
+      }
+      Ok(())
+    },
+    Err(e) => {
+      event!(Level::DEBUG, "Failed to deserialize Remove DNS request Success response from Cloudflare. Attempting to deserialise Failure instead. {e}");
 
-    Err(VoyagerError::cloudflare_remove_failure(
-      &failure,
-      status,
-    ))
+      let failure = serde_json::from_value::<Failure>(response.clone())
+        .map_err(|e| VoyagerError::cloudflare_remove_deserialize(Box::new(e), status, response))?;
+
+      Err(VoyagerError::cloudflare_remove_failure(&failure, status))
+    },
   }
 }
 
@@ -84,9 +92,9 @@ impl VoyagerError {
     )
   }
 
-  fn cloudflare_remove_deserialize(e: Error, status_code: reqwest::StatusCode) -> Self {
+  fn cloudflare_remove_deserialize(e: Error, status_code: reqwest::StatusCode, response: Value) -> Self {
     Self::new(
-      format!("Failed to deserialize Remove DNS request response from Cloudflare. Response was {status_code}"),
+      format!("Failed to deserialize Remove DNS request response from Cloudflare. Response was {status_code}. Value: {response}"),
       StatusCode::INTERNAL_SERVER_ERROR,
       Some(e),
     )

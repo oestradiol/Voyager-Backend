@@ -1,9 +1,9 @@
 mod add_dns_record;
-mod remove_dns_record;
+mod delete_dns_record;
 mod types;
 
 pub use add_dns_record::*;
-pub use remove_dns_record::*;
+pub use delete_dns_record::*;
 pub use types::*;
 
 use lazy_static::lazy_static;

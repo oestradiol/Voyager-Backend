@@ -5,7 +5,7 @@ use crate::modules::cloudflare::types::cloudflare_responses::{CloudflareError, C
 pub struct Success {
   pub errors: Vec<CloudflareError>,
   pub messages: Vec<CloudflareMessage>,
-  pub result: Data,
+  pub result: Option<Data>,
   pub success: bool,
 }
 

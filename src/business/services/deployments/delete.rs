@@ -7,7 +7,7 @@ use crate::{
   business::{repositories, services::SERVICES_RUNTIME},
   configs::environment::DEPLOYMENTS_DIR,
   modules::{
-    cloudflare::remove_dns_record,
+    cloudflare::delete_dns_record,
     docker::{delete_container, delete_image, is_container_running},
   },
   types::{
@@ -28,7 +28,7 @@ pub async fn delete(deployment_id: String) -> Result<(), VoyagerError> {
       return Err(VoyagerError::delete_running());
     }
 
-    remove_dns_record(&deployment.dns_record_id).await?;
+    delete_dns_record(&deployment.dns_record_id).await?;
     
     delete_container(name.clone()).await?;
     delete_image(deployment.image_name).await?;

@@ -5,7 +5,7 @@ use crate::modules::cloudflare::types::cloudflare_responses::{CloudflareError, C
 pub struct Success {
   pub errors: Vec<CloudflareError>,
   pub messages: Vec<CloudflareMessage>,
-  pub result: Data,
+  pub result: Option<Data>,
   pub success: bool,
 }
 
@@ -31,7 +31,8 @@ pub struct Data {
 #[derive(Debug, Deserialize)]
 pub struct Meta {
   pub auto_added: bool,
-  pub source: String
+  pub managed_by_apps: bool,
+  pub managed_by_argo_tunnel: bool,
 }
 
 #[derive(Debug, Deserialize)]

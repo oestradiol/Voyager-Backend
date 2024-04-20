@@ -38,7 +38,6 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String,
   };
 
   let route = format!("zones/{}/dns_records", &*CLOUDFLARE_ZONE);
-
   let result = CLOUDFLARE_CLIENT
     .write()
     .await
@@ -55,7 +54,7 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String,
       response = res.unwrap().data().unwrap();
       status = status_code;
     },
-    Err(HttpError::<Value> { response: Some(Deserializable::Data(val)), status_code: Some(status_code), .. }) => {
+    Err(HttpError::<Value> { response: Some(Deserializable::Value(val)), status_code: Some(status_code), .. }) => {
       response = val;
       status = status_code;
     },
@@ -67,23 +66,38 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String,
   event!(Level::DEBUG, "Done sending request to Cloudflare");
 
   let json = serde_json::from_value::<Success>(response.clone());
-  if let Ok(success) = json {
-    let id = success.result.id;
-    event!(
-      Level::DEBUG,
-      "Cloudflare request was successful with id: {}",
-      id
-    );
-    Ok(id)
-  } else {
-    let failure = serde_json::from_value::<Failure>(response)
-      .map_err(|e| VoyagerError::cloudflare_add_deserialize(Box::new(e), status))?;
+  match json {
+    Ok(success) => {
+      if let Some(data) = success.result {
+        event!(
+          Level::DEBUG,
+          "Cloudflare request was successful with id: {}",
+          data.id
+        );
+        return Ok(data.id);
+      }
+      Err(VoyagerError::cloudflare_get_add_id())
+    },
+    Err(e) => {
+      event!(Level::DEBUG, "Failed to deserialize Add DNS request Success response from Cloudflare. Attempting to deserialise Failure instead. {e}");
 
-    Err(VoyagerError::cloudflare_add_failure(&failure, status))
+      let failure = serde_json::from_value::<Failure>(response.clone())
+        .map_err(|e| VoyagerError::cloudflare_add_deserialize(Box::new(e), status, response))?;
+
+      Err(VoyagerError::cloudflare_add_failure(&failure, status))
+    },
   }
 }
 
 impl VoyagerError {
+  fn cloudflare_get_add_id() -> Self {
+    Self::new(
+      "Error: Cloudflare DNS Record Added ID was null!".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      None,
+    )
+  }
+
   fn cloudflare_add_req(e: Error) -> Self {
     Self::new(
       "Failed to send Add DNS request to Cloudflare".to_string(),
@@ -92,9 +106,9 @@ impl VoyagerError {
     )
   }
 
-  fn cloudflare_add_deserialize(e: Error, status_code: reqwest::StatusCode) -> Self {
+  fn cloudflare_add_deserialize(e: Error, status_code: reqwest::StatusCode, response: Value) -> Self {
     Self::new(
-      format!("Failed to deserialize Add DNS request response from Cloudflare. Response was HTTP {status_code}"),
+      format!("Failed to deserialize Add DNS request response from Cloudflare. Response was HTTP {status_code}. Value: {response}"),
       StatusCode::INTERNAL_SERVER_ERROR,
       Some(e),
     )
