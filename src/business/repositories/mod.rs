@@ -32,7 +32,5 @@ impl DbContext {
 lazy_static! {
   pub static ref REPOSITORIES_RUNTIME: Runtime =
     Runtime::new().expect_error(|e| format!("Failed to initialize Repositories Runtime: {e}"));
-  pub static ref DB_CONTEXT: DbContext =
-    executor::block_on(REPOSITORIES_RUNTIME.spawn(DbContext::init()))
-      .expect_error(|e| format!("Failed to initialize Database Context: {e}"));
+  pub static ref DB_CONTEXT: DbContext = executor::block_on(DbContext::init());
 }

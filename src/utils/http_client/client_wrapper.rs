@@ -2,6 +2,7 @@ use crate::utils::Error;
 use reqwest::header::HeaderMap;
 use reqwest::{Client, Method, Response};
 use serde::Serialize;
+use tracing::{event, Level};
 use url::Url;
 
 pub struct ClientWrapper {
@@ -23,6 +24,7 @@ impl ClientWrapper {
     body: Option<&T>,
   ) -> Result<Response, Error> {
     let uri = self.uri.join(route).map_err(Error::from)?;
+    event!(Level::DEBUG, "Sending request to: {uri}");
 
     let client = self
       .client

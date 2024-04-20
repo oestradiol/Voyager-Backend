@@ -1,4 +1,5 @@
 use axum::http::StatusCode;
+use git2::Status;
 use serde_json::Value;
 use tracing::{event, Level};
 
@@ -9,8 +10,10 @@ use crate::modules::cloudflare::types::dns_record::DnsRecord;
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
 use crate::types::model::deployment::Mode;
 use crate::types::other::voyager_error::VoyagerError;
+use crate::utils::http_client::deserializable::Deserializable;
 use crate::utils::http_client::ensure_success::EnsureSuccess;
-use crate::utils::Error;
+use crate::utils::http_client::http_error::HttpError;
+use crate::utils::{http_client, Error};
 
 pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String, VoyagerError> {
   if *DEVELOPMENT {
@@ -30,24 +33,38 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String,
     name: host.to_string(),
     proxied: true,
     record_type: "A".to_string(),
-    ttl: 1,
     comment: format!("Voyager {mode:?} for {host}"),
+    ttl: 1,
   };
 
-  let route = format!("zones/{}/dns_records", *CLOUDFLARE_ZONE);
+  let route = format!("zones/{}/dns_records", &*CLOUDFLARE_ZONE);
 
-  let (response, status_code) = CLOUDFLARE_CLIENT
+  let result = CLOUDFLARE_CLIENT
     .write()
     .await
     .post::<Value>(route.as_str(), Some(&dns_record))
     .await
-    .ensure_success(false)
-    .map_err(|e| VoyagerError::cloudflare_add_req(Box::new(e)))?;
+    .ensure_success(false);
+
+  let mut response: Value;
+  let mut status: StatusCode;
   // These are already checked by the .ensure_success(false) + is_success checks above
   #[allow(clippy::unwrap_used)]
-  let response = response.unwrap().data().unwrap();
+  match result {
+    Ok((res, status_code)) => {
+      response = res.unwrap().data().unwrap();
+      status = status_code;
+    },
+    Err(HttpError::<Value> { response: Some(Deserializable::Data(val)), status_code: Some(status_code), .. }) => {
+      response = val;
+      status = status_code;
+    },
+    Err(e) => {
+      return Err(VoyagerError::cloudflare_add_req(Box::new(e)));
+    },
+  }
 
-  event!(Level::DEBUG, "Request sent to Cloudflare");
+  event!(Level::DEBUG, "Done sending request to Cloudflare");
 
   let json = serde_json::from_value::<Success>(response.clone());
   if let Ok(success) = json {
@@ -60,9 +77,9 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String,
     Ok(id)
   } else {
     let failure = serde_json::from_value::<Failure>(response)
-      .map_err(|e| VoyagerError::cloudflare_add_deserialize(Box::new(e), status_code))?;
+      .map_err(|e| VoyagerError::cloudflare_add_deserialize(Box::new(e), status))?;
 
-    Err(VoyagerError::cloudflare_add_failure(&failure, status_code))
+    Err(VoyagerError::cloudflare_add_failure(&failure, status))
   }
 }
 

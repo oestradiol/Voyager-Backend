@@ -1,12 +1,12 @@
 use serde::Deserialize;
 
+use std::{error::Error, fmt};
+
 #[derive(Debug, Deserialize)]
 pub struct CloudflareMessage {
   pub code: i32,
   pub message: String,
 }
-
-use std::{error::Error, fmt};
 
 #[derive(Debug, Deserialize)]
 pub struct CloudflareError {

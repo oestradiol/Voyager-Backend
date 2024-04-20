@@ -1,4 +1,4 @@
-use axum::{extract::Query, http::StatusCode, response::IntoResponse};
+use axum::{extract::Path, http::StatusCode, response::IntoResponse};
 use futures::Future;
 use std::collections::HashMap;
 
@@ -12,7 +12,7 @@ use crate::{
 
 use crate::types::to_json_str;
 
-pub async fn get(Query(queries): Query<HashMap<String, String>>) -> impl IntoResponse {
+pub async fn get(Path(queries): Path<HashMap<String, String>>) -> impl IntoResponse {
   let id_opt = queries.get("deploymentId").cloned();
 
   let inner = || async {
@@ -57,14 +57,8 @@ pub async fn get(Query(queries): Query<HashMap<String, String>>) -> impl IntoRes
   (
     res.0,
     res.1.unwrap_or_else(|_| {
-      "{
-  \"logs\": {
-    \"message\": \"Internal Server Error\",
-    \"errors\": []
-  },
-  \"deployment\": null,
-}"
-      .to_string()
+      "{\"logs\":{\"message\":\"Internal Server Error\",\"errors\":[]},\"deployment\":null}"
+        .to_string()
     }),
   )
 }

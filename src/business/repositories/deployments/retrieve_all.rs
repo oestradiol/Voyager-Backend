@@ -19,14 +19,28 @@ pub async fn retrieve_all(
 
   event!(
     Level::DEBUG,
-    "Retrieving deployments from {repo_and_branch} from database"
+    "Retrieving deployments from database: {repo_and_branch}"
   );
 
   let future = async move {
+    let document = if let Some(repo_url) = repo_url {
+      if let Some(branch) = branch {
+        doc! {
+          "repo_url": repo_url,
+          "branch": branch
+        }
+      } else {
+        doc! {
+          "repo_url": repo_url
+        }
+      }
+    } else {
+      doc! { }
+    };
+
     let result = DB_CONTEXT
       .deployments
-      // TODO: test for null value
-      .find(doc! {"repo_url": repo_url, "branch": branch}, None)
+      .find(document, None)
       .await
       .map_or_else(
         |e| Err(VoyagerError::retrieve_all(Box::new(e))),

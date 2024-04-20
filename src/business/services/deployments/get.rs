@@ -9,10 +9,14 @@ use crate::utils::runtime_helpers::RuntimeSpawnHandled;
 pub async fn get(id: String) -> Result<Deployment, VoyagerError> {
   event!(Level::INFO, "Retrieving deployment. Id: {id}");
 
-  SERVICES_RUNTIME
+  let result = SERVICES_RUNTIME
     .spawn_handled(
       "services::deployments::get",
       repositories::deployments::find_by_id(id),
     )
-    .await?
+    .await?;
+
+  event!(Level::DEBUG, "Done retrieving deployment.");
+
+  result
 }

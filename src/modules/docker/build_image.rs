@@ -1,32 +1,27 @@
 use crate::{
-  types::other::voyager_error::VoyagerError,
-  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
+  configs::environment::DEVELOPMENT, types::other::voyager_error::VoyagerError, utils::{runtime_helpers::RuntimeSpawnHandled, Error}
 };
 use axum::http::StatusCode;
 use bollard::image::BuildImageOptions;
 use futures::StreamExt;
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, io::Read, path::Path};
 
 use super::{DOCKER, DOCKER_RUNTIME};
 use tracing::{event, Level};
 
 /// Builds docker image, then returns the image id
 pub async fn build_image(
-  dockerfile: &Path,
+  tar: &Path,
   labels: &[(String, String)],
   extra_hosts: Option<String>,
 ) -> Result<String, VoyagerError> {
-  let dockerfile_str = dockerfile
-    .to_str()
-    .ok_or_else(VoyagerError::img_path_to_string)?
-    .to_string();
-
   let options = BuildImageOptions {
-    dockerfile: dockerfile_str.clone(),
+    dockerfile: "Dockerfile".to_string(),
     extrahosts: extra_hosts,
     q: true,
+    forcerm: true,
     memory: Some(700 * 1024 * 1024),  // 700MiB
-    memswap: Some(500 * 1024 * 1024), // 500MiB
+    memswap: Some(701 * 1024 * 1024), // 701MiB
     labels: labels.iter().fold(HashMap::new(), |mut acc, p| {
       acc.insert(p.0.clone(), p.1.clone());
       acc
@@ -41,21 +36,24 @@ pub async fn build_image(
     &options.dockerfile
   );
 
+  let contents = tokio::fs::read(tar).await
+    .map_err(|e| VoyagerError::file_read_error(Box::new(e)))?;
   let result = DOCKER_RUNTIME
     .spawn_handled("modules::docker::build_image", async move {
       DOCKER
-        .build_image(options, None, None)
+        .build_image(options, None, Some(contents.into()))
         .fold(String::new(), |acc, i| async {
-          i.map_err(Error::from) // Converts a possible Bollard Error into our type of Error
-            .map(|i| i.aux.map(|i| i.id))
-            .map(|i| i.and_then(|i| i)) // Flattens the Option<Option<String>> into an Option<String>
-            .and_then(|i| {
-              i.ok_or_else(|| Error::from("Error trying to build docker image. Stream was empty."))
-            }) // Converts the Option<String> into a Result<String, Error>
+          i.map(|build_info| {
+              if !&*DEVELOPMENT {
+                event!(Level::INFO, "Response: {:?}", build_info.stream.unwrap_or_else(|| "".to_string()));
+              }
+              build_info.id
+            })
+            .map(|i| i.unwrap_or_else(|| acc.clone())) 
             .unwrap_or_else(|e| {
-              event!(Level::ERROR, "Error trying to build docker image: {:?}", e);
+              VoyagerError::intermediate_build_image(Box::new(e));
               acc
-            }) // Logs the error then returns the previous value of acc or simply returns the Image Id, phew!
+            })
         })
         .await
     })
@@ -73,6 +71,22 @@ pub async fn build_image(
 }
 
 impl VoyagerError {
+  fn file_read_error(e: Error) -> Self {
+    Self::new(
+      "Failed to read tar file!".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
+  }
+
+  fn intermediate_build_image(e: Error) -> Self {
+    Self::new(
+      "Error during Docker Image Build intermediate steps".to_string(),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
+  }
+
   fn build_image() -> Self {
     Self::new(
       "Failed to build image! Image Id was empty".to_string(),

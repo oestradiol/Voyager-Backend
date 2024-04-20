@@ -10,7 +10,7 @@ use crate::{
 
 pub async fn is_container_running(container_name: String) -> Result<bool, VoyagerError> {
   event!(
-    Level::DEBUG,
+    Level::INFO,
     "Checking if container with name {container_name} is running"
   );
 
@@ -27,7 +27,7 @@ pub async fn is_container_running(container_name: String) -> Result<bool, Voyage
     .and_then(|r| r)
     .ok_or_else(VoyagerError::empty_state)?;
 
-  event!(Level::INFO, "Done checking if container is running");
+  event!(Level::DEBUG, "Done checking if container is running");
 
   Ok(result)
 }

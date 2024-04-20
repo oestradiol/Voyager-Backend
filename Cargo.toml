@@ -1,6 +1,6 @@
 [package]
 name = "voyager-backend"
-version = "0.1.0"
+version = "0.0.1"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -17,17 +17,19 @@ dotenv = "^0.15"
 reqwest = { version = "^0.12", features = ["blocking", "json"] }
 lazy_static = "^1.4"
 tracing = "^0.1"
-tracing-subscriber = "^0.3"
+tracing-subscriber = "^0.3" # features = ["env-filter"]
 tracing-appender = "^0.2"
 color-eyre = "^0.6"
 chrono = "^0.4"
-bollard = "^0.16"
+bollard = { version = "^0.16", features = ["buildkit"] }
 serenity = "^0.12"
 url = "^2.5"
 paste = "^1.0"
 regex = "^1.0"
 uuid = { version = "^1.7", features = ["v4", "fast-rng", "macro-diagnostics"] }
 git2 = "^0.18"
+tar = "^0.4"
+flate2 = "^1.0"
 
 [target.'cfg(unix)'.dependencies]
 jemallocator = "0.5"

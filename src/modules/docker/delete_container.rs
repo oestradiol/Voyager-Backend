@@ -22,7 +22,7 @@ pub async fn delete_container(container_name: String) -> Result<(), VoyagerError
     .await?
     .map_err(|e| VoyagerError::delete_container(Box::new(e)))?;
 
-  event!(Level::INFO, "Done deleting container");
+  event!(Level::DEBUG, "Done deleting container");
 
   Ok(())
 }

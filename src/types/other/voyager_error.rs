@@ -18,7 +18,7 @@ impl fmt::Display for VoyagerError {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     let message = format!(
       "Voyager Status Code: {}. {}.",
-      self.message, self.status_code
+      self.status_code, self.message
     );
 
     if let Some(source) = &self.source {

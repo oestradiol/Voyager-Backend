@@ -15,7 +15,11 @@ pub async fn get_logs(id: String) -> Result<Vec<String>, VoyagerError> {
     docker::get_logs(&deployment.container_name).await
   };
 
-  SERVICES_RUNTIME
+  let result = SERVICES_RUNTIME
     .spawn_handled("services::deployments::get_logs", future)
-    .await?
+    .await?;
+
+  event!(Level::DEBUG, "Done retrieving deployment logs.");
+
+  result
 }

@@ -10,16 +10,17 @@
   clippy::unwrap_used
 )]
 
+use axum::routing::{delete, post};
 use axum::{routing::get, Router};
 use chrono::{DateTime, Utc};
 use dotenv::dotenv;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::time::SystemTime;
 use tracing::level_filters::LevelFilter;
+use tracing::{event, Level};
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::time::SystemTime;
-use tracing::{event, Level};
 
 use crate::configs::environment::{HOSTNAME, LOG_DIRECTORY, PORT, STDOUT_LOG_SEVERITY};
 use crate::utils::ExpectError;
@@ -37,14 +38,11 @@ static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 #[tokio::main]
 async fn main() {
-  let time: DateTime<Utc> = SystemTime::now().into();
-  let time_str = time.to_rfc3339();
-
   // .env
   dotenv().expect_error(|e| format!("Failed to load .env file: {e}"));
 
   // Logging
-  init_logging(&time_str);
+  init_logging();
 
   // Defining sockets
   let sock_host = HOSTNAME
@@ -61,7 +59,17 @@ async fn main() {
     sock_addr.to_string()
   );
 
-  let app = Router::new().route("/status", get(status));
+  let app = Router::new()
+    .route("/status", get(status))
+    .route("/deployments", post(controllers::deployments::create))
+    .route("/deployments", get(controllers::deployments::list))
+    .route("/deployments/:id", get(controllers::deployments::get))
+    .route("/deployments/:id", delete(controllers::deployments::delete))
+    .route(
+      "/deployments/:id/logs",
+      post(controllers::deployments::get_logs),
+    );
+
   let listener = tokio::net::TcpListener::bind(sock_addr)
     .await
     .expect_error(|e| format!("Failed to bind to socket! Error: {e}"));
@@ -74,7 +82,7 @@ async fn status() -> &'static str {
   "Voyager is Up!"
 }
 
-fn init_logging(time_str: &str) {
+fn init_logging() {
   std::env::set_var("RUST_SPANTRACE", "1");
   std::env::set_var("RUST_BACKTRACE", "1");
   std::env::set_var("RUST_LIB_BACKTRACE", "full");
@@ -89,14 +97,19 @@ fn init_logging(time_str: &str) {
   };
 
   let file_appender0 =
-    tracing_appender::rolling::minutely(&*LOG_DIRECTORY, format!("{time_str}.log"));
+    tracing_appender::rolling::minutely(&*LOG_DIRECTORY, format!("Voyager.log"));
   let (non_blocking0, _guard) = tracing_appender::non_blocking(file_appender0);
 
+    // as a deny filter (DEBUG, but remove noisy logs)
+  // let bollard_filter = EnvFilter::builder()
+  //   .with_default_directive(LevelFilter::DEBUG.into())
+  //   .from_env().map_err(|e| Error::from(e))?
+  //   .add_directive("bollard=debug".parse().map_err(|e| Error::from(e))?);
   let stdout_log = tracing_subscriber::fmt::layer().pretty();
   let debug_log = tracing_subscriber::fmt::layer().with_writer(non_blocking0);
 
   tracing_subscriber::registry()
-    .with(stdout_log.and_then(debug_log).with_filter(level_filter))
+    .with(stdout_log.and_then(debug_log).with_filter(level_filter)) // .with_filter(bollard_filter)
     .init();
 }
 

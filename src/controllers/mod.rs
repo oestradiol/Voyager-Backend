@@ -1,4 +1,4 @@
-mod deployments;
+pub mod deployments;
 
 use axum::{
   routing::{delete, get, post},

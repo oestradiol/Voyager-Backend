@@ -3,7 +3,10 @@ use crate::modules::cloudflare::types::cloudflare_responses::{CloudflareError, C
 
 #[derive(Debug, Deserialize)]
 pub struct Success {
+  pub errors: Vec<CloudflareError>,
+  pub messages: Vec<CloudflareMessage>,
   pub result: Data,
+  pub success: bool,
 }
 
 #[derive(Debug, Deserialize)]

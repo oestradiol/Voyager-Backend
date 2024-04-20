@@ -48,7 +48,8 @@ pub async fn send_deployment_message(
   let message = msg.map_or(String::new(), |msg| {
     format!("Returned message is: {}", msg.content)
   });
-  event!(Level::INFO, "Discord webhook sent successfuly! {}", message);
+
+  event!(Level::DEBUG, "Done sending Discord Webhook: {}", message);
 
   Ok(())
 }

@@ -17,49 +17,39 @@ use crate::{
   utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 
-async fn delete(deployment: Deployment) -> Result<(), VoyagerError> {
-  event!(
-    Level::INFO,
-    "Deleting deployment: {}",
-    &deployment.container_name
-  );
+pub async fn delete(deployment_id: String) -> Result<(), VoyagerError> {
+  event!(Level::INFO, "Deleting deployment: {}", &deployment_id);
 
   let future = async move {
+    let deployment = repositories::deployments::find_by_id(deployment_id).await?;
     let name = deployment.container_name;
 
     if is_container_running(name.clone()).await? {
       return Err(VoyagerError::delete_running());
     }
 
-    delete_image(deployment.image_name).await?;
-    delete_container(name.clone()).await?;
     remove_dns_record(&deployment.dns_record_id).await?;
+    
+    delete_container(name.clone()).await?;
+    delete_image(deployment.image_name).await?;
 
     repositories::deployments::delete(name).await?;
-
-    tokio::fs::remove_dir_all(PathBuf::from(&*DEPLOYMENTS_DIR).join(&deployment.directory))
-      .await
-      .map_err(|e| VoyagerError::delete_dir(Box::new(e)))?;
 
     // TODO: notify user via email
 
     Ok(())
   };
 
-  SERVICES_RUNTIME
+  let result = SERVICES_RUNTIME
     .spawn_handled("services::deployments::delete", future)
-    .await?
+    .await?;
+
+  event!(Level::DEBUG, "Done deleting deployment.");
+
+  result
 }
 
 impl VoyagerError {
-  fn delete_dir(e: Error) -> Self {
-    Self::new(
-      "Failed to delete deployment directory".to_string(),
-      StatusCode::INTERNAL_SERVER_ERROR,
-      Some(e),
-    )
-  }
-
   fn delete_running() -> Self {
     Self::new(
       "Tried to delete container that is running".to_string(),

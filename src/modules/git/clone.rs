@@ -7,7 +7,7 @@ use std::path::Path;
 use tracing::{event, Level};
 
 use crate::{
-  configs::environment::{GITHUB_ORG_NAME, GITHUB_PAT},
+  configs::environment::{GIT_PAT, GIT_USERNAME},
   types::other::voyager_error::VoyagerError,
   utils::Error,
 };
@@ -17,18 +17,17 @@ pub fn clone(
   repo_branch: Option<String>,
   repo_path: &Path,
 ) -> Result<Repository, VoyagerError> {
-  let name = GITHUB_ORG_NAME.as_ref();
-  if !repo_url.starts_with(name) {
-    return Err(VoyagerError::repository_not_owned(repo_url));
-  }
+  event!(Level::INFO, "Cloning repository: {}", repo_url);
 
-  let pat = GITHUB_PAT.as_ref();
-  let repo_url = format!("https://github.com/{repo_url}.git");
+  let username = GIT_USERNAME.as_ref();
+
+  let pat = GIT_PAT.as_ref();
+  let repo_url = format!("https://git.lunarlabs.cc/{repo_url}.git");
 
   // Configure authentication
   let mut callbacks = RemoteCallbacks::new();
   callbacks.credentials(|_url, _username_from_url, _allowed_types| {
-    git2::Cred::userpass_plaintext(name, pat)
+    git2::Cred::userpass_plaintext(username, pat)
   });
 
   // Prepare fetch options.
@@ -45,21 +44,16 @@ pub fn clone(
   }
 
   // Clone
-  builder
+  let result = builder
     .clone(&repo_url, repo_path)
-    .map_err(|e| VoyagerError::clone(Box::new(e)))
+    .map_err(|e| VoyagerError::clone(Box::new(e)));
+
+  event!(Level::DEBUG, "Done cloning repository.");
+
+  result
 }
 
 impl VoyagerError {
-  fn repository_not_owned(repo_url: &str) -> Self {
-    let name: &str = GITHUB_ORG_NAME.as_ref();
-    Self::new(
-      format!("Repository {repo_url} is not owned by {name}"),
-      StatusCode::BAD_REQUEST,
-      None,
-    )
-  }
-
   fn clone(e: Error) -> Self {
     Self::new(
       "Failed to clone git repository!".to_string(),

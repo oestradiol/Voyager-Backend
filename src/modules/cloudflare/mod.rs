@@ -21,8 +21,8 @@ lazy_static! {
     #[allow(clippy::unwrap_used)] // Should never fail
     headers.insert(CONTENT_TYPE, "application/json".parse().unwrap());
     #[allow(clippy::unwrap_used)] // Should never fail
-    headers.insert(AUTHORIZATION, CLOUDFLARE_API_TOKEN.clone().parse().unwrap());
-    HTTPClient::new("https://api.cloudflare.com/client/v4", Some(headers)).map_or_else(
+    headers.insert(AUTHORIZATION, format!("Bearer {}", &*CLOUDFLARE_API_TOKEN).parse().unwrap());
+    HTTPClient::new("https://api.cloudflare.com/client/v4/", Some(headers)).map_or_else(
       |e| panic!("Failed to create API client: {e}"),
       |k| Arc::new(RwLock::new(k)),
     )

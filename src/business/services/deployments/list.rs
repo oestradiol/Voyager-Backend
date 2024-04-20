@@ -19,10 +19,14 @@ pub async fn list(
   }
   event!(Level::INFO, log);
 
-  SERVICES_RUNTIME
+  let result = SERVICES_RUNTIME
     .spawn_handled(
       "services::deployments::list",
       repositories::deployments::retrieve_all(repo_url, branch),
     )
-    .await?
+    .await?;
+
+  event!(Level::DEBUG, "Done retrieving deployments.");
+
+  result
 }

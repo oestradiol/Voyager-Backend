@@ -22,7 +22,7 @@ pub async fn delete_image(image_name: String) -> Result<(), VoyagerError> {
     .await?
     .map_err(|e| VoyagerError::remove_image(Box::new(e)))?;
 
-  event!(Level::INFO, "Done deleting image");
+  event!(Level::DEBUG, "Done deleting image");
 
   Ok(())
 }

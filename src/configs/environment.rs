@@ -6,16 +6,13 @@ use lazy_static::lazy_static;
 lazy_static! {
   pub static ref HOSTNAME: String = var_opt("HOSTNAME").unwrap_or_else(|| "127.0.0.1".to_string());
   pub static ref PORT: String = var_opt("PORT").unwrap_or_else(|| "8765".to_string());
-  pub static ref HOST_IP: String =
-    var_opt("HOST_IP").unwrap_or_else(|| "host.docker.internal".to_string());
+  pub static ref HOST_IP: String = var("HOST_IP");
   pub static ref CLOUDFLARE_API_TOKEN: String = var("CLOUDFLARE_API_TOKEN");
   pub static ref CLOUDFLARE_ZONE: String = var("CLOUDFLARE_ZONE");
-  pub static ref CLOUDFLARE_TARGET: String = var("CLOUDFLARE_TARGET");
   pub static ref API_KEY: String = var("API_KEY");
   pub static ref DISCORD_WEBHOOK: String = var("DISCORD_WEBHOOK");
-  pub static ref GITHUB_ORG_NAME: String =
-    var_opt("GITHUB_ORG_NAME").unwrap_or_else(|| "PinkCloudStudios".to_string());
-  pub static ref GITHUB_PAT: String = var("GITHUB_PAT");
+  pub static ref GIT_USERNAME: String = var("GIT_USERNAME");
+  pub static ref GIT_PAT: String = var("GIT_PAT");
   pub static ref DEPLOYMENTS_DIR: String =
     var_opt("DEPLOYMENTS_DIR").unwrap_or_else(|| "/var/opt/voyager/deployments".to_string());
   pub static ref STDOUT_LOG_SEVERITY: String =

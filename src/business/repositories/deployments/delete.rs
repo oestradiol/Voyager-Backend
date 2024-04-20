@@ -22,7 +22,7 @@ pub async fn delete(name: String) -> Result<(), VoyagerError> {
     )
     .await?;
 
-  result.map_or_else(
+  let result = result.map_or_else(
     |e| Err(VoyagerError::delete_mongo(Box::new(e), &name)),
     |r| {
       if r.deleted_count == 0 {
@@ -31,7 +31,14 @@ pub async fn delete(name: String) -> Result<(), VoyagerError> {
         Ok(())
       }
     },
-  )
+  );
+
+  event!(
+    Level::DEBUG,
+    "Done deleting deployment."
+  );
+
+  result
 }
 
 impl VoyagerError {

@@ -3,3 +3,4 @@ pub mod discord;
 pub mod docker;
 pub mod git;
 pub mod traefik;
+pub mod tar;
