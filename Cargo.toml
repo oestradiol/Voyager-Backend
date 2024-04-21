@@ -30,6 +30,7 @@ uuid = { version = "^1.7", features = ["v4", "fast-rng", "macro-diagnostics"] }
 git2 = "^0.18"
 tar = "^0.4"
 flate2 = "^1.0"
+async-trait = "^0.1"
 
 [target.'cfg(unix)'.dependencies]
 jemallocator = "0.5"

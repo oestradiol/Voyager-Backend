@@ -13,7 +13,6 @@ use tracing::{event, Level};
 
 use super::{DOCKER, DOCKER_RUNTIME};
 
-/// Creates container and returns id if successful
 pub async fn create_container(
   name: String,
   port: u16,
