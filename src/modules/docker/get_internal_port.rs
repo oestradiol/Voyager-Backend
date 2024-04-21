@@ -28,7 +28,6 @@ pub fn find_internal_port(docker_file_content: &str) -> Result<u16, VoyagerError
   results.first()
     .ok_or_else(|| VoyagerError::parse_port(None))
     .and_then(|r| r.clone().map_err(|e| VoyagerError::parse_port(Some(Box::new(e)))))
-    .map(|port| port.clone())
 }
 
 impl VoyagerError {

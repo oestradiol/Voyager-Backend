@@ -2,7 +2,7 @@ use serde::Deserialize;
 use crate::modules::cloudflare::types::cloudflare_responses::{CloudflareError, CloudflareMessage};
 
 #[derive(Debug, Deserialize)]
-pub struct Success {
+pub struct OkResponse {
   pub errors: Vec<CloudflareError>,
   pub messages: Vec<CloudflareMessage>,
   pub result: Option<Data>,
@@ -15,7 +15,7 @@ pub struct Data {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Failure {
+pub struct FailureResponse {
   pub errors: Vec<CloudflareError>,
   pub messages: Vec<CloudflareMessage>,
   pub success: bool,

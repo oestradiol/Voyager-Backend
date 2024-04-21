@@ -23,20 +23,12 @@ pub async fn retrieve_all(
   );
 
   let future = async move {
-    let document = if let Some(repo_url) = repo_url {
-      if let Some(branch) = branch {
-        doc! {
-          "repo_url": repo_url,
-          "branch": branch
-        }
-      } else {
-        doc! {
-          "repo_url": repo_url
-        }
-      }
-    } else {
-      doc! { }
-    };
+    let document = repo_url
+      .map_or_else(|| doc! { }, |repo_url|
+        branch.map_or_else(|| doc! {"repo_url": repo_url.clone()}, |branch|
+          doc! {"repo_url": repo_url.clone(), "branch": branch}
+        )
+      );
 
     let result = DB_CONTEXT
       .deployments

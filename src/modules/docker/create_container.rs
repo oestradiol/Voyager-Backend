@@ -31,7 +31,7 @@ pub async fn create_container(
 
   let host_config = HostConfig {
     port_bindings: Some(HashMap::from([(
-      internal_port.to_string(),
+      format!("{}/tcp", internal_port),
       Some(vec![PortBinding {
         host_ip: Some("127.0.0.1".to_string()),
         host_port: Some(port.to_string()),

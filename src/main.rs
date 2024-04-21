@@ -65,10 +65,7 @@ async fn main() {
     .route("/deployments", get(controllers::deployments::list))
     .route("/deployments/:id", get(controllers::deployments::get))
     .route("/deployments/:id", delete(controllers::deployments::delete))
-    .route(
-      "/deployments/:id/logs",
-      post(controllers::deployments::get_logs),
-    );
+    .route("/deployments/:id/logs", get(controllers::deployments::get_logs));
 
   let listener = tokio::net::TcpListener::bind(sock_addr)
     .await

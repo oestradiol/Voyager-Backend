@@ -41,18 +41,17 @@ pub async fn build_image(
     .spawn_handled("modules::docker::build_image", async move {
       DOCKER
         .build_image(options, None, Some(contents.into()))
-        .fold(String::new(), |acc, i| async {
+        .fold(String::new(), |acc, i| async move {
           i.map(|build_info| {
               if !&*DEVELOPMENT {
-                event!(Level::INFO, "Response: {:?}", build_info.stream.unwrap_or_else(|| "".to_string()));
+                event!(Level::INFO, "Response: {:?}", build_info.stream.unwrap_or_default());
               }
               build_info.aux.map(|i| i.id).and_then(|i| i)
             })
-            .map(|i| i.unwrap_or_else(|| acc.clone())) 
-            .unwrap_or_else(|e| {
+            .map_or_else(|e| {
               VoyagerError::intermediate_build_image(Box::new(e));
-              acc
-            })
+              acc.clone()
+            }, |i| i.unwrap_or_else(|| acc.clone())) 
         })
         .await
     })

@@ -17,7 +17,7 @@ use crate::{
 use crate::types::to_json_str;
 
 pub async fn get_logs(Path(queries): Path<HashMap<String, String>>) -> impl IntoResponse {
-  let id_opt = queries.get("deploymentId").cloned();
+  let id_opt = queries.get("id").cloned();
 
   let inner = || async {
     let Some(id) = id_opt else {

@@ -4,7 +4,7 @@ use serde_json::Value;
 use tracing::{event, Level};
 
 use crate::configs::environment::{CLOUDFLARE_ZONE, DEVELOPMENT};
-use crate::modules::cloudflare::types::add_dns_record::{Failure, Success};
+use crate::modules::cloudflare::types::add_dns_record::{FailureResponse, OkResponse};
 use crate::modules::cloudflare::types::cloudflare_responses::CloudflareError;
 use crate::modules::cloudflare::types::dns_record::DnsRecord;
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
@@ -65,7 +65,7 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String,
 
   event!(Level::DEBUG, "Done sending request to Cloudflare");
 
-  let json = serde_json::from_value::<Success>(response.clone());
+  let json = serde_json::from_value::<OkResponse>(response.clone());
   match json {
     Ok(success) => {
       if let Some(data) = success.result {
@@ -81,8 +81,8 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String,
     Err(e) => {
       event!(Level::DEBUG, "Failed to deserialize Add DNS request Success response from Cloudflare. Attempting to deserialise Failure instead. {e}");
 
-      let failure = serde_json::from_value::<Failure>(response.clone())
-        .map_err(|e| VoyagerError::cloudflare_add_deserialize(Box::new(e), status, response))?;
+      let failure = serde_json::from_value::<FailureResponse>(response.clone())
+        .map_err(|e| VoyagerError::cloudflare_add_deserialize(Box::new(e), status, &response))?;
 
       Err(VoyagerError::cloudflare_add_failure(&failure, status))
     },
@@ -106,7 +106,7 @@ impl VoyagerError {
     )
   }
 
-  fn cloudflare_add_deserialize(e: Error, status_code: reqwest::StatusCode, response: Value) -> Self {
+  fn cloudflare_add_deserialize(e: Error, status_code: reqwest::StatusCode, response: &Value) -> Self {
     Self::new(
       format!("Failed to deserialize Add DNS request response from Cloudflare. Response was HTTP {status_code}. Value: {response}"),
       StatusCode::INTERNAL_SERVER_ERROR,
@@ -114,7 +114,7 @@ impl VoyagerError {
     )
   }
 
-  fn cloudflare_add_failure(failure: &Failure, status_code: reqwest::StatusCode) -> Self {
+  fn cloudflare_add_failure(failure: &FailureResponse, status_code: reqwest::StatusCode) -> Self {
     let err = failure
       .errors
       .iter()
