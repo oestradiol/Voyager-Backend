@@ -1,6 +1,5 @@
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::path::PathBuf;
 
 use crate::business::repositories;
 use crate::business::repositories::deployments::save;
@@ -12,12 +11,10 @@ use crate::types::model::deployment;
 use crate::types::other::voyager_error::VoyagerError;
 use crate::utils::get_free_port;
 use crate::utils::runtime_helpers::RuntimeSpawnHandled;
-use crate::{business::repositories::deployments, modules::docker};
+use crate::modules::docker;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use mongodb::bson::oid::ObjectId;
-use mongodb::bson::Bson;
-use tokio::sync::Mutex;
 use tracing::{event, Level};
 use uuid::Uuid;
 
@@ -179,7 +176,7 @@ impl Command for GitClone {
   async fn undo(&self) {
     if let Some(dir_as_path) = &self.dir_as_path {
       if dir_as_path.exists() {
-        tokio::fs::remove_dir_all(dir_as_path)
+        let _ = tokio::fs::remove_dir_all(dir_as_path)
           .await
           .map_err(|e| VoyagerError::delete_file_or_dir(Box::new(e)));
       }
@@ -223,7 +220,7 @@ impl Command for CreateTar {
   async fn undo(&self) {
     if let Some(tar_path) = &self.tar_path {
       if tar_path.exists() {
-        tokio::fs::remove_file(tar_path)
+        let _ = tokio::fs::remove_file(tar_path)
           .await
           .map_err(|e| VoyagerError::delete_file_or_dir(Box::new(e)));
       }
@@ -280,7 +277,7 @@ impl Command for CreateImage {
   }
   async fn undo(&self) {
     if let Some(image_name) = &self.image_name {
-      docker::delete_image(image_name.clone()).await;
+      let _ = docker::delete_image(image_name.clone()).await;
     }
   }
 }
@@ -333,7 +330,7 @@ impl Command for CreateContainer {
   }
 
   async fn undo(&self) {
-    docker::delete_container(self.container_name.clone()).await;
+    let _ = docker::delete_container(self.container_name.clone()).await;
   }
 }
 
@@ -368,7 +365,7 @@ impl Command for StartContainer {
   }
 
   async fn undo(&self) {
-    docker::stop_container(self.container_name.clone()).await;
+    let _ = docker::stop_container(self.container_name.clone()).await;
   }
 }
 
@@ -411,7 +408,7 @@ impl Command for AddDNSRecord {
 
   async fn undo(&self) {
     if let Some(dns_record_id) = &self.dns_record_id {
-      cloudflare::delete_dns_record(dns_record_id).await;
+      let _ = cloudflare::delete_dns_record(dns_record_id).await;
     }
   }
 }
@@ -460,7 +457,7 @@ impl Command for SaveDeployment {
 
   async fn undo(&self) {
     if let Some(deployment_id) = &self.deployment_id {
-      repositories::deployments::delete(deployment_id.clone()).await;
+      let _ = repositories::deployments::delete(deployment_id.clone()).await;
     }
   }
 }

@@ -20,7 +20,6 @@ mod is_container_running;
 pub use is_container_running::*;
 
 mod restart_container;
-pub use restart_container::*;
 
 mod start_container;
 pub use start_container::*;
@@ -32,7 +31,7 @@ use crate::utils::Error;
 use crate::utils::ExpectError;
 
 use bollard::Docker;
-use futures::{executor, FutureExt, TryFutureExt};
+use futures::{executor, TryFutureExt};
 use lazy_static::lazy_static;
 use tokio::runtime::Runtime;
 

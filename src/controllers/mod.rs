@@ -5,7 +5,7 @@ use axum::{
   Router,
 };
 
-trait ConfigureRoutes {
+pub trait ConfigureRoutes {
   fn configure_routes(self) -> Self;
 }
 impl ConfigureRoutes for Router {
@@ -15,11 +15,11 @@ impl ConfigureRoutes for Router {
       Self::new().nest(
         "/deployments",
         Self::new()
-          .route("/", get(deployments::list))
-          .route("/", post(deployments::create))
-          .route("/:deploymentId", get(deployments::get))
-          .route("/:deploymentId", delete(deployments::delete))
-          .route("/:deploymentId/logs", get(deployments::get_logs)),
+        .route("/", post(deployments::create))
+        .route("/", get(deployments::list))
+        .route("/:id", get(deployments::get))
+        .route("/:id", delete(deployments::delete))
+        .route("/:id/logs", get(deployments::get_logs)),
       ),
     )
   }

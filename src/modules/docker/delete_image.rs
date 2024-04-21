@@ -3,7 +3,6 @@ use crate::types::other::voyager_error::VoyagerError;
 use crate::utils::runtime_helpers::RuntimeSpawnHandled;
 use crate::utils::Error;
 use axum::http::StatusCode;
-use bollard::container::RemoveContainerOptions;
 use bollard::image::RemoveImageOptions;
 use tracing::{event, Level};
 

@@ -4,8 +4,7 @@ use crate::{
   utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 use axum::http::StatusCode;
-use futures::{executor::block_on, future::OptionFuture, TryFutureExt};
-use mongodb::{bson::doc, Cursor};
+use mongodb::bson::doc;
 use tracing::{event, Level};
 
 pub async fn retrieve_all(

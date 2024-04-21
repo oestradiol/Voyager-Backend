@@ -4,7 +4,7 @@ use crate::{
 use axum::http::StatusCode;
 use bollard::image::BuildImageOptions;
 use futures::StreamExt;
-use std::{collections::HashMap, io::Read, path::Path};
+use std::{collections::HashMap, path::Path};
 
 use super::{DOCKER, DOCKER_RUNTIME};
 use tracing::{event, Level};
@@ -88,14 +88,6 @@ impl VoyagerError {
   fn build_image() -> Self {
     Self::new(
       "Failed to build image! Image Id was empty".to_string(),
-      StatusCode::INTERNAL_SERVER_ERROR,
-      None,
-    )
-  }
-
-  fn img_path_to_string() -> Self {
-    Self::new(
-      "Failed to convert Path to String".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
       None,
     )

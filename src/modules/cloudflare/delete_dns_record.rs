@@ -3,7 +3,6 @@ use serde_json::Value;
 use tracing::{event, Level};
 
 use crate::configs::environment::{CLOUDFLARE_ZONE, DEVELOPMENT};
-use crate::modules::cloudflare::types::cloudflare_responses::CloudflareError;
 use crate::modules::cloudflare::types::delete_dns_record::{FailureResponse, OkResponse};
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
 use crate::types::other::voyager_error::VoyagerError;
@@ -35,8 +34,8 @@ pub async fn delete_dns_record(dns_record: &str) -> Result<(), VoyagerError> {
     .await
     .ensure_success(false);
 
-  let mut response: Value;
-  let mut status: StatusCode;
+  let response: Value;
+  let status: StatusCode;
   // These are already checked by the .ensure_success(false) + is_success checks above
   #[allow(clippy::unwrap_used)]
   match result {

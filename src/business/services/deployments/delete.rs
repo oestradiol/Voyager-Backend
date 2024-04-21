@@ -1,20 +1,13 @@
-use std::{fs, path::PathBuf};
-
-use axum::http::StatusCode;
 use tracing::{event, Level};
 
 use crate::{
   business::{repositories, services::SERVICES_RUNTIME},
-  configs::environment::DEPLOYMENTS_DIR,
   modules::{
     cloudflare::delete_dns_record,
     docker::{self, delete_container, delete_image, is_container_running},
   },
-  types::{
-    model::deployment::Deployment, other::voyager_error::VoyagerError,
-    view::delete_deployment::DeleteDeployment,
-  },
-  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
+  types::other::voyager_error::VoyagerError,
+  utils::runtime_helpers::RuntimeSpawnHandled,
 };
 
 pub async fn delete(deployment_id: String) -> Result<(), VoyagerError> {
@@ -47,14 +40,4 @@ pub async fn delete(deployment_id: String) -> Result<(), VoyagerError> {
   event!(Level::DEBUG, "Done deleting deployment.");
 
   result
-}
-
-impl VoyagerError {
-  fn delete_running() -> Self {
-    Self::new(
-      "Tried to delete container that is running".to_string(),
-      StatusCode::BAD_REQUEST,
-      None,
-    )
-  }
 }

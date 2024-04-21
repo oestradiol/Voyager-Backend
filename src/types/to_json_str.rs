@@ -1,6 +1,5 @@
 use axum::http::StatusCode;
 use serde::Serialize;
-use tracing::{event, Level};
 
 use crate::utils::Error;
 

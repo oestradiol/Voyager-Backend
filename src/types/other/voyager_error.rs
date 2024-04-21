@@ -1,8 +1,6 @@
 use std::{error::Error, fmt};
 
 use axum::http::StatusCode;
-use mongodb::bson::oid::ObjectId;
-use serde::{Deserialize, Serialize};
 use tracing::{event, Level};
 
 use crate::utils::Error as OurErr;

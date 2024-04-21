@@ -4,8 +4,8 @@ use std::{error::Error, fmt};
 
 #[derive(Debug, Deserialize)]
 pub struct CloudflareMessage {
-  pub code: i32,
-  pub message: String,
+  // pub code: i32,
+  // pub message: String,
 }
 
 #[derive(Debug, Deserialize)]

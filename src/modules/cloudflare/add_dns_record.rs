@@ -1,11 +1,9 @@
 use axum::http::StatusCode;
-use git2::Status;
 use serde_json::Value;
 use tracing::{event, Level};
 
 use crate::configs::environment::{CLOUDFLARE_ZONE, DEVELOPMENT};
 use crate::modules::cloudflare::types::add_dns_record::{FailureResponse, OkResponse};
-use crate::modules::cloudflare::types::cloudflare_responses::CloudflareError;
 use crate::modules::cloudflare::types::dns_record::DnsRecord;
 use crate::modules::cloudflare::CLOUDFLARE_CLIENT;
 use crate::types::model::deployment::Mode;
@@ -13,7 +11,7 @@ use crate::types::other::voyager_error::VoyagerError;
 use crate::utils::http_client::deserializable::Deserializable;
 use crate::utils::http_client::ensure_success::EnsureSuccess;
 use crate::utils::http_client::http_error::HttpError;
-use crate::utils::{http_client, Error};
+use crate::utils::Error;
 
 pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String, VoyagerError> {
   if *DEVELOPMENT {
@@ -45,8 +43,8 @@ pub async fn add_dns_record(host: &str, ip: &str, mode: &Mode) -> Result<String,
     .await
     .ensure_success(false);
 
-  let mut response: Value;
-  let mut status: StatusCode;
+  let response: Value;
+  let status: StatusCode;
   // These are already checked by the .ensure_success(false) + is_success checks above
   #[allow(clippy::unwrap_used)]
   match result {

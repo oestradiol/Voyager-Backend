@@ -8,7 +8,6 @@ use tracing::Level;
 
 use crate::configs::environment::DEVELOPMENT;
 use crate::configs::environment::DISCORD_WEBHOOK;
-use crate::types::model::deployment::Deployment;
 use crate::types::model::deployment::Mode;
 use crate::types::other::voyager_error::VoyagerError;
 use crate::utils::Error;

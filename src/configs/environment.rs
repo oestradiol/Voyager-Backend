@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use crate::utils::ExpectError;
 use lazy_static::lazy_static;
 
 lazy_static! {
