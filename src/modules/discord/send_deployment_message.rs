@@ -46,10 +46,10 @@ pub async fn send_deployment_message(
     .map_err(|e| VoyagerError::execute_discord_webhook(Box::new(e)))?;
 
   let message = msg.map_or(String::new(), |msg| {
-    format!("Returned message is: {}", msg.content)
+    format!(" Returned message is: {}", msg.content)
   });
 
-  event!(Level::DEBUG, "Done sending Discord Webhook: {}", message);
+  event!(Level::DEBUG, "Done sending Discord Webhook.{message}");
 
   Ok(())
 }

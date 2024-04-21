@@ -106,11 +106,10 @@ fn init_logging() {
   //   .from_env().map_err(|e| Error::from(e))?
   //   .add_directive("bollard=debug".parse().map_err(|e| Error::from(e))?);
   let stdout_log = tracing_subscriber::fmt::layer().pretty();
-  let debug_log = tracing_subscriber::fmt::layer().with_writer(non_blocking0);
+  let debug_log = tracing_subscriber::fmt::layer().with_writer(non_blocking0); 
+  let layered = stdout_log.and_then(debug_log).with_filter(level_filter);
 
-  tracing_subscriber::registry()
-    .with(stdout_log.and_then(debug_log).with_filter(level_filter)) // .with_filter(bollard_filter)
-    .init();
+  tracing_subscriber::registry().with(layered).init();
 }
 
 //// TODO:

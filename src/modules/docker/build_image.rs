@@ -9,7 +9,6 @@ use std::{collections::HashMap, io::Read, path::Path};
 use super::{DOCKER, DOCKER_RUNTIME};
 use tracing::{event, Level};
 
-/// Builds docker image, then returns the image id
 pub async fn build_image(
   tar: &Path,
   labels: &[(String, String)],
@@ -18,10 +17,10 @@ pub async fn build_image(
   let options = BuildImageOptions {
     dockerfile: "Dockerfile".to_string(),
     extrahosts: extra_hosts,
-    q: true,
+    q: false,
     forcerm: true,
-    memory: Some(700 * 1024 * 1024),  // 700MiB
-    memswap: Some(701 * 1024 * 1024), // 701MiB
+    memory: Some(2048 * 1024 * 1024),  // 2GiB
+    memswap: Some(2049 * 1024 * 1024), // 2GiB
     labels: labels.iter().fold(HashMap::new(), |mut acc, p| {
       acc.insert(p.0.clone(), p.1.clone());
       acc
@@ -47,7 +46,7 @@ pub async fn build_image(
               if !&*DEVELOPMENT {
                 event!(Level::INFO, "Response: {:?}", build_info.stream.unwrap_or_else(|| "".to_string()));
               }
-              build_info.id
+              build_info.aux.map(|i| i.id).and_then(|i| i)
             })
             .map(|i| i.unwrap_or_else(|| acc.clone())) 
             .unwrap_or_else(|e| {

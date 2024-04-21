@@ -12,6 +12,7 @@ use crate::utils::get_free_port;
 use crate::utils::runtime_helpers::RuntimeSpawnHandled;
 use crate::{business::repositories::deployments, modules::docker};
 use axum::http::StatusCode;
+use mongodb::bson::oid::ObjectId;
 use mongodb::bson::Bson;
 use tracing::{event, Level};
 use uuid::Uuid;
@@ -74,18 +75,19 @@ pub async fn new(
 
     let container_id =
       docker::create_container(name.clone(), free_port, internal_port, image_name.as_str()).await?;
+    docker::start_container(name.clone()).await?;
 
     let dns_record_id = cloudflare::add_dns_record(&host, &HOST_IP, &mode).await?;
 
     let deployment = Deployment {
+      _id: ObjectId::new(),
       container_id,
       dns_record_id,
       image_name,
       container_name: name.clone(),
-      internal_port,
+      port: free_port,
       mode,
       host: host.to_string(),
-      directory,
       repo_url: repo_url.to_string(),
       branch: final_branch,
     };
