@@ -1,4 +1,4 @@
-use mongodb::bson::Bson;
+use mongodb::bson::{self};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -19,14 +19,14 @@ impl fmt::Display for Mode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Deployment {
+  pub _id: bson::oid::ObjectId,
   pub container_id: String,
   pub dns_record_id: String,
   pub container_name: String,
   pub image_name: String,
-  pub internal_port: u16,
+  pub port: u16,
   pub mode: Mode,
   pub host: String,
-  pub directory: String,
   pub repo_url: String,
   pub branch: String,
 }

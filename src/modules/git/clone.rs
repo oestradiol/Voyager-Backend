@@ -1,6 +1,5 @@
 use axum::http::StatusCode;
 use git2::{
-  build::{self, RepoBuilder},
   RemoteCallbacks, Repository,
 };
 use std::path::Path;

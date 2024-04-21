@@ -1,6 +1,5 @@
 #![forbid(unsafe_code)]
 #![deny(warnings)]
-#![allow(unused)] // Temporarily here while we are working on the project
 #![warn(
   clippy::complexity,
   clippy::pedantic,
@@ -10,12 +9,9 @@
   clippy::unwrap_used
 )]
 
-use axum::routing::{delete, post};
-use axum::{routing::get, Router};
-use chrono::{DateTime, Utc};
+use axum::Router;
 use dotenv::dotenv;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::time::SystemTime;
 use tracing::level_filters::LevelFilter;
 use tracing::{event, Level};
 use tracing_subscriber::layer::SubscriberExt;
@@ -23,6 +19,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 
 use crate::configs::environment::{HOSTNAME, LOG_DIRECTORY, PORT, STDOUT_LOG_SEVERITY};
+use crate::controllers::ConfigureRoutes;
 use crate::utils::ExpectError;
 
 mod business;
@@ -59,16 +56,7 @@ async fn main() {
     sock_addr.to_string()
   );
 
-  let app = Router::new()
-    .route("/status", get(status))
-    .route("/deployments", post(controllers::deployments::create))
-    .route("/deployments", get(controllers::deployments::list))
-    .route("/deployments/:id", get(controllers::deployments::get))
-    .route("/deployments/:id", delete(controllers::deployments::delete))
-    .route(
-      "/deployments/:id/logs",
-      post(controllers::deployments::get_logs),
-    );
+  let app = Router::new().configure_routes();
 
   let listener = tokio::net::TcpListener::bind(sock_addr)
     .await
@@ -76,10 +64,6 @@ async fn main() {
   axum::serve(listener, app)
     .await
     .expect_error(|e| format!("Failed to start server! Error: {e}"));
-}
-
-async fn status() -> &'static str {
-  "Voyager is Up!"
 }
 
 fn init_logging() {
@@ -106,11 +90,10 @@ fn init_logging() {
   //   .from_env().map_err(|e| Error::from(e))?
   //   .add_directive("bollard=debug".parse().map_err(|e| Error::from(e))?);
   let stdout_log = tracing_subscriber::fmt::layer().pretty();
-  let debug_log = tracing_subscriber::fmt::layer().with_writer(non_blocking0);
+  let debug_log = tracing_subscriber::fmt::layer().with_writer(non_blocking0); 
+  let layered = stdout_log.and_then(debug_log).with_filter(level_filter);
 
-  tracing_subscriber::registry()
-    .with(stdout_log.and_then(debug_log).with_filter(level_filter)) // .with_filter(bollard_filter)
-    .init();
+  tracing_subscriber::registry().with(layered).init();
 }
 
 //// TODO:

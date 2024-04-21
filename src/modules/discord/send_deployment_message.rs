@@ -8,7 +8,6 @@ use tracing::Level;
 
 use crate::configs::environment::DEVELOPMENT;
 use crate::configs::environment::DISCORD_WEBHOOK;
-use crate::types::model::deployment::Deployment;
 use crate::types::model::deployment::Mode;
 use crate::types::other::voyager_error::VoyagerError;
 use crate::utils::Error;
@@ -46,10 +45,10 @@ pub async fn send_deployment_message(
     .map_err(|e| VoyagerError::execute_discord_webhook(Box::new(e)))?;
 
   let message = msg.map_or(String::new(), |msg| {
-    format!("Returned message is: {}", msg.content)
+    format!(" Returned message is: {}", msg.content)
   });
 
-  event!(Level::DEBUG, "Done sending Discord Webhook: {}", message);
+  event!(Level::DEBUG, "Done sending Discord Webhook.{message}");
 
   Ok(())
 }

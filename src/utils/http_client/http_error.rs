@@ -19,11 +19,6 @@ impl<T: std::fmt::Debug + for<'de> serde::Deserialize<'de>> fmt::Display for Htt
       |status_code| format!("Status Code: HTTP {status_code}. {}", self.message),
     );
 
-    let message = self.status_code.map_or_else(
-      || self.message.clone(),
-      |status_code| format!("Status Code: HTTP {status_code}. {}", self.message),
-    );
-
     write!(f, "{message}")
   }
 }

@@ -1,32 +1,37 @@
+use std::str::FromStr;
+
 use crate::{
   business::repositories::{DB_CONTEXT, REPOSITORIES_RUNTIME},
   types::other::voyager_error::VoyagerError,
   utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 use axum::http::StatusCode;
-use mongodb::bson::doc;
+use mongodb::bson::{doc, oid::ObjectId};
 use tracing::{event, Level};
 
-pub async fn delete(name: String) -> Result<(), VoyagerError> {
+pub async fn delete(id: String) -> Result<(), VoyagerError> {
   event!(
     Level::DEBUG,
-    "Deleting deployment of name {name} from database."
+    "Deleting deployment of id {id} from database."
   );
+
+  let oid = ObjectId::from_str(id.as_str())
+    .map_err(|e| VoyagerError::invalid_delete_id(Box::new(e), &id))?;
 
   let result = REPOSITORIES_RUNTIME
     .spawn_handled(
       "repositories::deployments::delete",
       DB_CONTEXT
         .deployments
-        .delete_one(doc! {"name": &name}, None),
+        .delete_one(doc! { "_id": oid }, None),
     )
     .await?;
 
   let result = result.map_or_else(
-    |e| Err(VoyagerError::delete_mongo(Box::new(e), &name)),
+    |e| Err(VoyagerError::delete_mongo(Box::new(e), &id)),
     |r| {
       if r.deleted_count == 0 {
-        Err(VoyagerError::delete(&name))
+        Err(VoyagerError::delete(&id))
       } else {
         Ok(())
       }
@@ -42,17 +47,25 @@ pub async fn delete(name: String) -> Result<(), VoyagerError> {
 }
 
 impl VoyagerError {
-  fn delete_mongo(e: Error, name: &str) -> Self {
+  fn invalid_delete_id(e: Error, id: &str) -> Self {
     Self::new(
-      format!("Failed to delete deployment named '{name}'"),
+      format!("Invalid Bson id '{id}'"),
       StatusCode::INTERNAL_SERVER_ERROR,
       Some(e),
     )
   }
 
-  fn delete(name: &str) -> Self {
+  fn delete_mongo(e: Error, id: &str) -> Self {
     Self::new(
-      format!("Deployment not found. Name: '{name}'"),
+      format!("Failed to delete deployment with id '{id}'"),
+      StatusCode::INTERNAL_SERVER_ERROR,
+      Some(e),
+    )
+  }
+
+  fn delete(id: &str) -> Self {
+    Self::new(
+      format!("Deployment not found. Id: '{id}'"),
       StatusCode::NOT_FOUND,
       None,
     )

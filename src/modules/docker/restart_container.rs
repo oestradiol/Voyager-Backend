@@ -1,5 +1,4 @@
 use axum::http::StatusCode;
-use bollard::container::StartContainerOptions;
 use tracing::{event, Level};
 
 use crate::{
@@ -8,6 +7,7 @@ use crate::{
   utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 
+#[allow(unused)]
 pub async fn restart_container(container_name: String) -> Result<(), VoyagerError> {
   event!(
     Level::INFO,

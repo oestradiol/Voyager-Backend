@@ -1,5 +1,4 @@
 use axum::http::StatusCode;
-use color_eyre::owo_colors::OwoColorize;
 use tracing::{event, Level};
 
 use crate::{

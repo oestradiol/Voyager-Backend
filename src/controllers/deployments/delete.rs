@@ -1,19 +1,15 @@
 use axum::{extract::Path, http::StatusCode, response::IntoResponse};
-use futures::Future;
 use std::collections::HashMap;
 
 use crate::{
-  business::{
-    self,
-    services::{self, deployments},
-  },
+  business::services::deployments,
   types::view::{delete_deployment::DeleteDeployment, logs::Logs},
 };
 
 use crate::types::to_json_str;
 
 pub async fn delete(Path(queries): Path<HashMap<String, String>>) -> impl IntoResponse {
-  let id_opt = queries.get("deploymentId").cloned();
+  let id_opt = queries.get("id").cloned();
 
   let inner = || async {
     let Some(id) = id_opt else {

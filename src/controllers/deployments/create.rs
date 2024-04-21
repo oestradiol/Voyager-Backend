@@ -1,12 +1,8 @@
 use axum::{extract::Query, http::StatusCode, response::IntoResponse};
-use futures::Future;
 use std::collections::HashMap;
 
 use crate::{
-  business::{
-    self,
-    services::{self, deployments},
-  },
+  business::services::deployments,
   types::{
     model::deployment::Mode,
     view::{create_deployment::CreateDeployment, get_deployment::GetDeployment, logs::Logs},
@@ -69,13 +65,13 @@ pub async fn create(Query(queries): Query<HashMap<String, String>>) -> impl Into
 
     let mut host: String = String::new();
     if let Some(subdomain) = subdomain {
-      if let Mode::Preview = mode {
+      if matches!(mode, Mode::Preview) {
         host = format!("{subdomain}-");
       } else {
         host = format!("{subdomain}.");
       }
     }
-    if let Mode::Preview = mode {
+    if matches!(mode, Mode::Preview) {
       host = format!("{host}preview.");
     }
     host = format!("{host}lunarlabs.cc");
@@ -88,7 +84,7 @@ pub async fn create(Query(queries): Query<HashMap<String, String>>) -> impl Into
             message: "Success!".to_string(),
             errors: vec![],
           },
-          id: Some(deployment_id.to_string()),
+          id: Some(deployment_id),
         }),
       ),
       Err(e) => (

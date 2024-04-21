@@ -5,7 +5,7 @@ use tracing::{event, Level};
 use crate::{
   modules::docker::{DOCKER, DOCKER_RUNTIME},
   types::other::voyager_error::VoyagerError,
-  utils::{runtime_helpers::RuntimeSpawnHandled, Error},
+  utils::runtime_helpers::RuntimeSpawnHandled,
 };
 
 pub async fn get_logs(container_name: &str) -> Result<Vec<String>, VoyagerError> {

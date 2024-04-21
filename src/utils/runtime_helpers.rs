@@ -1,6 +1,5 @@
 use axum::http::StatusCode;
 use tokio::runtime::Runtime;
-use tracing::{event, Level};
 
 use super::Error;
 use crate::types::other::voyager_error::VoyagerError;
