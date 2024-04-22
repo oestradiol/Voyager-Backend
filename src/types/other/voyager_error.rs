@@ -34,13 +34,19 @@ impl Error for VoyagerError {
 }
 
 impl VoyagerError {
-  pub fn new(message: String, status_code: StatusCode, source: Option<OurErr>) -> Self {
+  pub fn new(message: String, status_code: StatusCode, is_warn: bool, source: Option<OurErr>) -> Self {
     let result = Self {
       message,
       status_code,
       source,
     };
-    event!(Level::ERROR, "{result}");
+    
+    if is_warn {
+      event!(Level::WARN, "{result}");
+    } else {
+      event!(Level::ERROR, "{result}");
+    };
+
     result
   }
 }

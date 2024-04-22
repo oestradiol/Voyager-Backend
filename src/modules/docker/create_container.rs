@@ -67,6 +67,7 @@ impl VoyagerError {
     Self::new(
       "Failed to create container".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }

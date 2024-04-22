@@ -11,11 +11,11 @@ pub fn gen_traefik_labels(name: &str, host: &str, internal_port: u16) -> Vec<(St
     ),
     (
       format!("traefik.http.routers.voyager-{name}.service"),
-      format!("voyager-{name}-service"),
+      format!("voyager-{name}"),
     ),
     (
       format!(
-        "traefik.http.services.voyager-{name}-service.loadbalancer.server.port"
+        "traefik.http.services.voyager-{name}.loadbalancer.server.port"
       ),
       format!("{internal_port}"),
     ),

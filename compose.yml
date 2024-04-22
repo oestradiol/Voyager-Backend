@@ -1,29 +1,26 @@
-version: '3'
+version: "3.8"
 
 services:
     voyager:
-        build: .
+        build: "./"
         container_name: voyager
         restart: unless-stopped
-        ports:
-            - "8765:8765"
         volumes:
             - "/etc/localtime:/etc/localtime:ro"
             - "/var/run/docker.sock:/var/run/docker.sock:ro"
-            - "./logs/:/app/logs/"
-            - "./deployments/:/app/deployments/"
-            - "./config.yml:/app/config.yml"
+            - "./Logs/:/app/Logs/"
+            - "./.env:/app/.env"
         labels:
             - "traefik.enable=true"
             - "traefik.http.routers.voyager.entrypoints=web,websecure"
-            - "traefik.http.routers.voyager.rule=Host(`voyager-api.pinkcloud.studio`)"
-            - "traefik.http.routers.voyager.services=voyager-services"
-            - "traefik.http.services.voyager-services.loadbalancer.server.port=8765"
+            - "traefik.http.routers.voyager.rule=Host(`voyager-api.alphiealph.me`)"
+            - "traefik.http.routers.voyager.service=voyager"
+            - "traefik.http.services.voyager.loadbalancer.server.port=8765"
             - "traefik.http.routers.voyager.tls=true"
         depends_on:
             - mongo
         networks:
-            - traefik-proxy
+            - traefik-net
             - voyager-net
 
     mongo:
@@ -32,9 +29,9 @@ services:
         container_name: voyager-mongo
         volumes:
             - "/etc/localtime:/etc/localtime:ro"
-            - "/var/opt/pinkcloud/voyager/mongo-data:/data/db"
+            - "/var/opt/lunarlabs/voyager/mongo-data:/data/db"
         env_file:
-            - path: ./.env
+            - path: ./Mongo/.env
               required: true
         environment:
             - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
@@ -42,10 +39,33 @@ services:
         networks:
             - voyager-net
 
-networks:
-    traefik-proxy:
-        name: "traefik-proxy"
-        external: true
+    traefik:
+        image: "traefik:latest"
+        container_name: traefik
+        restart: unless-stopped
+        security_opt:
+            - "no-new-privileges:true"
+        networks:
+            - traefik-net
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - "/etc/localtime:/etc/localtime:ro"
+            - "/var/run/docker.sock:/var/run/docker.sock:ro"
+            - "./Traefik/traefik.yml:/traefik.yml:ro"
+            - "./Traefik/acme.json:/acme.json"
+            - "./Traefik/configs:/configurations"
+        labels:
+            - traefik.enable=true
+            - traefik.docker.network=traefik-net
+            - traefik.http.routers.traefik-secure.entrypoints=websecure
+            - traefik.http.routers.traefik-secure.rule=Host(`traefik.alphiealph.me`)
+            - traefik.http.routers.traefik-secure.service=api@internal
+            - traefik.http.routers.traefik-secure.middlewares=user-auth@file
 
+networks:
+    traefik-net:
+        name: "traefik-net"
     voyager-net:
         name: "voyager-net"

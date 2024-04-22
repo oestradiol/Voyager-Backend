@@ -73,6 +73,7 @@ impl VoyagerError {
     Self::new(
       "Failed to read tar file!".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -81,14 +82,16 @@ impl VoyagerError {
     Self::new(
       "Error during Docker Image Build intermediate steps".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      true,
       Some(e),
     )
   }
 
   fn build_image() -> Self {
     Self::new(
-      "Failed to build image! Image Id was empty".to_string(),
+      "Failed to build image!".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       None,
     )
   }

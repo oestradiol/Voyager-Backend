@@ -57,6 +57,7 @@ impl VoyagerError {
     Self::new(
       "Failed to clone git repository!".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }

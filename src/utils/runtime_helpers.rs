@@ -27,8 +27,9 @@ impl RuntimeSpawnHandled for Runtime {
 impl VoyagerError {
   pub fn spawn(task: &str, e: Error) -> Self {
     Self::new(
-      format!("Failed to complete task '{task}'"),
+      format!("Failed to spawn task '{task}'"),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }

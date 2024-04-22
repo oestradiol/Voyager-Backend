@@ -41,14 +41,16 @@ impl VoyagerError {
     Self::new(
       format!("Invalid Bson id '{id}'"),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
 
   fn find_mongo_id(e: Error, id: &str) -> Self {
     Self::new(
-      format!("Failed to find deployment by id '{id}'"),
+      format!("Failure while finding deployment by id '{id}'"),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -57,6 +59,7 @@ impl VoyagerError {
     Self::new(
       format!("Deployment not found. Id: '{id}'"),
       StatusCode::NOT_FOUND,
+      false,
       None,
     )
   }

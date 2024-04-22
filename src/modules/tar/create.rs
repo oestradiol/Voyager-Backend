@@ -6,7 +6,6 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use flate2::Compression;
 use tar::Builder;
 
 pub async fn create(folder_path: &Path) -> Result<PathBuf, io::Error> {
@@ -22,11 +21,11 @@ pub async fn create(folder_path: &Path) -> Result<PathBuf, io::Error> {
     .join(tarball_name);
   let tarball_file = File::create(&tarball_path)?;
 
-  // Create a gzip writer
-  let gzip_encoder = flate2::write::GzEncoder::new(tarball_file, Compression::default());
+  // Create a gzip encoder
+  // let gzip_encoder = flate2::write::GzEncoder::new(tarball_file, Compression::default());
 
   // Create a tar writer
-  let tar_writer = Builder::new(BufWriter::new(gzip_encoder));
+  let tar_writer = Builder::new(BufWriter::new(tarball_file));
   let tar_writer = Arc::new(Mutex::new(tar_writer));
 
   // Iterate through the contents of the folder

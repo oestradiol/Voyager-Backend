@@ -23,10 +23,11 @@ Response content type is application/json and is of format:
 
 <pre>
 {
-    code: integer,
-    message: string,
-    errors: array[string],
-    id: array[string] or null
+    logs: {
+        message: string,
+        errors: array[string],
+    },
+    id: string or null
 }
 </pre>
 
@@ -36,9 +37,10 @@ Example:
 Status Code: 200 (OK)
 Response body:
 {
-    "code": 200,
-    "message": "Deployed",
-    "errors": [],
+    "logs": {
+        "message": "Success!",
+        "errors": [],
+    },
     "id": "f7ea72e3-9c8e-40ef-8464-18b732667c38"
 }
 </pre>
@@ -47,15 +49,16 @@ Response body:
 Status code: 403 (Forbidden)
 Response body:
 {
-    "code": 403
-    "message": "Failed"
-    "errors": ["Deployment already exists"]
+    "logs": {
+        "message": "Failed to create deployment",
+        "errors": ["Deployment already exists"]
+    },
     "id": null
 }
 </pre>
 
 
-## /deployment/{id}/logs (GET)
+## /deployments/{id}/logs (GET)
 Gets the logs from a container
 
 Path Variables:
@@ -65,7 +68,7 @@ Example
 
 <pre>
 curl --request GET \
-    --url "https://voyager-api.pinkcloud.studio/deployment/f7ea72e3-9c8e-40ef-8464-18b732667c38/logs" \
+    --url "https://voyager-api.pinkcloud.studio/deployments/f7ea72e3-9c8e-40ef-8464-18b732667c38/logs" \
     --header 'X-API-Key: 123123abcabc'
 </pre>
 
@@ -73,10 +76,11 @@ Response content type is of application/json and is of format:
 
 <pre>
 {
-    code: integer,
-    message: string,
-    errors: array[string]
-    logs: array[string] or null
+    logs: {
+        message: string,
+        errors: array[string],
+    },
+    deployment_logs: array[string] or null
 }
 </pre>
 
@@ -86,10 +90,11 @@ Example:
 Status Code: 200 (OK):
 Response body:
 {
-    "code": 200,
-    "message": "Logs Retrieved",
-    "errors": [],
-    "logs": ["Starting container..", "Done!"]
+    "logs": {
+        "message": "Success!",
+        "errors": [],
+    },
+    "deployment_logs": ["Starting container..", "Done!"]
 }
 </pre>
 
@@ -97,15 +102,16 @@ Response body:
 Status Code: 404 (Not Found):
 Response body:
 {
-    "code": 404,
-    "message": "Failed",
-    "errors": ["Deployment not found"],
-    "logs": null
+    "logs": {
+        "message": "Success!",
+        "errors": [],
+    },
+    "deployment_logs": null
 }
 </pre>
 
 
-## /deployment/{id} (DELETE)
+## /deployments/{id} (DELETE)
 Stops and removes the deployment
 
 Path Variables:
@@ -115,7 +121,7 @@ Example:
 
 <pre>
 curl --request DELETE \
-    --url "https://voyager-api.pinkcloud.studio/deployment/f7ea72e3-9c8e-40ef-8464-18b732667c38" \
+    --url "https://voyager-api.pinkcloud.studio/deployments/f7ea72e3-9c8e-40ef-8464-18b732667c38" \
     --header 'X-API-Key: 123123abcabc'
 </pre>
 
@@ -124,9 +130,10 @@ Response content type is of application/json and is of format:
 
 <pre>
 {
-    code: integer,
-    message: string,
-    errors: array[string]
+    logs: {
+        message: string,
+        errors: array[string],
+    }
 }
 </pre>
 
@@ -136,9 +143,10 @@ Example:
 Status Code: 200 (OK):
 Response body:
 {
-    "code": 200,
-    "message": "Success",
-    "errors": []
+    "logs": {
+        "message": "Success!",
+        "errors": [],
+    }
 }
 </pre>
 
@@ -146,14 +154,15 @@ Response body:
 Status Code 500 (Internal Server Error):
 Response body:
 {
-    "code": 500
-    "message": "Internal Server Error",
-    "errors": ["Could not stop docker container: <insert-random-error>"]
+    "logs": {
+        "message": "Failed to stop container",
+        "errors": ["Could not stop docker container: <insert-random-error>"]
+    },
 }
 </pre>
 
 
-## /deployment/{id} (GET)
+## /deployments/{id} (GET)
 Gets information about a deployment
 
 Path Variables:
@@ -163,7 +172,7 @@ Example:
 
 <pre>
 curl --request GET \
-    --url "https://voyager-api.pinkcloud.studio/deployment/f7ea72e3-9c8e-40ef-8464-18b732667c38" \
+    --url "https://voyager-api.pinkcloud.studio/deployments/f7ea72e3-9c8e-40ef-8464-18b732667c38" \
     --header 'X-API-Key: 123123abcabc'
 </pre>
 
@@ -172,9 +181,10 @@ Response content type is of application/json and is of format:
 
 <pre>
 {
-    code: integer,
-    message: string,
-    errors: array[string],
+    logs: {
+        message: string,
+        errors: array[string],
+    },
     deployment: object {
         id: string,
         containerId: string,
@@ -197,9 +207,10 @@ Example:
 Status Code: 200 (OK):
 Response body:
 {
-    "code": 200,
-    "message": "Success",
-    "errors": [],
+    "logs": {
+        "message": "Success!",
+        "errors": [],
+    },
     "deployment": {
         "id": "f7ea72e3-9c8e-40ef-8464-18b732667c38",
         "containerId": "j4f1iojf1i2kj4e1lkj",
@@ -220,9 +231,11 @@ Response body:
 Status Code 404 (Not Found):
 Response body:
 {
-    "code": 404
-    "message": "Not Found",
-    "errors": ["Deployment not found"]
+    "logs": {
+        "message": "Success!",
+        "errors": [],
+    },
+    "deployment": null
 }
 </pre>
 
@@ -247,9 +260,10 @@ Response content type is of application/json and is of format:
 
 <pre>
 {
-    code: integer,
-    message: string,
-    errors: array[string],
+    logs: {
+        message: string,
+        errors: array[string],
+    },
     deployments: array[
         object {
             id: string,
@@ -274,9 +288,10 @@ Example:
 Status Code: 200 (OK):
 Response body:
 {
-    "code": 200,
-    "message": "Success",
-    "errors": [],
+    "logs": {
+        "message": "Success!",
+        "errors": [],
+    },
     "deployments": [
         {
             "id": "f7ea72e3-9c8e-40ef-8464-18b732667c38",
@@ -312,9 +327,10 @@ Response body:
 Status Code 500 (Internal Server Error):
 Response body:
 {
-    "code": 404
-    "message": "Internal Server Error",
-    "errors": ["java.lang.NullPointerException caused by ..."],
+    "logs": {
+        "message": "Failed to retrieve deployments",
+        "errors": ["Bla bla bla"],
+    },
     "deployments": []
 }
 </pre>

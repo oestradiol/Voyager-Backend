@@ -31,6 +31,7 @@ impl VoyagerError {
     Self::new(
       "Failed to stop container".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }

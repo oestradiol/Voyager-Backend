@@ -44,7 +44,7 @@ async fn main() {
   // Defining sockets
   let sock_host = HOSTNAME
     .parse::<Ipv4Addr>()
-    .expect_error(|e| format!("Failed to parse HOST {e}"));
+    .expect_error(|e| format!("Failed to parse HOST: {e}"));
   let port = PORT
     .parse::<u16>()
     .expect_error(|e| format!("Failed to parse PORT: {e}"));
@@ -84,7 +84,6 @@ fn init_logging() {
     tracing_appender::rolling::minutely(&*LOG_DIRECTORY, format!("Voyager.log"));
   let (non_blocking0, _guard) = tracing_appender::non_blocking(file_appender0);
 
-    // as a deny filter (DEBUG, but remove noisy logs)
   // let bollard_filter = EnvFilter::builder()
   //   .with_default_directive(LevelFilter::DEBUG.into())
   //   .from_env().map_err(|e| Error::from(e))?
@@ -95,59 +94,3 @@ fn init_logging() {
 
   tracing_subscriber::registry().with(layered).init();
 }
-
-//// TODO:
-// fun Application.init() {
-//     val globalExceptionHandler =
-//         Thread.UncaughtExceptionHandler { thread, err ->
-//             try {
-//                 log("Uncaught exception in thread ${thread.name}:", LogType.FATAL)
-//                 log(err)
-//
-//                 Logger.cleanup()
-//             } catch (err2: Exception) {
-//                 err.printStackTrace()
-//                 err2.printStackTrace()
-//             }
-//         }
-//
-//     Thread.setDefaultUncaughtExceptionHandler(globalExceptionHandler)
-//
-//     Runtime.getRuntime().addShutdownHook(
-//         object : Thread() {
-//             override fun run() {
-//                 try {
-//                     log("Shutdown hook called, cleaning up..", LogType.WARN)
-//
-//                     Logger.cleanup()
-//                 } catch (err: Exception) {
-//                     err.printStackTrace()
-//                 }
-//             }
-//         }
-//     )
-//
-//
-//     log("Registering call interceptors..", LogType.INFO)
-//     // install(HttpsRedirect)
-//
-//     intercept(ApplicationCallPipeline.Call) {
-//         val apiKey = call.request.header("X-API-Key")
-//
-//         if (apiKey == null || apiKey != VOYAGER_CONFIG.apiKey) {
-//
-//             // Preventing log spam
-//             if (call.request.origin.remoteAddress != "127.0.0.1") {
-//                 log("User tried to connect with invalid API Key, IP address is:  ${call.request.origin.remoteAddress}", LogType.WARN)
-//             }
-//
-//             call.respond(
-//                 HttpStatusCode.Unauthorized,
-//                 "Invalid API Key"
-//             )
-//             return@intercept finish()
-//         }
-//     }
-//
-//     configureDeploymentApi()
-// }

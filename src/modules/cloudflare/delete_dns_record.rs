@@ -87,6 +87,7 @@ impl VoyagerError {
     Self::new(
       "Failed to send Remove DNS request to Cloudflare".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -95,6 +96,7 @@ impl VoyagerError {
     Self::new(
       format!("Failed to deserialize Remove DNS request response from Cloudflare. Response was {status_code}. Value: {response}"),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -110,6 +112,7 @@ impl VoyagerError {
     Self::new(
       format!("Failed to Remove DNS record. Response was {status_code}. {err}"),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       None,
     )
   }

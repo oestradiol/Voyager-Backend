@@ -6,10 +6,10 @@ use crate::business::repositories::deployments::save;
 use crate::business::services::SERVICES_RUNTIME;
 use crate::configs::environment::{DEPLOYMENTS_DIR, HOST_IP};
 use crate::modules::discord::send_deployment_message;
-use crate::modules::{cloudflare, git, traefik};
+use crate::modules::{cloudflare, git};
 use crate::types::model::deployment;
 use crate::types::other::voyager_error::VoyagerError;
-use crate::utils::get_free_port;
+use crate::utils::{self, get_free_port};
 use crate::utils::runtime_helpers::RuntimeSpawnHandled;
 use crate::modules::docker;
 use async_trait::async_trait;
@@ -249,7 +249,7 @@ impl Command for CreateImage {
       let internal_port = docker::find_internal_port(dockerfile_contents.as_str())?;
 
       let container_name = self.container_name.clone();
-      let traefik_labels = traefik::gen_traefik_labels(&container_name, &self.host, internal_port);
+      let traefik_labels = utils::gen_traefik_labels(&container_name, &self.host, internal_port);
   
       let image_name = docker::build_image(&self.tar_path, &traefik_labels, None).await?;
       Ok((image_name, container_name, internal_port))
@@ -465,8 +465,9 @@ impl Command for SaveDeployment {
 impl VoyagerError {
   fn null_db_id() -> Self {
     Self::new(
-      "DB Entity ID was null".to_string(),
+      "Failed to get DB Entity ID, it was null".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       None,
     )
   }
@@ -475,6 +476,7 @@ impl VoyagerError {
     Self::new(
       "Failed to create deployments directory".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -483,6 +485,7 @@ impl VoyagerError {
     Self::new(
       "Failed to delete directory or file for deployment".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -491,6 +494,7 @@ impl VoyagerError {
     Self::new(
       "Failed to create tar".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -499,6 +503,7 @@ impl VoyagerError {
     Self::new(
       "Failed to read Dockerfile contents".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }

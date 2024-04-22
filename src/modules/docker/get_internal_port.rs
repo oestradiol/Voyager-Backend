@@ -35,6 +35,7 @@ impl VoyagerError {
     Self::new(
       "Failed to parse internal port from Dockerfile".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       e,
     )
   }

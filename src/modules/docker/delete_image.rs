@@ -19,7 +19,7 @@ pub async fn delete_image(image_name: String) -> Result<(), VoyagerError> {
       DOCKER.remove_image(&image_name, options, None).await
     })
     .await?
-    .map_err(|e| VoyagerError::remove_image(Box::new(e)))?;
+    .map_err(|e| VoyagerError::delete_image(Box::new(e)))?;
 
   event!(Level::DEBUG, "Done deleting image");
 
@@ -27,10 +27,11 @@ pub async fn delete_image(image_name: String) -> Result<(), VoyagerError> {
 }
 
 impl VoyagerError {
-  fn remove_image(e: Error) -> Self {
+  fn delete_image(e: Error) -> Self {
     Self::new(
-      "Failed to remove image".to_string(),
+      "Failed to delete image".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }

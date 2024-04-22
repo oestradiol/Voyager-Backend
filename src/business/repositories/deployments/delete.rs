@@ -51,14 +51,16 @@ impl VoyagerError {
     Self::new(
       format!("Invalid Bson id '{id}'"),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
 
   fn delete_mongo(e: Error, id: &str) -> Self {
     Self::new(
-      format!("Failed to delete deployment with id '{id}'"),
+      format!("Failure while deleting deployment with id '{id}'"),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -67,6 +69,7 @@ impl VoyagerError {
     Self::new(
       format!("Deployment not found. Id: '{id}'"),
       StatusCode::NOT_FOUND,
+      false,
       None,
     )
   }

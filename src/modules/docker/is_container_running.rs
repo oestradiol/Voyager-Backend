@@ -36,14 +36,16 @@ impl VoyagerError {
     Self::new(
       "Failed to inspect container".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
 
   fn empty_state() -> Self {
     Self::new(
-      "State was None! Failed to get if container is running".to_string(),
+      "Failed to get if container is running: State was None".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       None,
     )
   }

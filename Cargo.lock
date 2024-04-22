@@ -2995,7 +2995,6 @@ dependencies = [
  "chrono",
  "color-eyre",
  "dotenv",
- "flate2",
  "futures",
  "git2",
  "jemallocator",

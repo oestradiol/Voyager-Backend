@@ -34,6 +34,7 @@ impl VoyagerError {
     Self::new(
       "Failed to start container".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }

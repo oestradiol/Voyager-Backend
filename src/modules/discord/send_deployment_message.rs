@@ -58,6 +58,7 @@ impl VoyagerError {
     Self::new(
       "Failed to create Discord client".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      true,
       Some(e),
     )
   }
@@ -66,6 +67,7 @@ impl VoyagerError {
     Self::new(
       "Failed to send Discord webhook".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      true,
       Some(e),
     )
   }

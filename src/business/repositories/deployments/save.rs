@@ -36,6 +36,7 @@ impl VoyagerError {
     Self::new(
       "Failed to save deployment".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }

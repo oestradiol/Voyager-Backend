@@ -1,0 +1,10 @@
+sonar-project.properties
+rustfmt.toml
+README.md
+Dockerfile
+bacon.toml
+.gitignore
+target
+old
+Logs
+guides

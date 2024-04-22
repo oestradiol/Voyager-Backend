@@ -28,6 +28,7 @@ impl VoyagerError {
     Self::new(
       "Failed to get free port".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }

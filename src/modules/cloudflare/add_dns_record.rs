@@ -92,6 +92,7 @@ impl VoyagerError {
     Self::new(
       "Error: Cloudflare DNS Record Added ID was null!".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       None,
     )
   }
@@ -100,6 +101,7 @@ impl VoyagerError {
     Self::new(
       "Failed to send Add DNS request to Cloudflare".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -108,6 +110,7 @@ impl VoyagerError {
     Self::new(
       format!("Failed to deserialize Add DNS request response from Cloudflare. Response was HTTP {status_code}. Value: {response}"),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
@@ -123,6 +126,7 @@ impl VoyagerError {
     Self::new(
       format!("Failed to Add DNS Record. Response was HTTP {status_code}. {err}"),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       None,
     )
   }

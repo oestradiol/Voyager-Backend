@@ -68,6 +68,7 @@ impl VoyagerError {
     Self::new(
       "Failed to retrieve deployments".to_string(),
       StatusCode::INTERNAL_SERVER_ERROR,
+      false,
       Some(e),
     )
   }
