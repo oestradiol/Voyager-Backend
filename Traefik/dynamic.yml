@@ -1,10 +1,10 @@
 # Dynamic configuration
 http:
   middlewares:
-    # traefik-https-redirect:
-    #   redirectScheme:
-    #     scheme: https
-    #     permanent: true
+    traefik-https-redirect:
+      redirectScheme:
+        scheme: https
+        permanent: true
     # sslheader:
     #   headers:
     #     sslRedirect: true
@@ -18,7 +18,26 @@ http:
       basicAuth:
         users:
           - "admin:$apr1$vrGy.yGR$ErMEKiDrV85ZrEwDu2kqZ0"
-
+  routers:
+    traefik:
+      entrypoints:
+        - http
+      rule: Host(`traefik.lunarlabs.cc`)
+      middlewares:
+        - traefik-https-redirect@file
+    traefik-secure:
+      entrypoints:
+        - https
+      rule: Host(`traefik.lunarlabs.cc`)
+      service: api@internal
+      middlewares:
+        - user-auth@file
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: lunarlabs.cc
+            sans:
+              - "*.lunarlabs.cc"
 
 tls:
   options:

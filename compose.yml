@@ -54,17 +54,6 @@ services:
         labels:
             - traefik.enable=true
             - traefik.docker.network=traefik-net
-            # - traefik.http.routers.traefik.entrypoints=http
-            # - traefik.http.routers.traefik.rule=Host(`traefik.lunarlabs.cc`)
-            # - traefik.http.routers.traefik.middlewares=traefik-https-redirect@file
-            - traefik.http.routers.traefik-secure.entrypoints=http,https
-            - traefik.http.routers.traefik-secure.rule=Host(`traefik.lunarlabs.cc`)
-            - traefik.http.routers.traefik-secure.service=api@internal
-            - traefik.http.routers.traefik-secure.middlewares=user-auth@file
-            - traefik.http.routers.traefik-secure.tls=true
-            - traefik.http.routers.traefik-secure.tls.certresolver=cloudflare
-            - traefik.http.routers.traefik-secure.tls.domains[0].main=lunarlabs.cc
-            - traefik.http.routers.traefik-secure.tls.domains[0].sans=*.lunarlabs.cc
         env_file:
             - path: ./Traefik/.env
               required: true
