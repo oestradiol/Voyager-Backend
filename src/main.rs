@@ -11,7 +11,10 @@
 
 use axum::Router;
 use dotenv::dotenv;
+use tracing_appender::non_blocking::WorkerGuard;
+use std::io;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::path::Path;
 use tracing::level_filters::LevelFilter;
 use tracing::{event, Level};
 use tracing_subscriber::layer::SubscriberExt;
@@ -38,8 +41,8 @@ async fn main() {
   // .env
   dotenv().expect_error(|e| format!("Failed to load .env file: {e}"));
 
-  // Logging
-  init_logging();
+  // Logging - The variables are needed for the lifetime of the program
+  let (_log_guard_0, _log_guard_1) = init_logging().expect_error(|e| format!("Failed to initialize logging: {e}"));
 
   // Defining sockets
   let sock_host = HOSTNAME
@@ -66,7 +69,7 @@ async fn main() {
     .expect_error(|e| format!("Failed to start server! Error: {e}"));
 }
 
-fn init_logging() {
+fn init_logging() -> Result<(WorkerGuard, WorkerGuard), io::Error> {
   std::env::set_var("RUST_SPANTRACE", "1");
   std::env::set_var("RUST_BACKTRACE", "1");
   std::env::set_var("RUST_LIB_BACKTRACE", "full");
@@ -80,17 +83,18 @@ fn init_logging() {
     _ => LevelFilter::INFO,
   };
 
-  let file_appender0 =
-    tracing_appender::rolling::minutely(&*LOG_DIRECTORY, format!("Voyager.log"));
-  let (non_blocking0, _guard) = tracing_appender::non_blocking(file_appender0);
+  let dir = Path::new(&*LOG_DIRECTORY).canonicalize()?;
+  let file_appender =
+    tracing_appender::rolling::daily(dir, format!("Voyager.log"));
+  let (non_blocking_file, guard0) = tracing_appender::non_blocking(file_appender);
+  let (non_blocking_stdout, guard1) = tracing_appender::non_blocking(std::io::stdout());
+  
+  let file_log = tracing_subscriber::fmt::layer().with_writer(non_blocking_file);
+  let stdout_log = tracing_subscriber::fmt::layer().pretty().with_writer(non_blocking_stdout);
 
-  // let bollard_filter = EnvFilter::builder()
-  //   .with_default_directive(LevelFilter::DEBUG.into())
-  //   .from_env().map_err(|e| Error::from(e))?
-  //   .add_directive("bollard=debug".parse().map_err(|e| Error::from(e))?);
-  let stdout_log = tracing_subscriber::fmt::layer().pretty();
-  let debug_log = tracing_subscriber::fmt::layer().with_writer(non_blocking0); 
-  let layered = stdout_log.and_then(debug_log).with_filter(level_filter);
+  let layered = stdout_log.and_then(file_log).with_filter(level_filter);
 
   tracing_subscriber::registry().with(layered).init();
+
+  Ok((guard0, guard1))
 }
