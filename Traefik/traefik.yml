@@ -1,27 +1,19 @@
+# Static configuration
 api:
   dashboard: true
   debug: true
 
-entryPoints:
-  http:
-    address: ":80"
-    # http:
-    #   redirections:
-    #     entrypoint:
-    #       to: https
-    #       scheme: https
-  https:
-    address: ":443"
-
-serversTransport:
-  insecureSkipVerify: true
+log:
+  level: "INFO"
+  filePath: "/var/log/traefik/traefik.log"
+accessLog:
+  filePath: "/var/log/traefik/access.log"
+  bufferingSize: 1000
 
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
-  file:
-    filename: /dynamic.yml
 
 certificatesResolvers:
   cloudflare:
@@ -35,8 +27,73 @@ certificatesResolvers:
           - "1.1.1.1:53"
           - "1.0.0.1:53"
 
-log:
-  level: "INFO"
-  filePath: "/var/log/traefik/traefik.log"
-accessLog:
-  filePath: "/var/log/traefik/access.log"
+tls:
+  options:
+    default:
+      sniStrict: true
+      minVersion: VersionTLS12
+      cipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+
+entryPoints:
+  web:
+    address: ":80"
+  web-secure:
+    address: ":443"
+
+# Dynamic configuration
+http:
+  middlewares:
+    redirect-to-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    security-headers:
+      headers:
+        referrerPolicy: no-referrer
+        forceSTSHeader: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        customRequestHeaders:
+          X-Forwarded-Proto: https
+        customResponseHeaders:
+          X-Powered-By: "Redstone"
+          Server: "Server"
+
+    api-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$vrGy.yGR$ErMEKiDrV85ZrEwDu2kqZ0"
+
+  routers:
+    redirect-to-https:
+      entrypoints:
+        - web
+      rule: hostregexp(`{host:.+}`)
+      middlewares:
+        - redirect-to-https
+
+    traefik-secure:
+      entrypoints:
+        - web-secure
+      rule: Host(`traefik.lunarlabs.cc`)
+      service: api@internal
+      middlewares:
+        - security-headers
+        - api-auth
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: lunarlabs.cc
+            sans:
+              - "*.lunarlabs.cc"
+        options: default
