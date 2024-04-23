@@ -10,7 +10,7 @@ services:
             - "./.env:/app/.env"
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.voyager.entrypoints=http,https"
+            - "traefik.http.routers.voyager.entrypoints=web-secure"
             - "traefik.http.routers.voyager.rule=Host(`voyager-api.lunarlabs.cc`)"
             - "traefik.http.routers.voyager.service=voyager"
             - "traefik.http.routers.voyager.tls=true"

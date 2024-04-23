@@ -10,6 +10,9 @@ accessLog:
   filePath: "/var/log/traefik/access.log"
   bufferingSize: 1000
 
+serversTransport:
+  insecureSkipVerify: true
+  
 providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
@@ -43,17 +46,30 @@ tls:
 entryPoints:
   web:
     address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: web-secure
+          scheme: https
   web-secure:
     address: ":443"
+    asDefault: true
+    http:
+      middlewares:
+        - security-headers
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: lunarlabs.cc
+            sans:
+              - "*.lunarlabs.cc"
+        options: default
+
+
 
 # Dynamic configuration
 http:
   middlewares:
-    redirect-to-https:
-      redirectScheme:
-        scheme: https
-        permanent: true
-
     security-headers:
       headers:
         referrerPolicy: no-referrer
@@ -75,25 +91,11 @@ http:
           - "admin:$apr1$vrGy.yGR$ErMEKiDrV85ZrEwDu2kqZ0"
 
   routers:
-    redirect-to-https:
-      entrypoints:
-        - web
-      rule: hostregexp(`{host:.+}`)
-      middlewares:
-        - redirect-to-https
-
     traefik-secure:
       entrypoints:
         - web-secure
       rule: Host(`traefik.lunarlabs.cc`)
       service: api@internal
       middlewares:
-        - security-headers
         - api-auth
-      tls:
-        certResolver: cloudflare
-        domains:
-          - main: lunarlabs.cc
-            sans:
-              - "*.lunarlabs.cc"
-        options: default
+      tls: true
