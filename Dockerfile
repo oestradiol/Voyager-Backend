@@ -9,8 +9,10 @@ WORKDIR /app
 COPY . .
 
 # Build the application
-RUN rustup toolchain install nightly
-RUN RUSTFLAGS="-Z threads=8" cargo +nightly build --release --locked
+# RUN rustup toolchain install nightly
+# ENV RUSTFLAGS=-Z threads=8
+# RUN cargo +nightly build --release --locked
+RUN cargo build --release --locked
 
 ## Step 3: Production Image Setup
 FROM base AS runner

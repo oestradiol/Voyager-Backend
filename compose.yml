@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
     voyager:
         build: "./"
@@ -10,6 +8,8 @@ services:
             - "/var/run/docker.sock:/var/run/docker.sock:ro"
             - "./Logs/:/app/Logs/"
             - "./.env:/app/.env"
+        # ports:
+        #     - "8765:8765"
         labels:
             - "traefik.enable=true"
             - "traefik.http.routers.voyager.entrypoints=web,websecure"
@@ -33,9 +33,6 @@ services:
         env_file:
             - path: ./Mongo/.env
               required: true
-        environment:
-            - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
-            - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
         networks:
             - voyager-net
 
@@ -55,7 +52,7 @@ services:
             - "/var/run/docker.sock:/var/run/docker.sock:ro"
             - "./Traefik/traefik.yml:/traefik.yml:ro"
             - "./Traefik/acme.json:/acme.json"
-            - "./Traefik/configs:/configurations"
+            - "./Traefik/dynamic.yml:/dynamic.yml"
         labels:
             - traefik.enable=true
             - traefik.docker.network=traefik-net
@@ -63,6 +60,9 @@ services:
             - traefik.http.routers.traefik-secure.rule=Host(`traefik.alphiealph.me`)
             - traefik.http.routers.traefik-secure.service=api@internal
             - traefik.http.routers.traefik-secure.middlewares=user-auth@file
+        env_file:
+            - path: ./Traefik/.env
+              required: true
 
 networks:
     traefik-net:

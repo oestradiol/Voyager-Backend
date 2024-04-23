@@ -22,7 +22,7 @@ providers:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
   file:
-    filename: /configurations/dynamic.yml
+    filename: /dynamic.yml
 
 certificatesResolvers:
   letsencrypt:
@@ -30,5 +30,10 @@ certificatesResolvers:
       email: itzbunniyt@gmail.com
       storage: acme.json
       keyType: EC384
+      dnschallenge:
+        provider: cloudflare
+        delayBeforeCheck: 300
+        resolvers:
+          - 8.8.8.8:53
       httpChallenge:
         entryPoint: web

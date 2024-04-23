@@ -5,10 +5,7 @@ use crate::{
   utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 use axum::http::StatusCode;
-use bollard::{
-  container::{Config, CreateContainerOptions},
-  service::{HostConfig, PortBinding},
-};
+use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
 use tracing::{event, Level};
 
 use super::{DOCKER, DOCKER_RUNTIME};
@@ -16,6 +13,7 @@ use super::{DOCKER, DOCKER_RUNTIME};
 pub async fn create_container(
   name: String,
   port: u16,
+  #[allow(unused)]
   internal_port: u16,
   docker_image: &str,
 ) -> Result<String, VoyagerError> {
@@ -29,20 +27,28 @@ pub async fn create_container(
     platform: Some("linux/amd64".to_string()),
   });
 
-  let host_config = HostConfig {
-    port_bindings: Some(HashMap::from([(
-      format!("{}/tcp", internal_port),
-      Some(vec![PortBinding {
-        host_ip: Some("127.0.0.1".to_string()),
-        host_port: Some(port.to_string()),
-      }]),
-    )])),
-    ..Default::default()
-  };
+  // let host_config = HostConfig {
+  //   port_bindings: Some(HashMap::from([(
+  //     format!("{}/tcp", internal_port),
+  //     Some(vec![PortBinding {
+  //       host_ip: Some("127.0.0.1".to_string()),
+  //       host_port: Some(port.to_string()),
+  //     }]),
+  //   )])),
+  //   ..Default::default()
+  // };
 
   let config = Config {
     image: Some(docker_image.to_string()),
-    host_config: Some(host_config),
+    // host_config: Some(host_config),
+    networking_config: Some(
+      NetworkingConfig {
+        endpoints_config: HashMap::from([(
+          "traefik-net".to_string(),
+          Default::default(),
+        )]),
+      }
+    ),
     ..Default::default()
   };
 
