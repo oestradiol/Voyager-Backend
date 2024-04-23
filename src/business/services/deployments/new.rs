@@ -55,7 +55,7 @@ pub async fn new(
       dir_as_path: None,
     };
     manager.add_first(Box::new(git_clone));
-    manager = manager.start().await?;
+    manager.start().await?;
 
     if let Some(db_id) = manager.final_id.clone() {
       send_deployment_message(&db_id, &container_name, &host, &mode).await?;
@@ -96,19 +96,18 @@ impl TransactionManager {
     self.next = Some(command);
   }
 
-  async fn start(self) -> Result<Self, VoyagerError> {
-    let mut manager = self;
-    while let Some(mut command) = manager.next.take() {
-      let (mut inner_manager, result) = command.execute(manager).await;
+  async fn start(&mut self) -> Result<(), VoyagerError> {
+    while let Some(mut command) = self.next.take() {
+      let result = command.execute(self).await;
       if let Err(e) = result {
-        inner_manager.undo().await;
+        self.undo().await;
         return Err(e);
       }
 
-      inner_manager.history.push(command);
-      manager = inner_manager;
+      self.history.push(command);
     }
-    Ok(manager)
+
+    Ok(())
   }
 
   async fn undo(&self) {
@@ -120,7 +119,7 @@ impl TransactionManager {
 
 #[async_trait]
 trait Command: Sync + Send {
-  async fn execute(&mut self, mut manager: TransactionManager) -> (TransactionManager, Result<(), VoyagerError>);
+  async fn execute(&mut self, manager: &mut TransactionManager) -> Result<(), VoyagerError>;
   async fn undo(&self);
 }
 
@@ -135,42 +134,36 @@ struct GitClone {
 }
 #[async_trait]
 impl Command for GitClone {
-  async fn execute(&mut self, mut manager: TransactionManager) -> (TransactionManager, Result<(), VoyagerError>) {
-    let atom = async {
-      let directory = format!(
-        "{}_{}_{}",
-        self.repo_url.replace('/', "_"),
-        self.final_branch,
-        Uuid::new_v4()
-      );
-  
-      let base_dir = PathBuf::from(&*DEPLOYMENTS_DIR);
-      if !base_dir.exists() {
-        tokio::fs::create_dir_all(&base_dir).await.map_err(|e| VoyagerError::create_dir(Box::new(e)))?;
-      }
-      
-      let dir_as_path = base_dir.join(&directory);
-      git::clone(&self.repo_url, self.branch.take(), &dir_as_path)?;
-      Ok(dir_as_path)
-    };
+  async fn execute(&mut self, manager: &mut TransactionManager) -> Result<(), VoyagerError> {
+    let directory = format!(
+      "{}_{}_{}",
+      self.repo_url.replace('/', "_"),
+      self.final_branch,
+      Uuid::new_v4()
+    );
 
-    match atom.await {
-      Err(e) => (manager, Err(e)),
-      Ok(dir_as_path) => {
-        self.dir_as_path = Some(dir_as_path.clone());
-        let create_tar = CreateTar {
-          dir_as_path,
-          host: self.host.clone(),
-          mode: self.mode,
-          container_name: self.container_name.clone(),
-          repo_url: self.repo_url.clone(),
-          branch: self.final_branch.clone(),
-          tar_path: None,
-        };
-        manager.next = Some(Box::new(create_tar));
-        (manager, Ok(()))
-      }
+    let base_dir = PathBuf::from(&*DEPLOYMENTS_DIR);
+    if !base_dir.exists() {
+      tokio::fs::create_dir_all(&base_dir).await.map_err(|e| VoyagerError::create_dir(Box::new(e)))?;
     }
+    
+    let dir_as_path = base_dir.join(&directory);
+    git::clone(&self.repo_url, self.branch.take(), &dir_as_path)?;
+
+    self.dir_as_path = Some(dir_as_path.clone());
+
+    let create_tar = CreateTar {
+      dir_as_path,
+      host: self.host.clone(),
+      mode: self.mode,
+      container_name: self.container_name.clone(),
+      repo_url: self.repo_url.clone(),
+      branch: self.final_branch.clone(),
+      tar_path: None,
+    };
+    manager.next = Some(Box::new(create_tar));
+
+    Ok(())
   }
 
   async fn undo(&self) {
@@ -195,26 +188,24 @@ struct CreateTar {
 }
 #[async_trait]
 impl Command for CreateTar {
-  async fn execute(&mut self, mut manager: TransactionManager) -> (TransactionManager, Result<(), VoyagerError>) {
-    let result = tar::create(&self.dir_as_path).await.map_err(|e| VoyagerError::create_tar(Box::new(e)));
-    match result {
-      Err(e) => (manager, Err(e)),
-      Ok(tar_path) => {
-        self.tar_path = Some(tar_path.clone());
-        let create_image = CreateImage {
-          dir_as_path: self.dir_as_path.clone(),
-          tar_path,
-          host: self.host.clone(),
-          mode: self.mode,
-          container_name: self.container_name.clone(),
-          repo_url: self.repo_url.clone(),
-          branch: self.branch.clone(),
-          image_name: None,
-        };
-        manager.next = Some(Box::new(create_image));
-        (manager, Ok(()))
-      }
-    }
+  async fn execute(&mut self, manager: &mut TransactionManager) -> Result<(), VoyagerError> {
+    let tar_path = tar::create(&self.dir_as_path).await.map_err(|e| VoyagerError::create_tar(Box::new(e)))?;
+
+    self.tar_path = Some(tar_path.clone());
+
+    let create_image = CreateImage {
+      dir_as_path: self.dir_as_path.clone(),
+      tar_path,
+      host: self.host.clone(),
+      mode: self.mode,
+      container_name: self.container_name.clone(),
+      repo_url: self.repo_url.clone(),
+      branch: self.branch.clone(),
+      image_name: None,
+    };
+    manager.next = Some(Box::new(create_image));
+
+    Ok(())
   }
 
   async fn undo(&self) {
@@ -240,40 +231,35 @@ struct CreateImage {
 }
 #[async_trait]
 impl Command for CreateImage {
-  async fn execute(&mut self, mut manager: TransactionManager) -> (TransactionManager, Result<(), VoyagerError>) {
-    let atom = async {
-      let dockerfile = self.dir_as_path.join("Dockerfile");
-      let dockerfile_contents =
-        fs::read_to_string(&dockerfile).map_err(|e| VoyagerError::dockerfile_read(Box::new(e)))?;
-  
-      let internal_port = docker::find_internal_port(dockerfile_contents.as_str())?;
+  async fn execute(&mut self, manager: &mut TransactionManager) -> Result<(), VoyagerError> {
+    let dockerfile = self.dir_as_path.join("Dockerfile");
+    let dockerfile_contents =
+      fs::read_to_string(&dockerfile).map_err(|e| VoyagerError::dockerfile_read(Box::new(e)))?;
 
-      let container_name = self.container_name.clone();
-      let traefik_labels = utils::gen_traefik_labels(&container_name, &self.host, internal_port);
-  
-      let image_name = docker::build_image(&self.tar_path, &traefik_labels, None).await?;
-      Ok((image_name, container_name, internal_port))
+    let internal_port = docker::find_internal_port(dockerfile_contents.as_str())?;
+
+    let container_name = self.container_name.clone();
+    let traefik_labels = utils::gen_traefik_labels(&container_name, &self.host, internal_port);
+
+    let image_name = docker::build_image(&self.tar_path, &traefik_labels, None).await?;
+
+    self.image_name = Some(image_name.clone());
+
+    let create_container = CreateContainer {
+      dir_as_path: self.dir_as_path.clone(),
+      tar_path: self.tar_path.clone(),
+      container_name,
+      internal_port,
+      image_name,
+      mode: self.mode,
+      host: self.host.clone(),
+      repo_url: self.repo_url.clone(),
+      branch: self.branch.clone(),
+      container_id: None,
     };
-    match atom.await {
-      Err(e) => (manager, Err(e)),
-      Ok((image_name, container_name, internal_port)) => {
-        self.image_name = Some(image_name.clone());
-        let create_container = CreateContainer {
-          dir_as_path: self.dir_as_path.clone(),
-          tar_path: self.tar_path.clone(),
-          container_name,
-          internal_port,
-          image_name,
-          mode: self.mode,
-          host: self.host.clone(),
-          repo_url: self.repo_url.clone(),
-          branch: self.branch.clone(),
-          container_id: None,
-        };
-        manager.next = Some(Box::new(create_container));
-        (manager, Ok(()))
-      }
-    }
+    manager.next = Some(Box::new(create_container));
+
+    Ok(())
   }
   async fn undo(&self) {
     if let Some(image_name) = &self.image_name {
@@ -296,37 +282,32 @@ struct CreateContainer {
 }
 #[async_trait]
 impl Command for CreateContainer {
-  async fn execute(&mut self, mut manager: TransactionManager) -> (TransactionManager, Result<(), VoyagerError>){
-    let atom = async {
-      tokio::fs::remove_dir_all(&self.dir_as_path)
-        .await
-        .map_err(|e| VoyagerError::delete_file_or_dir(Box::new(e)))?;
-      tokio::fs::remove_file(&self.tar_path).await
-        .map_err(|e| VoyagerError::delete_file_or_dir(Box::new(e)))?;
-      
-      let free_port = get_free_port()?;
-      let container_id =
-        docker::create_container(self.container_name.clone(), free_port, self.internal_port, &self.image_name).await?;
-      Ok((container_id, free_port))
+  async fn execute(&mut self, manager: &mut TransactionManager) -> Result<(), VoyagerError> {
+    tokio::fs::remove_dir_all(&self.dir_as_path)
+      .await
+      .map_err(|e| VoyagerError::delete_file_or_dir(Box::new(e)))?;
+    tokio::fs::remove_file(&self.tar_path).await
+      .map_err(|e| VoyagerError::delete_file_or_dir(Box::new(e)))?;
+    
+    let port = get_free_port()?;
+    let container_id =
+      docker::create_container(self.container_name.clone(), port, self.internal_port, &self.image_name).await?;
+
+    self.container_id = Some(container_id.clone());
+
+    let start_container = StartContainer {
+      container_id,
+      image_name: self.image_name.clone(),
+      container_name: self.container_name.clone(),
+      port,
+      mode: self.mode,
+      host: self.host.clone(),
+      repo_url: self.repo_url.clone(),
+      branch: self.branch.clone(),
     };
-    match atom.await {
-      Err(e) => (manager, Err(e)),
-      Ok((container_id, port)) => {
-        self.container_id = Some(container_id.clone());
-        let start_container = StartContainer {
-          container_id,
-          image_name: self.image_name.clone(),
-          container_name: self.container_name.clone(),
-          port,
-          mode: self.mode,
-          host: self.host.clone(),
-          repo_url: self.repo_url.clone(),
-          branch: self.branch.clone(),
-        };
-        manager.next = Some(Box::new(start_container));
-        (manager, Ok(()))
-      }
-    }
+    manager.next = Some(Box::new(start_container));
+
+    Ok(())
   }
 
   async fn undo(&self) {
@@ -346,22 +327,23 @@ struct StartContainer {
 }
 #[async_trait]
 impl Command for StartContainer {
-  async fn execute(&mut self, mut manager: TransactionManager) -> (TransactionManager, Result<(), VoyagerError>) {
-    if let Err(e) = docker::start_container(self.container_name.clone()).await { (manager, Err(e)) } else { 
-      let add_dns_record = AddDNSRecord {
-        container_id: self.container_id.clone(),
-        image_name: self.image_name.clone(),
-        container_name: self.container_name.clone(),
-        port: self.port,
-        mode: self.mode,
-        host: self.host.clone(),
-        repo_url: self.repo_url.clone(),
-        branch: self.branch.clone(),
-        dns_record_id: None,
-      };
-      manager.next = Some(Box::new(add_dns_record));
-      (manager, Ok(()))
-    }
+  async fn execute(&mut self, manager: &mut TransactionManager) -> Result<(), VoyagerError> {
+    docker::start_container(self.container_name.clone()).await?;
+
+    let add_dns_record = AddDNSRecord {
+      container_id: self.container_id.clone(),
+      image_name: self.image_name.clone(),
+      container_name: self.container_name.clone(),
+      port: self.port,
+      mode: self.mode,
+      host: self.host.clone(),
+      repo_url: self.repo_url.clone(),
+      branch: self.branch.clone(),
+      dns_record_id: None,
+    };
+    manager.next = Some(Box::new(add_dns_record));
+
+    Ok(())
   }
 
   async fn undo(&self) {
@@ -382,28 +364,26 @@ struct AddDNSRecord {
 }
 #[async_trait]
 impl Command for AddDNSRecord {
-  async fn execute(&mut self, mut manager: TransactionManager) -> (TransactionManager, Result<(), VoyagerError>) {
-    let result = cloudflare::add_dns_record(&self.host, &HOST_IP, &self.mode).await;
-    match result {
-      Err(e) => (manager, Err(e)),
-      Ok(dns_record_id) => {
-        self.dns_record_id = Some(dns_record_id.clone());
-        let save_deployment = SaveDeployment {
-          container_id: self.container_id.clone(),
-          dns_record_id,
-          image_name: self.image_name.clone(),
-          container_name: self.container_name.clone(),
-          port: self.port,
-          mode: self.mode,
-          host: self.host.clone(),
-          repo_url: self.repo_url.clone(),
-          branch: self.branch.clone(),
-          deployment_id: None,
-        };
-        manager.next = Some(Box::new(save_deployment));
-        (manager, Ok(()))
-      }
-    }
+  async fn execute(&mut self, manager: &mut TransactionManager) -> Result<(), VoyagerError> {
+    let dns_record_id = cloudflare::add_dns_record(&self.host, &HOST_IP, &self.mode).await?;
+
+    self.dns_record_id = Some(dns_record_id.clone());
+
+    let save_deployment = SaveDeployment {
+      container_id: self.container_id.clone(),
+      dns_record_id,
+      image_name: self.image_name.clone(),
+      container_name: self.container_name.clone(),
+      port: self.port,
+      mode: self.mode,
+      host: self.host.clone(),
+      repo_url: self.repo_url.clone(),
+      branch: self.branch.clone(),
+      deployment_id: None,
+    };
+    manager.next = Some(Box::new(save_deployment));
+
+    Ok(())
   }
 
   async fn undo(&self) {
@@ -427,7 +407,7 @@ struct SaveDeployment {
 }
 #[async_trait]
 impl Command for SaveDeployment {
-  async fn execute(&mut self, mut manager: TransactionManager) -> (TransactionManager, Result<(), VoyagerError>) {
+  async fn execute(&mut self, manager: &mut TransactionManager) -> Result<(), VoyagerError> {
     let deployment = Deployment {
       _id: ObjectId::new(),
       container_id: self.container_id.clone(),
@@ -441,18 +421,15 @@ impl Command for SaveDeployment {
       branch: self.branch.clone(),
     };
     
-    let result = save(deployment).await;
+    let deployment_id = save(deployment).await?;
+    let deployment_id = deployment_id.to_string();
 
-    match result {
-      Err(e) => (manager, Err(e)),
-      Ok(deployment_id) => {
-        let deployment_id = deployment_id.to_string();
-        self.deployment_id = Some(deployment_id.clone());
-        manager.final_id = Some(deployment_id);
-        manager.next = None;
-        (manager, Ok(()))
-      }
-    }
+    self.deployment_id = Some(deployment_id.clone());
+
+    manager.final_id = Some(deployment_id);
+    manager.next = None;
+
+    Ok(())
   }
 
   async fn undo(&self) {
