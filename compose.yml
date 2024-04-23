@@ -10,7 +10,7 @@ services:
             - "./.env:/app/.env"
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.voyager.entrypoints=web,websecure"
+            - "traefik.http.routers.voyager.entrypoints=http,https"
             - "traefik.http.routers.voyager.rule=Host(`voyager-api.lunarlabs.cc`)"
             - "traefik.http.routers.voyager.service=voyager"
             - "traefik.http.routers.voyager.tls=true"
@@ -56,7 +56,7 @@ services:
             - traefik.docker.network=traefik-net
             - traefik.http.routers.traefik.entrypoints=http
             - traefik.http.routers.traefik.rule=Host(`traefik.lunarlabs.cc`)
-            - traefik.http.routers.traefik.middlewares=traefik-https-redirect
+            - traefik.http.routers.traefik.middlewares=traefik-https-redirect@file
             - traefik.http.routers.traefik-secure.entrypoints=https
             - traefik.http.routers.traefik-secure.rule=Host(`traefik.lunarlabs.cc`)
             - traefik.http.routers.traefik-secure.service=api@internal
