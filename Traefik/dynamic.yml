@@ -1,19 +1,19 @@
 # Dynamic configuration
 http:
   middlewares:
-    traefik-https-redirect:
-      redirectScheme:
-        scheme: https
-        permanent: true
-    sslheader:
-      headers:
-        sslRedirect: true
-        forceSTSHeader: true
-        stsIncludeSubdomains: true
-        stsPreload: true
-        stsSeconds: 31536000
-        customrequestheaders:
-          X-Forwarded-Proto: "https"
+    # traefik-https-redirect:
+    #   redirectScheme:
+    #     scheme: https
+    #     permanent: true
+    # sslheader:
+    #   headers:
+    #     sslRedirect: true
+    #     forceSTSHeader: true
+    #     stsIncludeSubdomains: true
+    #     stsPreload: true
+    #     stsSeconds: 31536000
+    #     customrequestheaders:
+    #       X-Forwarded-Proto: "https"
     user-auth:
       basicAuth:
         users:
