@@ -3,7 +3,7 @@ pub fn gen_traefik_labels(name: &str, host: &str, internal_port: u16) -> Vec<(St
     ("traefik.enable".to_string(), "true".to_string()),
     (
       format!("traefik.http.routers.voyager-{name}.entrypoints"),
-      "web,websecure".to_string(),
+      "web-secure".to_string(),
     ),
     (
       format!("traefik.http.routers.voyager-{name}.rule"),
