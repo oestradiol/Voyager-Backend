@@ -19,9 +19,9 @@ pub fn gen_traefik_labels(name: &str, host: &str, internal_port: u16) -> Vec<(St
       ),
       format!("{internal_port}"),
     ),
-    (
-      format!("traefik.http.routers.voyager-{name}.tls"),
-      "true".to_string(),
-    ),
+    // (
+    //   format!("traefik.http.routers.voyager-{name}.tls"),
+    //   "true".to_string(),
+    // ),
   ]
 }

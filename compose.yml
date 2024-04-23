@@ -10,8 +10,8 @@ services:
             - "./.env:/app/.env"
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.voyager.entrypoints=web,web-secure"
-            - "traefik.http.routers.voyager.rule=HostRegexp(`{host:.+}`)"
+            - "traefik.http.routers.voyager.entrypoints=web-secure"
+            - "traefik.http.routers.voyager.rule=Host(`voyager-api.lunarlabs.cc`)"
             - "traefik.http.routers.voyager.service=voyager"
             - "traefik.http.services.voyager.loadbalancer.server.port=8765"
         depends_on:
@@ -48,7 +48,6 @@ services:
             - "/var/run/docker.sock:/var/run/docker.sock:ro"
             - "./Traefik/traefik.yml:/traefik.yml:ro"
             - "./Traefik/acme.json:/acme.json"
-            - "./Traefik/dynamic.yml:/dynamic.yml"
             - "./Traefik/Logs:/var/log/traefik"
         labels:
             - traefik.enable=true
