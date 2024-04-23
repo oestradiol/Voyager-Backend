@@ -17,6 +17,9 @@ providers:
   docker:
     endpoint: "unix:///var/run/docker.sock"
     exposedByDefault: false
+  file:
+    filename: /traefik.yml
+    watch: true
 
 certificatesResolvers:
   cloudflare:
@@ -53,10 +56,9 @@ entryPoints:
           scheme: https
   web-secure:
     address: ":443"
-    asDefault: true
     http:
       middlewares:
-        - security-headers
+        - security-headers@file
       tls:
         certResolver: cloudflare
         domains:
