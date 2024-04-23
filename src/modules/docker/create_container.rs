@@ -5,7 +5,7 @@ use crate::{
   utils::{runtime_helpers::RuntimeSpawnHandled, Error},
 };
 use axum::http::StatusCode;
-use bollard::container::{Config, CreateContainerOptions, NetworkingConfig};
+use bollard::{container::{Config, CreateContainerOptions, NetworkingConfig}, secret::EndpointSettings};
 use tracing::{event, Level};
 
 use super::{DOCKER, DOCKER_RUNTIME};
@@ -21,11 +21,6 @@ pub async fn create_container(
     Level::INFO,
     "Creating a new container {name} at port {port}. Docker Image: {docker_image}"
   );
-
-  let options = Some(CreateContainerOptions {
-    name,
-    platform: Some("linux/amd64".to_string()),
-  });
 
   // let host_config = HostConfig {
   //   port_bindings: Some(HashMap::from([(
@@ -45,12 +40,20 @@ pub async fn create_container(
       NetworkingConfig {
         endpoints_config: HashMap::from([(
           "traefik-net".to_string(),
-          Default::default(),
+          EndpointSettings {
+            aliases: Some(vec![name.clone()]),
+            ..Default::default()
+          },
         )]),
       }
     ),
     ..Default::default()
   };
+
+  let options = Some(CreateContainerOptions {
+    name,
+    platform: Some("linux/amd64".to_string()),
+  });
 
   let result = DOCKER_RUNTIME
     .spawn_handled(

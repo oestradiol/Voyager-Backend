@@ -8,17 +8,16 @@ services:
             - "/var/run/docker.sock:/var/run/docker.sock:ro"
             - "./Logs/:/app/Logs/"
             - "./.env:/app/.env"
-        # ports:
-        #     - "8765:8765"
         labels:
             - "traefik.enable=true"
             - "traefik.http.routers.voyager.entrypoints=web,websecure"
-            - "traefik.http.routers.voyager.rule=Host(`voyager-api.alphiealph.me`)"
+            - "traefik.http.routers.voyager.rule=Host(`voyager-api.lunarlabs.cc`)"
             - "traefik.http.routers.voyager.service=voyager"
-            - "traefik.http.services.voyager.loadbalancer.server.port=8765"
             - "traefik.http.routers.voyager.tls=true"
+            - "traefik.http.services.voyager.loadbalancer.server.port=8765"
         depends_on:
             - mongo
+            - traefik
         networks:
             - traefik-net
             - voyager-net
@@ -42,8 +41,6 @@ services:
         restart: unless-stopped
         security_opt:
             - "no-new-privileges:true"
-        networks:
-            - traefik-net
         ports:
             - "80:80"
             - "443:443"
@@ -53,16 +50,26 @@ services:
             - "./Traefik/traefik.yml:/traefik.yml:ro"
             - "./Traefik/acme.json:/acme.json"
             - "./Traefik/dynamic.yml:/dynamic.yml"
+            - "./Traefik/Logs:/var/log/traefik"
         labels:
             - traefik.enable=true
             - traefik.docker.network=traefik-net
-            - traefik.http.routers.traefik-secure.entrypoints=websecure
-            - traefik.http.routers.traefik-secure.rule=Host(`traefik.alphiealph.me`)
+            - traefik.http.routers.traefik.entrypoints=http
+            - traefik.http.routers.traefik.rule=Host(`traefik.lunarlabs.cc`)
+            - traefik.http.routers.traefik.middlewares=traefik-https-redirect
+            - traefik.http.routers.traefik-secure.entrypoints=https
+            - traefik.http.routers.traefik-secure.rule=Host(`traefik.lunarlabs.cc`)
             - traefik.http.routers.traefik-secure.service=api@internal
             - traefik.http.routers.traefik-secure.middlewares=user-auth@file
+            - traefik.http.routers.traefik-secure.tls=true
+            - traefik.http.routers.traefik-secure.tls.certresolver=cloudflare
+            - traefik.http.routers.traefik-secure.tls.domains[0].main=lunarlabs.cc
+            - traefik.http.routers.traefik-secure.tls.domains[0].sans=*.lunarlabs.cc
         env_file:
             - path: ./Traefik/.env
               required: true
+        networks:
+            - traefik-net
 
 networks:
     traefik-net:
