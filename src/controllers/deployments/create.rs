@@ -72,7 +72,7 @@ pub async fn create(Query(queries): Query<HashMap<String, String>>) -> impl Into
   let branch = split.get(1).map(std::string::ToString::to_string);
 
   match async {
-    deployments::check(host.clone(), mode, repo_url.clone(), branch.clone()).await?;
+    deployments::check(&host, mode, repo_url.clone(), branch.clone()).await?;
     deployments::new(host, mode, repo_url, branch).await
   }.await {
     Ok(deployment_id) => (

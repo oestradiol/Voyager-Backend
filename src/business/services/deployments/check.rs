@@ -8,7 +8,7 @@ use crate::types::other::voyager_error::VoyagerError;
 use crate::utils::runtime_helpers::RuntimeSpawnHandled;
 
 pub async fn check(
-  host: String,
+  host: &str,
   mode: Mode,
   repo_url: String,
   branch: Option<String>,
@@ -24,8 +24,9 @@ pub async fn check(
   }
   event!(Level::INFO, log);
 
+  let host = host.replace('.', "-");
   let future = async move {
-    let result = repositories::deployments::find_by_name(host.replace('.', "-")).await?;
+    let result = repositories::deployments::find_by_name(host).await?;
     match result {
       Some(_) => Err(VoyagerError::new(
         format!("Deployment at this subdomain already exists!"),

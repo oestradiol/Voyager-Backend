@@ -9,15 +9,15 @@ use axum::http::StatusCode;
 use mongodb::bson::{doc, oid::ObjectId};
 use tracing::{event, Level};
 
-pub async fn find_by_id(id: String) -> Result<Deployment, VoyagerError> {
+pub async fn find_by_id(id: &str) -> Result<Deployment, VoyagerError> {
   event!(
     Level::DEBUG,
     "Finding deployment with id {} in database",
     &id
   );
 
-  let oid = ObjectId::from_str(id.as_str())
-    .map_err(|e| VoyagerError::invalid_find_id(Box::new(e), &id))?;
+  let oid = ObjectId::from_str(id)
+    .map_err(|e| VoyagerError::invalid_find_id(Box::new(e), id))?;
 
   let result = REPOSITORIES_RUNTIME
     .spawn_handled(
@@ -27,8 +27,8 @@ pub async fn find_by_id(id: String) -> Result<Deployment, VoyagerError> {
     .await?;
 
   let result = result.map_or_else(
-    |e| Err(VoyagerError::find_mongo_id(Box::new(e), &id)),
-    |r| r.ok_or_else(|| VoyagerError::find_null_id(&id)),
+    |e| Err(VoyagerError::find_mongo_id(Box::new(e), id)),
+    |r| r.ok_or_else(|| VoyagerError::find_null_id(id)),
   )?;
 
   event!(Level::DEBUG, "Done finding deployment");

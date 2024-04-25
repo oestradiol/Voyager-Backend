@@ -11,9 +11,8 @@ pub async fn retrieve_all(
   repo_url: Option<String>,
   branch: Option<String>,
 ) -> Result<Vec<Deployment>, VoyagerError> {
-  let repo_and_branch = branch.clone().map_or(String::new(), |b| format!("@{b}"));
-  let repo_and_branch = repo_url
-    .clone()
+  let repo_and_branch = branch.as_ref().map_or(String::new(), |b| format!("@{b}"));
+  let repo_and_branch = repo_url.as_ref()
     .map_or(String::new(), |r| format!("{r}{repo_and_branch}"));
 
   event!(
@@ -24,8 +23,8 @@ pub async fn retrieve_all(
   let future = async move {
     let document = repo_url
       .map_or_else(|| doc! { }, |repo_url|
-        branch.map_or_else(|| doc! {"repo_url": repo_url.clone()}, |branch|
-          doc! {"repo_url": repo_url.clone(), "branch": branch}
+        branch.map_or_else(|| doc! {"repo_url": &repo_url}, |branch|
+          doc! {"repo_url": &repo_url, "branch": branch}
         )
       );
 

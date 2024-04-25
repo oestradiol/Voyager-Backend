@@ -11,10 +11,10 @@ pub async fn list(
   branch: Option<String>,
 ) -> Result<Vec<Deployment>, VoyagerError> {
   let mut log = "Retrieving deployments".to_string();
-  if let Some(repo) = repo_url.clone() {
+  if let Some(repo) = repo_url.as_ref() {
     log = format!("{log}. Repo: {repo}");
   }
-  if let Some(branch) = branch.clone() {
+  if let Some(branch) = branch.as_ref() {
     log = format!("{log}. Branch: {branch}");
   }
   event!(Level::INFO, log);

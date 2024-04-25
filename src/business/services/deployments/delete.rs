@@ -14,7 +14,7 @@ pub async fn delete(deployment_id: String) -> Result<(), VoyagerError> {
   event!(Level::INFO, "Deleting deployment: {}", &deployment_id);
 
   let future = async move {
-    let deployment = repositories::deployments::find_by_id(deployment_id.clone()).await?;
+    let deployment = repositories::deployments::find_by_id(&deployment_id).await?;
     let name = deployment.container_name;
 
     if is_container_running(name.clone()).await? {
