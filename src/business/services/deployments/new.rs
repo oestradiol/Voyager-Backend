@@ -36,13 +36,13 @@ pub async fn new(
   repo_url: String,
   branch: Option<String>,
 ) -> Result<String, VoyagerError> {
-  let mut final_branch = "default".to_string();
-
+  let final_branch: String;
   let mut log = format!("Creating deployment with host {host}, mode {mode}, repo_url {repo_url}");
   if let Some(branch) = branch.as_ref() {
-    final_branch.clone_from(branch);
+    final_branch = branch.clone();
     log = format!("{log}, branch {branch}");
   } else {
+    final_branch = "default".to_string();
     log = format!("{log}, branch default");
   }
   event!(Level::INFO, log);
