@@ -12,14 +12,13 @@ use super::{DOCKER, DOCKER_RUNTIME};
 
 pub async fn create_container(
   name: String,
-  port: u16,
-  #[allow(unused)]
-  internal_port: u16,
+  // port: u16,
+  // internal_port: u16,
   docker_image: &str,
 ) -> Result<String, VoyagerError> {
   event!(
     Level::INFO,
-    "Creating a new container {name} at port {port}. Docker Image: {docker_image}"
+    "Creating a new container {name}. Docker Image: {docker_image}"
   );
 
   // let host_config = HostConfig {

@@ -7,22 +7,22 @@ use axum::http::StatusCode;
 use mongodb::bson::doc;
 use tracing::{event, Level};
 
-pub async fn find_by_name(name: String) -> Result<Option<Deployment>, VoyagerError> {
+pub async fn find_by_name(name: &str) -> Result<Option<Deployment>, VoyagerError> {
   event!(
     Level::DEBUG,
     "Finding deployment with hostname {} in database",
-    &name
+    name
   );
 
   let result = REPOSITORIES_RUNTIME
     .spawn_handled(
       "repositories::deployments::find_by_name",
-      DB_CONTEXT.deployments.find_one(doc! { "container_name": &name }, None),
+      DB_CONTEXT.deployments.find_one(doc! { "container_name": name }, None),
     )
     .await?;
 
   let result = result.map_or_else(
-    |e| Err(VoyagerError::find_mongo_name(Box::new(e), &name)),
+    |e| Err(VoyagerError::find_mongo_name(Box::new(e), name)),
     |r| Ok(r),
   )?;
 

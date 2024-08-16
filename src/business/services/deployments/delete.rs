@@ -24,9 +24,9 @@ pub async fn delete(deployment_id: String) -> Result<(), VoyagerError> {
     delete_dns_record(&deployment.dns_record_id).await?;
     
     delete_container(name.clone()).await?;
-    delete_image(deployment.image_name).await?;
+    delete_image(deployment.image_id).await?;
 
-    repositories::deployments::delete(deployment_id).await?;
+    repositories::deployments::delete(&deployment_id).await?;
 
     // TODO: notify user via email
 

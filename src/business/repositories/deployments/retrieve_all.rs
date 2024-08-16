@@ -24,7 +24,7 @@ pub async fn retrieve_all(
     let document = repo_url
       .map_or_else(|| doc! { }, |repo_url|
         branch.map_or_else(|| doc! {"repo_url": &repo_url}, |branch|
-          doc! {"repo_url": &repo_url, "branch": branch}
+          doc! {"repo_url": &repo_url, "branch": &branch}
         )
       );
 

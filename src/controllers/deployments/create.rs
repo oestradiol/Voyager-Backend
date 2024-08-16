@@ -10,12 +10,12 @@ use crate::{
 };
 
 pub async fn create(Query(queries): Query<HashMap<String, String>>) -> impl IntoResponse {
-  let mode = queries.get("mode").cloned();
-  let repo_url = queries.get("repoUrl").cloned();
-  let subdomain = queries.get("subdomain").cloned();
+  let mode = queries.get("mode");
+  let repo_url = queries.get("repoUrl");
+  let subdomain = queries.get("subdomain");
 
   // Validations
-  let mode = match mode.as_deref() {
+  let mode = match mode.map(|s| s.as_str()) {
     Some("production") => Mode::Production,
     Some("preview") => Mode::Preview,
     Some(_) => {
@@ -98,8 +98,8 @@ pub async fn create(Query(queries): Query<HashMap<String, String>>) -> impl Into
   }
 }
 
-fn resolve_host(subdomain: Option<String>, mode: &Mode) -> Option<String> {
-  let subdomain = subdomain.unwrap_or_default();
+fn resolve_host(subdomain: Option<&String>, mode: &Mode) -> Option<String> {
+  let subdomain = subdomain.map(|s| s.as_ref()).unwrap_or_default();
   
   // Validates the subdomain
   #[allow(clippy::unwrap_used)] // We know that the unwrap will always succeed because it is a valid Regex

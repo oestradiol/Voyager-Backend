@@ -10,7 +10,7 @@ pub async fn get_logs(id: String) -> Result<Vec<String>, VoyagerError> {
   event!(Level::INFO, "Retrieving deployment logs. Id: {id}");
 
   let future = async move {
-    let deployment = repositories::deployments::find_by_id(id).await?;
+    let deployment = repositories::deployments::find_by_id(&id).await?;
 
     docker::get_logs(&deployment.container_name).await
   };

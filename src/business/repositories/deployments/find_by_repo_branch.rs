@@ -7,23 +7,23 @@ use axum::http::StatusCode;
 use mongodb::bson::doc;
 use tracing::{event, Level};
 
-pub async fn find_by_repo_branch(repo_url: String, branch: String) -> Result<Option<Deployment>, VoyagerError> {
+pub async fn find_by_repo_branch(repo_url: &str, branch: &str) -> Result<Option<Deployment>, VoyagerError> {
   event!(
     Level::DEBUG,
     "Finding deployment with repo url {} and branch {} in database",
-    &repo_url,
-    &branch
+    repo_url,
+    branch
   );
 
   let result = REPOSITORIES_RUNTIME
     .spawn_handled(
       "repositories::deployments::find_by_repo_branch",
-      DB_CONTEXT.deployments.find_one(doc! { "repo_url": &repo_url, "branch": &branch }, None),
+      DB_CONTEXT.deployments.find_one(doc! { "repo_url": repo_url, "branch": branch }, None),
     )
     .await?;
 
   let result = result.map_or_else(
-    |e| Err(VoyagerError::find_mongo_repo_branch(Box::new(e), &repo_url, &branch)),
+    |e| Err(VoyagerError::find_mongo_repo_branch(Box::new(e), repo_url, branch)),
     |r| Ok(r),
   )?;
 

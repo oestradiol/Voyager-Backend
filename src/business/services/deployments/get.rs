@@ -12,7 +12,7 @@ pub async fn get(id: String) -> Result<Deployment, VoyagerError> {
   let result = SERVICES_RUNTIME
     .spawn_handled(
       "services::deployments::get",
-      repositories::deployments::find_by_id(id),
+      async move { repositories::deployments::find_by_id(&id).await },
     )
     .await?;
 

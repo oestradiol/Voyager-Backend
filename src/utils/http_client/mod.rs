@@ -31,7 +31,7 @@ impl HTTPClient {
     #[allow(clippy::unwrap_used)] // Should never fail
     headers.insert(ACCEPT, "application/json".parse().unwrap());
     #[allow(clippy::unwrap_used)] // Should never fail
-    headers.insert(USER_AGENT, "reqwest".parse().unwrap());
+    headers.insert(USER_AGENT, "Voyager".parse().unwrap());
     headers
   }
 
@@ -75,7 +75,7 @@ impl HTTPClient {
     body: Option<&(impl Serialize + Send + Sync)>,
   ) -> Result<reqwest::Response, Error> {
     let action = |client: Arc<RwLock<ClientWrapper>>, method: Method| async move {
-      client.write().await.request(method, route, body).await
+      client.read().await.request(method, route, body).await
     };
 
     let client = self.get_client(false);

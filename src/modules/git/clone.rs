@@ -18,9 +18,9 @@ pub fn clone(
 ) -> Result<Repository, VoyagerError> {
   event!(Level::INFO, "Cloning repository: {}", repo_url);
 
-  let username = GIT_USERNAME.as_ref();
+  let username = &*GIT_USERNAME;
 
-  let pat = GIT_PAT.as_ref();
+  let pat = &*GIT_PAT;
   let repo_url = format!("https://git.lunarlabs.cc/{repo_url}.git");
 
   // Configure authentication

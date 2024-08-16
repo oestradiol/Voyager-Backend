@@ -6,8 +6,8 @@ use axum::http::StatusCode;
 use bollard::image::RemoveImageOptions;
 use tracing::{event, Level};
 
-pub async fn delete_image(image_name: String) -> Result<(), VoyagerError> {
-  event!(Level::INFO, "Deleting image {image_name}");
+pub async fn delete_image(image_id: String) -> Result<(), VoyagerError> {
+  event!(Level::INFO, "Deleting image {image_id}");
 
   let options = Some(RemoveImageOptions {
     force: true,
@@ -16,7 +16,7 @@ pub async fn delete_image(image_name: String) -> Result<(), VoyagerError> {
 
   DOCKER_RUNTIME
     .spawn_handled("modules::docker::delete_image", async move {
-      DOCKER.remove_image(&image_name, options, None).await
+      DOCKER.remove_image(&image_id, options, None).await
     })
     .await?
     .map_err(|e| VoyagerError::delete_image(Box::new(e)))?;

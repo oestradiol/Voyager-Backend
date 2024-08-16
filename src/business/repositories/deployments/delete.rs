@@ -9,14 +9,14 @@ use axum::http::StatusCode;
 use mongodb::bson::{doc, oid::ObjectId};
 use tracing::{event, Level};
 
-pub async fn delete(id: String) -> Result<(), VoyagerError> {
+pub async fn delete(id: &str) -> Result<(), VoyagerError> {
   event!(
     Level::DEBUG,
     "Deleting deployment of id {id} from database."
   );
 
-  let oid = ObjectId::from_str(id.as_str())
-    .map_err(|e| VoyagerError::invalid_delete_id(Box::new(e), &id))?;
+  let oid = ObjectId::from_str(id)
+    .map_err(|e| VoyagerError::invalid_delete_id(Box::new(e), id))?;
 
   let result = REPOSITORIES_RUNTIME
     .spawn_handled(
@@ -28,10 +28,10 @@ pub async fn delete(id: String) -> Result<(), VoyagerError> {
     .await?;
 
   let result = result.map_or_else(
-    |e| Err(VoyagerError::delete_mongo(Box::new(e), &id)),
+    |e| Err(VoyagerError::delete_mongo(Box::new(e), id)),
     |r| {
       if r.deleted_count == 0 {
-        Err(VoyagerError::delete(&id))
+        Err(VoyagerError::delete(id))
       } else {
         Ok(())
       }

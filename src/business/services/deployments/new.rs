@@ -15,7 +15,7 @@ use crate::modules::discord::send_deployment_message;
 use crate::modules::{cloudflare, git};
 use crate::types::model::deployment;
 use crate::types::other::voyager_error::VoyagerError;
-use crate::utils::{self, get_free_port};
+use crate::utils::{self};
 use crate::utils::runtime_helpers::RuntimeSpawnHandled;
 use crate::modules::docker;
 use async_trait::async_trait;
@@ -64,9 +64,9 @@ pub async fn new(
       dir_as_path: None,
       tar_path: None,
       container_id: None,
-      port: None,
-      internal_port: None,
-      image_name: None,
+      // port: None,
+      // internal_port: None,
+      image_id: None,
       dns_record_id: None,
       final_id: None,
     };
@@ -104,10 +104,10 @@ struct TransactionManager {
   container_id: Option<String>,
   host: Option<String>,
   mode: Option<Mode>,
-  port: Option<u16>,
-  internal_port: Option<u16>,
+  // port: Option<u16>,
+  // internal_port: Option<u16>,
   container_name: Option<String>,
-  image_name: Option<String>,
+  image_id: Option<String>,
   dns_record_id: Option<String>,
 
   final_id: Option<String>,
@@ -209,21 +209,20 @@ impl Command for CreateImage {
       fs::read_to_string(&dockerfile).map_err(|e| VoyagerError::dockerfile_read(Box::new(e)))?;
 
     let internal_port = docker::find_internal_port(dockerfile_contents.as_str())?;
-
     let traefik_labels = utils::gen_traefik_labels(manager.container_name.as_ref().unwrap(), manager.host.as_ref().unwrap(), internal_port);
 
-    let image_name = docker::build_image(manager.tar_path.as_ref().unwrap(), &traefik_labels, None).await?;
+    let image_id = docker::build_image(manager.tar_path.as_ref().unwrap(), &traefik_labels, None).await?;
 
-    manager.internal_port = Some(internal_port);
-    manager.image_name = Some(image_name);
+    // manager.internal_port = Some(internal_port);
+    manager.image_id = Some(image_id);
 
     manager.next = Some(Box::new(CreateContainer));
 
     Ok(())
   }
   async fn undo(&self, manager: &TransactionManager) {
-    let image_name = manager.image_name.clone().unwrap();
-    let _ = docker::delete_image(image_name).await;
+    let image_id = manager.image_id.clone().unwrap();
+    let _ = docker::delete_image(image_id).await;
   }
 }
 
@@ -237,11 +236,11 @@ impl Command for CreateContainer {
     tokio::fs::remove_file(manager.tar_path.as_ref().unwrap()).await
       .map_err(|e| VoyagerError::delete_file_or_dir(Box::new(e)))?;
     
-    let port = get_free_port()?;
+    // let port = get_free_port()?;
     let container_id =
-      docker::create_container(manager.container_name.clone().unwrap(), port, manager.internal_port.unwrap(), manager.image_name.as_ref().unwrap()).await?;
+      docker::create_container(manager.container_name.clone().unwrap(),/* port, manager.internal_port.unwrap(), */manager.image_id.as_ref().unwrap()).await?;
 
-    manager.port = Some(port);
+    // manager.port = Some(port);
     manager.container_id = Some(container_id);
 
     manager.next = Some(Box::new(StartContainer));
@@ -297,9 +296,9 @@ impl Command for SaveDeployment {
       _id: ObjectId::new(),
       container_id: manager.container_id.take().unwrap(),
       dns_record_id: manager.dns_record_id.clone().unwrap(),
-      image_name: manager.image_name.clone().unwrap(),
+      image_id: manager.image_id.clone().unwrap(),
       container_name: manager.container_name.clone().unwrap(),
-      port: manager.port.take().unwrap(),
+      // port: manager.port.take().unwrap(),
       mode: manager.mode.take().unwrap(),
       host: manager.host.take().unwrap(),
       repo_url: manager.repo_url.take().unwrap(),
@@ -315,7 +314,7 @@ impl Command for SaveDeployment {
   }
 
   async fn undo(&self, manager: &TransactionManager) {
-    let deployment_id = manager.final_id.clone().unwrap();
+    let deployment_id = manager.final_id.as_ref().unwrap();
     let _ = repositories::deployments::delete(deployment_id).await;
   }
 }

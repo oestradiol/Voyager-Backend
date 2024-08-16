@@ -1,5 +1,6 @@
 target/
 Logs/
+Deployments/
 
 # Local environment
 .env
